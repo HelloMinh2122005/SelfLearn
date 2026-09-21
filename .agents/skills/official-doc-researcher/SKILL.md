@@ -34,6 +34,11 @@ When querying search engines or looking up docs, restrict or prioritize these of
 | **OpenJDK Features/JEPs**| `openjdk.org/jeps` | `site:openjdk.org/jeps 444 virtual threads` |
 | **Spring Framework / Boot**| `docs.spring.io` | `site:docs.spring.io/spring-boot/docs "spring boot 3" security configuration` |
 | **Jakarta EE** | `jakarta.ee/specifications` | `site:jakarta.ee persistence specification` |
+| **React (Core & Hooks)** | `react.dev` | `site:react.dev/learn "render and commit"` |
+| **Vite Tooling** | `vite.dev` | `site:vite.dev/guide "why vite"` |
+| **MDN Web Docs (Web Standards)** | `developer.mozilla.org` | `site:developer.mozilla.org/en-US/docs/Web/JavaScript EventLoop` |
+| **Vitest** | `vitest.dev` | `site:vitest.dev/guide component testing` |
+| **React Router** | `reactrouter.com` | `site:reactrouter.com createBrowserRouter` |
 
 ---
 
@@ -44,6 +49,8 @@ Construct a query combining the exact service/feature name with the authoritativ
 - Use `search_web(query='site:learn.microsoft.com/azure <specific_topic>')` for Azure.
 - Use `search_web(query='site:docs.aws.amazon.com <specific_topic>')` for AWS.
 - Use `search_web(query='site:docs.oracle.com/en/java/javase/21 <topic>')` for Java 21.
+- Use `search_web(query='site:react.dev/learn <topic>')` for React.
+- Use `search_web(query='site:vite.dev/guide <topic>')` for Vite.
 
 ### Step 2: Read & Verify via Official URL
 - If the snippet in search results is insufficient or needs deep verification, call `read_url_content(Url='<official_url>')` to inspect the exact section, parameter descriptions, or code snippet.

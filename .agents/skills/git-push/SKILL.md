@@ -12,7 +12,7 @@ Skill này quy chuẩn hóa quy trình commit và push mã nguồn, bài học v
 
 ## 1. Định Dạng Chuẩn Commit Message (Commit Format)
 
-Mọi commit khi thực hiện trong repository BẮT BUỘC phải tuân theo cú pháp:
+   Mọi commit khi thực hiện trong repository BẮT BUỘC phải tuân theo cú pháp:
 
 ```text
 <type>: <day-month-year> - <details>

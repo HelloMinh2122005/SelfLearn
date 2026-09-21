@@ -1,7 +1,7 @@
 # Agent Instructions for SelfLearn Workspace
 
 Chào mừng bạn đến với workspace **SelfLearn** của người dùng.
-Đây là kho lưu trữ tự học có cấu trúc về các công nghệ cốt lõi: **Azure Cloud**, **AWS Cloud**, **Java Ecosystem** và các công nghệ liên quan khác.
+Đây là kho lưu trữ tự học có cấu trúc về các công nghệ cốt lõi: **Azure Cloud**, **AWS Cloud**, **Java Ecosystem**, **Frontend (React + Vite)** và các công nghệ liên quan khác.
 
 Mọi agent khi hoạt động trong workspace này BẮT BUỘC phải tuân thủ nghiêm ngặt các nguyên tắc dưới đây:
 
@@ -17,6 +17,7 @@ Mọi agent khi hoạt động trong workspace này BẮT BUỘC phải tuân th
    - Java: Luôn xác định rõ phiên bản (ưu tiên Java 17 LTS, Java 21 LTS; phân biệt tính năng giữa Java 8, 11, 17, 21).
    - Spring: Mặc định hiện tại là Spring Boot 3.x / Spring 6 (yêu cầu Java 17+ và `jakarta.*`).
    - Azure / AWS: Nêu rõ phiên bản API / CLI hoặc cảnh báo nếu module/SDK đã bị deprecate (ví dụ: Azure RM đã thay thế hoàn toàn bằng Az, AWS SDK v2 đã EOL chuyển sang AWS SDK v3).
+   - Frontend (React + Vite): Mặc định ưu tiên React 18 & 19 (Hooks, Functional Components, Server Actions/Transitions), Vite 5/6+ (Native ESM, esbuild, Rollup), Modern TypeScript/ESNext. Tuyệt đối không dùng class components hoặc lifecycle cũ (`componentWillMount`, `componentWillReceiveProps`).
 
 ---
 
@@ -41,13 +42,19 @@ Khi giải thích, soạn tài liệu học hoặc tạo bài lab, agent phải 
   - Spring Framework & Spring Boot Docs: `https://docs.spring.io/`
   - Jakarta EE Specification: `https://jakarta.ee/specifications/`
   - Standards: IETF RFCs (HTTP, OAuth2, OIDC), W3C.
+- **Frontend (React + Vite Ecosystem)**:
+  - React Official Documentation: `https://react.dev/`
+  - Vite Official Documentation: `https://vite.dev/`
+  - MDN Web Docs (Web Standards & JavaScript): `https://developer.mozilla.org/`
+  - Vitest Documentation: `https://vitest.dev/`
+  - React Router Documentation: `https://reactrouter.com/`
 
 ### Tier 2: Kho Mã Nguồn & Release Notes Chính Thức
-- Các tổ chức GitHub chính thức: `github.com/Azure`, `github.com/aws`, `github.com/spring-projects`, `github.com/openjdk`.
+- Các tổ chức GitHub chính thức: `github.com/Azure`, `github.com/aws`, `github.com/spring-projects`, `github.com/openjdk`, `github.com/facebook/react`, `github.com/reactjs/react.dev`, `github.com/vitejs/vite`.
 - Official Release Notes, CHANGELOGs của thư viện/công cụ.
 
 ### Tier 3: Tài Liệu Bổ Trợ Cộng Đồng Uy Tín (Chỉ Dùng Để Minh Họa & Phải Ghi Rõ)
-- Baeldung, Martin Fowler, InfoQ, Vlad Mihalcea (JPA/Hibernate).
+- Baeldung, Martin Fowler, InfoQ, Vlad Mihalcea (JPA/Hibernate), web.dev (Google Chrome Team).
 - *Lưu ý*: Chỉ dùng để tham khảo ví dụ thực tế hoặc giải thích mẹo vặt, KHÔNG dùng làm căn cứ định nghĩa chuẩn thay cho Tier 1.
 
 ---
@@ -60,6 +67,8 @@ Mọi câu trả lời hướng dẫn kỹ thuật hoặc giải thích kiến t
 ## 📚 Nguồn Tài Liệu Chính Thống (Official References)
 - [Tên Bài Viết Cụ Thể](https://learn.microsoft.com/...) - Trang chính thức từ Microsoft Learn về ...
 - [Tên Tài Liệu AWS Cụ Thể](https://docs.aws.amazon.com/...) - Tài liệu chính thức từ AWS Documentation về ...
+- [Tên Tài Liệu React Cụ Thể](https://react.dev/...) - Tài liệu chính thức từ React Docs về ...
+- [Tên Tài Liệu Vite Cụ Thể](https://vite.dev/...) - Tài liệu chính thức từ Vite Docs về ...
 ```
 
 - Không dùng link trang chủ chung chung (ví dụ: cấm chỉ trích dẫn `https://aws.amazon.com` hoặc `https://microsoft.com`). Phải trích dẫn trực tiếp bài viết/chương tài liệu cụ thể.
@@ -68,14 +77,19 @@ Mọi câu trả lời hướng dẫn kỹ thuật hoặc giải thích kiến t
 
 ## 4. Tiêu Chuẩn Giảng Dạy & Trình Bày (Pedagogical Framework)
 
-Khi người học hỏi hoặc yêu cầu soạn bài giảng / giải thích một chủ đề Azure:
-1. **Khái Niệm Cốt Lõi & Giải Thích Mọi Tài Nguyên Cloud Liên Quan (Core Concepts & Cloud Resources)**: Phân tích tường tận bản chất kỹ thuật của từng dịch vụ/tài nguyên xuất hiện trong chủ đề, giải thích chúng làm gì và giải quyết bài toán nào.
-2. **Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)**: BẮT BUỘC có các ví dụ so sánh đời thực sinh động, gần gũi (như tòa nhà văn phòng, giao thông, ngân hàng, căn cước công dân...) giúp người học hình dung bản chất ngay lập tức mà không bị ngợp bởi thuật ngữ khô khan.
+Khi người học hỏi hoặc yêu cầu soạn bài giảng / giải thích một chủ đề Cloud hoặc Frontend:
+1. **Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)**: Phân tích tường tận bản chất kỹ thuật của từng dịch vụ Cloud, cơ chế Reconciler/Virtual DOM, Native ESM/HMR, giải thích chúng giải quyết bài toán nào.
+2. **Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)**: BẮT BUỘC có các ví dụ so sánh đời thực sinh động, gần gũi (nhà hàng/bếp/bồi bàn cho Render & Commit, chụp ảnh Polaroid cho State Snapshot, nhà máy sản xuất, ngân hàng...) giúp người học hình dung bản chất ngay lập tức.
 3. **Kiến Trúc, Luồng Hoạt Động & Hình Ảnh Minh Họa (Architecture, Diagrams & Official Media)**:
    - Luôn kèm sơ đồ trực quan (ưu tiên Mermaid).
-   - **Khuyến khích tối đa việc nhúng đường link hình ảnh/sơ đồ kiến trúc chính thức từ Microsoft Learn CDN** (`https://learn.microsoft.com/.../media/...`) hoặc kho GitHub `MicrosoftDocs/azure-docs`, `MicrosoftDocs/entra-docs` để người học có hình ảnh trực quan gốc từ Microsoft.
-4. **Hướng Dẫn Thực Hành Dòng Lệnh Azure CLI (Hands-on Azure CLI)**: Cung cấp đầy đủ các câu lệnh `az` CLI thực chiến chuẩn xác (không cần mẫu khai báo Bicep trừ khi được yêu cầu riêng).
-5. **📚 Nguồn Tài Liệu Chính Thống (Official References)**: Trích dẫn liên kết trực tiếp tới Microsoft Learn theo chuẩn Tier 1.
+   - **Khuyến khích tối đa việc nhúng đường link hình ảnh/sơ đồ kiến trúc chính thức**:
+     - Azure: Microsoft Learn CDN (`https://learn.microsoft.com/.../media/...`).
+     - React: Official CDN (`https://react.dev/images/docs/illustrations/...`).
+     - Vite: Official Repository Media (`https://raw.githubusercontent.com/vitejs/vite/main/docs/images/...`).
+4. **Code Mẫu Hoặc Dòng Lệnh Thực Chiến (Sample Code & CLI)**:
+   - Cloud: Cung cấp lệnh `az` CLI hoặc `aws` CLI v2 thực chiến.
+   - Frontend: Cung cấp code mẫu TypeScript/ESNext hoàn chỉnh, runnable, chú thích rõ cơ chế ngầm và logs quan sát.
+5. **📚 Nguồn Tài Liệu Chính Thống (Official References)**: Trích dẫn liên kết trực tiếp theo chuẩn Tier 1.
 
 ---
 
@@ -119,7 +133,25 @@ Mọi thay đổi khi commit và push lên Git repository BẮT BUỘC phải tu
 ```
 
 - **`<type>`**: `feat` (bài học/lab mới), `fix` (sửa lỗi), `core` (cấu trúc/checklist/skill cốt lõi), `docs` (tài liệu/note), `refactor` (tái cấu trúc), `chore` (cấu hình/tooling), `test` (kiểm thử).
-- **`<day-month-year>`**: Định dạng ngày `DD-MM-YYYY` (ví dụ: `19-09-2026`).
 - **`<details>`**: Mô tả ngắn gọn nội dung thay đổi.
 
-> Tham khảo chi tiết tại skill: [git-push](file:///.agents/skills/git-push/SKILL.md) và script tự động hóa [push.sh](file:///.agents/skills/git-push/scripts/push.sh).
+> Tham khảo chi tiết tại skill: [git-push](.agents/skills/git-push/SKILL.md) và script tự động hóa [push.sh](.agents/skills/git-push/scripts/push.sh).
+
+---
+
+## 7. Quy Chuẩn Đường Dẫn Tài Liệu Nội Bộ (Internal Markdown Links & Relative Paths)
+
+Khi tạo liên kết giữa các file, thư mục, bài giảng, checklist hoặc skill trong tài liệu markdown (`*.md`) của kho lưu trữ:
+
+1. **Tuyệt đối KHÔNG dùng đường dẫn tuyệt đối (Absolute Paths)**:
+   - Nghiêm cấm sử dụng tiền tố `file:///home/...`, `/home/phandinhminh/...` hoặc bất kỳ đường dẫn tuyệt đối gắn cứng với hệ thống tệp cục bộ nào.
+   - *Lý do*: Đường dẫn tuyệt đối sẽ hỏng hoàn toàn khi đẩy lên GitHub/GitLab hoặc khi người khác clone repository về các hệ điều hành/máy tính khác.
+2. **BẮT BUỘC dùng đường dẫn tương đối (Relative Paths)**:
+   - Mọi liên kết nội bộ phải được tính toán tương đối dựa trên vị trí của file hiện tại.
+   - **Ví dụ đúng**:
+     - Từ `react+vite/README.md` liên kết tới skill: `[react-vite-curriculum-guide](../.agents/skills/react-vite-curriculum-guide/SKILL.md)`
+     - Từ file bài học liên kết tới checklist cùng cấp: `[CHECKLIST](../CHECKLIST.md)` hoặc `[CHECKLIST](./CHECKLIST.md)`
+     - Từ gốc repository: `[git-push](.agents/skills/git-push/SKILL.md)`
+   - **Ví dụ sai**:
+     - `[react-vite-curriculum-guide](file:///home/phandinhminh/projects/SelfLearn/.agents/skills/react-vite-curriculum-guide/SKILL.md)` *(Bị cấm)*
+
