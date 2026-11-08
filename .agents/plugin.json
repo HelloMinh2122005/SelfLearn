@@ -1,0 +1,21 @@
+{
+  "name": "selflearn-squad",
+  "version": "1.1.0",
+  "description": "Autonomous Self-Learning squad for Google Antigravity, featuring Teacher-Orchestrator and parallel Researcher-1 and Researcher-2 personas.",
+  "author": {
+    "name": "HelloMinh2122005",
+    "email": "phandinhminh48@gmail.com"
+  },
+  "keywords": [
+    "selflearn",
+    "teacher",
+    "orchestrator",
+    "researcher-1",
+    "researcher-2",
+    "parallel-research",
+    "multi-agent",
+    "cloud",
+    "frontend",
+    "java"
+  ]
+}
