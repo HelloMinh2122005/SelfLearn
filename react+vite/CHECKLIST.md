@@ -11,12 +11,12 @@
 | Miền kỹ năng (Domain) | Trọng tâm | Số chủ đề | Tiến độ hoàn thành |
 | :--- | :--- | :---: | :---: |
 | **Domain 1**: Vite and Modern Web Tooling | Scaffolding, Workflow, Native ESM, HMR, Config | 8 mục | `[ ] 0 / 8` |
-| **Domain 2**: React Core and Component Mental Model | Declarative UI, JSX, Composition, Purity | 6 mục | `[ ] 0 / 6` |
+| **Domain 2**: React Core and Component Mental Model | Declarative UI, JSX, Composition, Purity | 6 mục | `[x] 6 / 6` |
 | **Domain 3**: Rendering Lifecycle and Fiber Reconciler | Trigger/Render/Commit, State Snapshot, Batching | 6 mục | `[ ] 0 / 6` |
 | **Domain 4**: Modern Hooks and State Management | Core Hooks, React 19, Zustand, TanStack Query | 8 mục | `[ ] 0 / 8` |
 | **Domain 5**: Routing and Single Page Application (SPA) | React Router v6/v7, Data APIs, Suspense, Lazy | 6 mục | `[ ] 0 / 6` |
 | **Domain 6**: Performance Optimization and Testing | Profiler, Re-render Prevention, Vitest, RTL | 6 mục | `[ ] 0 / 6` |
-| **TỔNG CỘNG** | **Frontend React + Vite Core Track** | **40 mục** | **`0%`** |
+| **TỔNG CỘNG** | **Frontend React + Vite Core Track** | **40 mục** | **`15% (6/40)`** |
 
 ---
 
@@ -39,13 +39,13 @@
 
 ### 2 Domain 2 - React Core and Component Mental Model
 #### 2.1 Mental Model Transformation
-- [ ] **2_1_1 Declarative UI vs Imperative DOM**: Tư duy `UI = f(State)` so với thao tác DOM thủ công kiểu cũ.
-- [ ] **2_1_2 JSX / TSX Under the Hood**: Bản chất JSX Runtime (`_jsx`), cú pháp biểu thức và các quy tắc bắt buộc.
-- [ ] **2_1_3 Pure Components**: Khái niệm hàm thuần khiết, tính dự đoán được và quy tắc zero-side-effects trong render.
+- [x] **2_1_1 Declarative UI vs Imperative DOM**: Tư duy `UI = f(State)` so với thao tác DOM thủ công kiểu cũ.
+- [x] **2_1_2 JSX / TSX Under the Hood**: Bản chất JSX Runtime (`_jsx`), cú pháp biểu thức và các quy tắc bắt buộc.
+- [x] **2_1_3 Pure Components**: Khái niệm hàm thuần khiết, tính dự đoán được và quy tắc zero-side-effects trong render.
 #### 2.2 Component Architecture & Composition
-- [ ] **2_2_1 Component Hierarchy & Props**: Truyền dữ liệu một chiều (Unidirectional data flow) từ cha xuống con.
-- [ ] **2_2_2 Children Prop & Slot Pattern**: Kỹ thuật Component Composition linh hoạt, tránh prop drilling nông.
-- [ ] **2_2_3 Conditional Rendering & List Keys**: Render theo điều kiện (`&&`, ternary) và ý nghĩa cốt lõi của thuộc tính `key` trong danh sách.
+- [x] **2_2_1 Component Hierarchy & Props**: Truyền dữ liệu một chiều (Unidirectional data flow) từ cha xuống con.
+- [x] **2_2_2 Children Prop & Slot Pattern**: Kỹ thuật Component Composition linh hoạt, tránh prop drilling nông.
+- [x] **2_2_3 Conditional Rendering & List Keys**: Render theo điều kiện (`&&`, ternary) và ý nghĩa cốt lõi của thuộc tính `key` trong danh sách.
 
 ---
 

@@ -104,11 +104,10 @@ search_web('<topic> official documentation')
 Inspect GitHub Org / Official Source"]
     C --> D
     D --> E["Execute search_web()"]
-    E --> F{"Snippet Sufficient & Clear?"}
-    F -- "Needs deeper inspection / exact params / code" --> G["Call read_url_content(Url)"]
-    F -- "Clear & Verified" --> H["Verify Versions & Constraints:
+    E --> G["Open the canonical page
+(snippets are never evidence)"]
+    G --> H["Verify Versions & Constraints:
 GA vs Preview, deprecations, limits"]
-    G --> H
     H --> I["Synthesize Explanation with 100% Truthfulness"]
     I --> J["Append Official Citations Section"]
 ```
@@ -122,7 +121,13 @@ GA vs Preview, deprecations, limits"]
   3. Query: `search_web(query='site:docs.example.org <keywords>')`
 
 ### Step 2: Read & Verify via Official URL
-- When the search snippet is truncated, lacks full API signatures, or parameter descriptions are incomplete, call `read_url_content(Url='<official_url>')`.
+- Open every page you rely on. Search snippets only help you find URLs, and they are never evidence for a claim.
+- Fetch the page with `read_url_content(Url='<official_url>')` if that tool is available. Otherwise use `run_command`:
+  ```bash
+  mkdir -p /tmp/selflearn-research
+  curl -sSL -A 'selflearn-research' -m 30 -o /tmp/selflearn-research/page.txt '<official_url>'
+  grep -n -i '<term>' /tmp/selflearn-research/page.txt
+  ```
 - Inspect specific sections, code blocks, parameter flags, and configuration properties directly from the canonical page.
 - Check constraints: minimum versions required, breaking changes, deprecated fields, and platform compatibility.
 

@@ -20,7 +20,8 @@ my-react-app/
 ├── tsconfig.json           # Cấu hình TypeScript tổng quát
 ├── tsconfig.app.json       # Cấu hình TypeScript cho mã nguồn trong src/
 ├── tsconfig.node.json      # Cấu hình TypeScript cho các tệp cấu hình Node (vite.config.ts)
-├── vite.config.ts          # Tệp cấu hình chính của Vite và các Plugins
+├── vite.config.ts          # Tệp cấu hình chính của Vite (Dev server, Port, Plugins)
+├── eslint.config.js        # Tệp cấu hình Linter (Quy tắc cú pháp, React Hooks rules)
 ├── public/                 # Chứa tài nguyên tĩnh không cần xử lý (favicon, robots.txt)
 └── src/                    # Toàn bộ mã nguồn ứng dụng React
     ├── main.tsx            # Điểm bắt đầu của React, mount Virtual DOM vào #root
@@ -66,6 +67,30 @@ createRoot(rootElement).render(
 
 - **`createRoot` (React 18/19)**: Thay thế cho `ReactDOM.render` cũ, kích hoạt kiến trúc Concurrent Mode của React.
 - **`<StrictMode>`**: Chế độ nghiêm ngặt giúp phát hiện tác dụng phụ (side-effects). Trong môi trường Dev (`npm run dev`), `StrictMode` sẽ **chạy render và effect 2 lần** để rà soát rò rỉ bộ nhớ hoặc hàm không thuần khiết.
+
+### 1.4 Thực Tế Dự Án: Khi Nào Cần (Và Không Cần) Can Thiệp Vào `index.html`?
+
+Trong công việc lập trình thực tế hàng ngày (day-to-day coding), lập trình viên **hầu như KHÔNG (hoặc rất hiếm khi) đụng vào `index.html`** (khoảng 95% thời gian làm việc hoàn toàn trong thư mục `src/`). Tuy nhiên, trong vòng đời dự án, bạn sẽ can thiệp vào tệp này ở các thời điểm then chốt sau:
+
+#### Khi Nào Cần Chỉnh Sửa `index.html`?
+1. **Thiết lập Nhận diện & Thương hiệu (Đầu dự án)**:
+   - Đổi thẻ `<title>` (ví dụ: `Hệ Thống Bán Hàng - Acme Corp` thay vì mặc định `my-react-app`).
+   - Đổi thẻ `<link rel="icon">` trỏ tới favicon/logo chính thức của dự án.
+   - Đổi thuộc tính ngôn ngữ `<html lang="vi">` phù hợp với người dùng mục tiêu.
+2. **Cấu hình SEO & Mạng Xã Hội (Meta Tags)**:
+   - Thêm thẻ `<meta name="description" content="..." />`.
+   - Thêm thẻ Open Graph (`og:title`, `og:image`, `og:description`) để hiển thị thumbnail bắt mắt khi chia sẻ đường link lên Facebook, Zalo, LinkedIn.
+3. **Tối Ưu Phông Chữ (Web Fonts / Google Fonts)**:
+   - Thêm thẻ `<link rel="preconnect">` và `<link rel="stylesheet">` từ Google Fonts để trình duyệt tải trước font chữ với độ ưu tiên cao nhất, tránh hiện tượng giật font (Layout Shift / FOUT).
+4. **Nhúng Các Script Toàn Cục Của Bên Thứ Ba (Third-party Scripts)**:
+   - Nhúng mã theo dõi Google Analytics (GA4/GTM), pixel quảng cáo, hoặc widget chat chăm sóc khách hàng (Intercom, Crisp).
+5. **Tạo Cổng Phụ Cho React Portals (Modals, Toasts, Popups)**:
+   - Thêm các thẻ container nằm ngang hàng với `#root` (ví dụ `<div id="modal-root"></div>`, `<div id="toast-root"></div>`). Kỹ thuật này giúp các hộp thoại Modal hiển thị đè lên toàn màn hình mà không bao giờ bị cắt cụt bởi thuộc tính `overflow: hidden` hay xung đột `z-index` của component cha.
+
+#### Những Thứ TUYỆT ĐỐI KHÔNG ĐƯỢC Xóa / Đổi:
+- **`<div id="root"></div>`**: Neo mỏ duy nhất để React mount toàn bộ ứng dụng Virtual DOM (`createRoot(document.getElementById('root'))`). Nếu xóa hoặc đổi ID mà không cập nhật `main.tsx`, ứng dụng sẽ sập trắng trang.
+- **`<script type="module" src="/src/main.tsx"></script>`**: Điểm khởi đầu (Entry Point) của Vite tooling. Nếu xóa, trình duyệt sẽ không biết nạp mã nguồn từ đâu.
+- **Không viết trực tiếp HTML giao diện** (như thẻ `<header>`, `<nav>`, `<button>`) vào `index.html`: Toàn bộ giao diện phải do React Component đảm nhiệm trong `src/`.
 
 ---
 
@@ -161,3 +186,5 @@ export default App;
 ## 📚 Nguồn Tài Liệu Chính Thống (Tier-1 Official References)
 - [Vite Guide: Index.html and Source Root](https://vite.dev/guide/#index-html-and-project-root) - Tài liệu giải thích lý do `index.html` nằm ở thư mục gốc.
 - [React Docs: createRoot](https://react.dev/reference/react-dom/client/createRoot) - Tài liệu chính thức về cơ chế khởi tạo Root của React DOM.
+- [React Docs: Portals](https://react.dev/reference/react-dom/createPortal) - Tài liệu chính thức về cơ chế render Modal/Dialog thông qua cổng phụ DOM.
+- [MDN Web Docs: HTML Metadata](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content/HTML_metadata) - Chuẩn mực cấu hình thẻ meta, favicon và SEO trong tài liệu HTML.

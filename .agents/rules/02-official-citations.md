@@ -26,6 +26,16 @@ Quy tắc này quy định chi tiết về cách lựa chọn nguồn tài liệ
 - **Spring Framework / Spring Boot**: `https://docs.spring.io/spring-boot/docs/current/reference/html/`
 - **Jakarta EE Specification**: `https://jakarta.ee/specifications/`
 
+### D. Hệ Điều Hành & Mạng Máy Tính
+- **Linux Kernel Documentation**: `https://docs.kernel.org/`
+- **Linux Kernel Source (Tier 2)**: `https://github.com/torvalds/linux`
+- **Linux Man Pages**: `https://man7.org/linux/man-pages/`
+- **POSIX**: `https://pubs.opengroup.org/onlinepubs/9799919799/`
+- **IETF RFCs**: `https://datatracker.ietf.org/doc/html/` và `https://www.rfc-editor.org/`
+- **Windows Internals & Sysinternals**: `https://learn.microsoft.com/en-us/windows-hardware/drivers/`, `https://learn.microsoft.com/en-us/sysinternals/`
+- `roadmap.sh` chỉ dùng để tham khảo danh sách chủ đề, không dùng làm căn cứ kỹ thuật.
+- Sách giáo khoa chỉ được dùng làm căn cứ khi thực sự đọc được đoạn liên quan. Nếu không, claim phải được đánh dấu chưa kiểm chứng.
+
 ---
 
 ## 2. Quy Cách Định Dạng Trích Dẫn

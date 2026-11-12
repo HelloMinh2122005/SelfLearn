@@ -14,6 +14,8 @@ Mục tiêu của lộ trình này là giúp người học nắm vững **bản
 2. [react-sample-code-guide](../.agents/skills/react-sample-code-guide/SKILL.md): Quy chuẩn viết code mẫu runnable và **Catalog hình ảnh/sơ đồ public chính thức** từ `react.dev` CDN và `vite.dev`.
 3. [official-doc-researcher](../.agents/skills/official-doc-researcher/SKILL.md): Cơ chế tra cứu tài liệu Tier-1 chính thống đảm bảo 100% trung thực, loại bỏ hallucination.
 
+> 💡 **Tài liệu bổ trợ đặc biệt**: [Modern React Architecture & Design Patterns (From Flutter / Hexagonal Perspective)](./ARCHITECTURE_PATTERNS.md) — Hướng dẫn kiến trúc thực chiến Feature-Driven, ánh xạ 1-1 các tầng trách nhiệm BLoC/UseCase sang Custom Hooks + Dumb Components.
+
 ---
 
 ## 🗺️ 6 Domain Học Tập Cốt Lõi (Core Learning Domains)

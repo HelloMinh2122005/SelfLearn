@@ -13,6 +13,8 @@ Học tập đòi hỏi kiến thức chính xác 100%. Thông tin sai lệch, l
 
 1. **Kiểm tra trước khi khẳng định (Verify Before Asserting)**:
    - Trước khi khẳng định một cú pháp câu lệnh (Azure CLI, AWS CLI, kubectl, mvn), tham số cấu hình, hoặc method API Java, agent phải chắc chắn dựa trên tài liệu chính thống.
+   - Yêu cầu này áp dụng cho **mọi lĩnh vực kỹ thuật**, bao gồm kiến thức nền tảng về hệ điều hành và mạng: cơ chế hoạt động, kích thước trường, giá trị mặc định, và các khẳng định tuyệt đối (`luôn`, `không bao giờ`, `đảm bảo`, `immediately`, `cannot`). Kiến thức "kinh điển" vẫn phải được kiểm chứng.
+   - Quy trình và điều kiện kiểm chứng khi soạn giáo trình được quy định tại `05-verification-gates.md`.
    - Nếu chưa chắc chắn hoặc nhớ mang máng, agent phải sử dụng công cụ tìm kiếm (`search_web` hoặc skill `official-doc-researcher`) để tra cứu trang chính thức của dịch vụ.
 
 2. **Thừa nhận rõ ràng khi thiếu dữ liệu hoặc không chắc chắn (Explicit Uncertainty)**:
@@ -27,6 +29,7 @@ Học tập đòi hỏi kiến thức chính xác 100%. Thông tin sai lệch, l
 
 ## 3. Các Điều Tuyệt Đối Cấm (FORBIDDEN)
 
-- ❌ **CẤM** suy đoán hoặc tạo ra các URL giả mạo (broken links / hallucinated URLs). Mọi link trích dẫn phải là URL thực tế hoặc domain chính thống đã được tra cứu.
+- ❌ **CẤM** suy đoán hoặc tạo ra các URL giả mạo (broken links / hallucinated URLs). Mọi link trích dẫn phải là URL đã được mở thành công. Không tự ghép đường dẫn ảnh hoặc CDN từ tên file.
+- ❌ **CẤM** tuyên bố "đã kiểm chứng", "đúng 100%" hoặc "đã sửa toàn bộ" khi chưa có Verification Report tương ứng.
 - ❌ **CẤM** đưa code mẫu giả định (pseudo-code) nhưng lại bảo là code Java chạy được. Nếu là mã giả giải thích thuật toán, phải ghi rõ là "Mã giả (Pseudocode)".
 - ❌ **CẤM** khẳng định các thông số quotas/limits (ví dụ: dung lượng tối đa của S3 object, throughput của Azure Cosmos DB) mà không có căn cứ từ trang service limits chính thức của nhà cung cấp.
