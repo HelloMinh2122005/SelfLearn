@@ -11,12 +11,12 @@
 
 | Domain | Focus Topics | Total Items | Completed | Progress |
 | :--- | :--- | :---: | :---: | :---: |
-| **Domain 1: Operating System Core Fundamentals** | Dual Mode, Syscalls, Processes, Threads, Concurrency, Deadlock, CPU Scheduling, Virtual Memory, File Systems | 35 items | `[ ] 0 / 35` | `0%` |
-| **Domain 2: Computer Networking Core Fundamentals** | OSI 7 Layers, TCP/IP Stack, MAC, Ethernet, ARP, IPv4/IPv6, Subnetting, TCP/UDP, **Forward & Reverse Proxies**, DNS, DHCP | 39 items | `[ ] 0 / 39` | `0%` |
+| **Domain 1: Operating System Core Fundamentals** | Dual Mode, Syscalls, Processes, Threads, Concurrency, Deadlock, CPU Scheduling, Virtual Memory, File Systems | 45 items | `[ ] 0 / 45` | `0%` |
+| **Domain 2: Computer Networking Core Fundamentals** | OSI 7 Layers, TCP/IP Stack, MAC, Ethernet, ARP, IPv4/IPv6, Subnetting, TCP/UDP, **Forward & Reverse Proxies**, DNS, DHCP | 33 items | `[ ] 0 / 33` | `0%` |
 | **Domain 3: OS Realization & Diagnostics: Linux** | `task_struct`, `fork()`/`clone()`, pthreads, Virtual Memory & `/proc`, Inodes, Shell & Diagnostic CLI | 15 items | `[ ] 0 / 15` | `0%` |
 | **Domain 4: OS Realization & Diagnostics: Windows** | `EPROCESS`/`ETHREAD`, Win32 API, Working Set vs Commit, NTFS MFT, Sysinternals & Task Manager | 10 items | `[ ] 0 / 10` | `0%` |
 | **Domain 5: Wire-Level Network Inspection & Diagnostics** | Frame/Packet Analysis, TCP Handshake/Reset tracing, `ping`, `traceroute`, `arp`, `netstat`/`ss`, `tcpdump` | 10 items | `[ ] 0 / 10` | `0%` |
-| **TOTAL** | **Core Systems & Networking Engineering Knowledge Base** | **109 items** | `[ ] 0 / 109` | **`0%`** |
+| **TOTAL** | **Core Systems & Networking Engineering Knowledge Base** | **113 items** | `[ ] 0 / 113` | **`0%`** |
 
 ---
 
@@ -35,7 +35,7 @@ flowchart TD
 
 ---
 
-### Domain 1: Operating System Core Fundamentals (35 Items)
+### Domain 1: Operating System Core Fundamentals (45 Items)
 
 #### 1.1 OS Architecture & Hardware Privilege Modes
 - [ ] **1_1_1 The Role of an Operating System**: Resource management (CPU, memory, I/O devices) and hardware abstraction; preventing user programs from destabilizing the machine.
@@ -137,7 +137,7 @@ flowchart TD
 
 ---
 
-### Domain 2: Computer Networking Core Fundamentals (35 Items)
+### Domain 2: Computer Networking Core Fundamentals (33 Items)
 
 #### 2.1 Network Fundamentals & Models
 - [ ] **2_1_1 How Networks Transfer Data**: Packet Switching vs Circuit Switching; Store-and-Forward transmission; Bandwidth, Latency, Propagation Delay, Transmission Delay, Queuing Delay.
@@ -301,59 +301,76 @@ flowchart TD
 
 ### Domain 3: Operating System Realization: Linux Deep Dive (15 Items)
 
+#### 3.1 Process and Thread Implementation in the Linux Kernel
 - [ ] **3_1_1 Linux Process Representation (`task_struct`)**: How the Linux kernel represents both processes and threads in `/usr/src/linux/include/linux/sched.h`.
 - [ ] **3_1_2 Linux Thread Implementation (`clone` & NPTL)**: How `pthread_create()` invokes the `clone()` system call with shared memory flags (`CLONE_VM`, `CLONE_FS`, `CLONE_FILES`, `CLONE_SIGHAND`).
 - [ ] **3_1_3 Linux Process States in Practice**: Decoding output of `ps` / `top`: `R` (Running), `S` (Interruptible Sleep), `D` (Uninterruptible Sleep - blocked on disk/NFS I/O), `Z` (Zombie), `T` (Stopped).
-- [ ] **3_1_4 Linux Signals in Detail**: Asynchronous notifications; `SIGINT` (Ctrl+C, 2), `SIGQUIT` (3), `SIGKILL` (9, non-catchable), `SIGTERM` (15, graceful stop), `SIGCHLD` (17), `SIGHUP` (1, reload config).
-- [ ] **3_1_5 Inter-Process Communication (IPC) on Linux**: Pipes (`|`), Named FIFOs (`mkfifo`), Unix Domain Sockets (`AF_UNIX`), POSIX Shared Memory (`shm_open`).
-- [ ] **3_1_6 Virtual Memory in `/proc`**: Reading memory statistics through `/proc/meminfo` (MemTotal, MemFree, MemAvailable, Buffers, Cached, SwapCached); inspecting per-process mappings via `/proc/[pid]/maps` and `/proc/[pid]/smaps`.
-- [ ] **3_1_7 Virtual Filesystem (VFS) in Linux**: VFS abstraction layer; Ext4 filesystem layout (Superblock, Inode tables, Data blocks, Journal); hard links vs soft/symbolic links.
-- [ ] **3_1_8 Linux File Descriptors & Limits**: Standard streams: stdin (0), stdout (1), stderr (2); inspecting open handles via `/proc/[pid]/fd/` and managing limits via `ulimit -n` and `/proc/sys/fs/file-max`.
-- [ ] **3_1_9 Core Linux Process Commands**:
+- [ ] **3_1_4 Linux Completely Fair Scheduler (CFS) Mechanics**: The concept of virtual runtime (`vruntime`) tracked inside red-black trees; process nice values (`-20` to `+19`).
+
+#### 3.2 Linux Signals and Inter-Process Communication
+- [ ] **3_2_1 Linux Signals in Detail**: Asynchronous notifications; `SIGINT` (Ctrl+C, 2), `SIGQUIT` (3), `SIGKILL` (9, non-catchable), `SIGTERM` (15, graceful stop), `SIGCHLD` (17), `SIGHUP` (1, reload config).
+- [ ] **3_2_2 Inter-Process Communication (IPC) on Linux**: Pipes (`|`), Named FIFOs (`mkfifo`), Unix Domain Sockets (`AF_UNIX`), POSIX Shared Memory (`shm_open`).
+
+#### 3.3 Linux Virtual Memory and the proc Subsystem
+- [ ] **3_3_1 Virtual Memory in `/proc`**: Reading memory statistics through `/proc/meminfo` (MemTotal, MemFree, MemAvailable, Buffers, Cached, SwapCached); inspecting per-process mappings via `/proc/[pid]/maps` and `/proc/[pid]/smaps`.
+
+#### 3.4 Virtual Filesystem and Storage Internals
+- [ ] **3_4_1 Virtual Filesystem (VFS) in Linux**: VFS abstraction layer; Ext4 filesystem layout (Superblock, Inode tables, Data blocks, Journal); hard links vs soft/symbolic links.
+- [ ] **3_4_2 Linux File Descriptors & Limits**: Standard streams: stdin (0), stdout (1), stderr (2); inspecting open handles via `/proc/[pid]/fd/` and managing limits via `ulimit -n` and `/proc/sys/fs/file-max`.
+
+#### 3.5 Practical Linux Diagnostics and Performance Toolkit
+- [ ] **3_5_1 Core Linux Process Commands**:
   - `ps aux` and `ps -ef` (Inspect active processes and hierarchy).
   - `top` / `htop` (Real-time CPU and memory monitoring; understanding load averages).
   - `kill` / `pkill` / `killall` (Sending signals to processes).
-- [ ] **3_1_10 Memory & Swap Inspection CLI**:
+- [ ] **3_5_2 Memory & Swap Inspection CLI**:
   - `free -h` (Distinguishing between Free memory and Available memory).
   - `vmstat 1` (Paging rates: `si` swap-in, `so` swap-out; runnable `r` queue).
-- [ ] **3_1_11 Disk & Storage Inspection CLI**:
+- [ ] **3_5_3 Disk & Storage Inspection CLI**:
   - `df -h` (Filesystem disk usage) and `df -i` (Inode usage).
   - `du -sh *` (Directory disk space accounting).
   - `iostat -xz 1` (Disk utilization `%util` and service time `await`).
-- [ ] **3_1_12 System Call Tracing with `strace`**:
+- [ ] **3_5_4 System Call Tracing with `strace`**:
   - Running `strace -c <command>` to summarize syscall execution time and count.
   - Attaching `strace -p <PID> -T` to diagnose why a process is hung or blocked.
-- [ ] **3_1_13 Open File & Socket Inspection with `lsof`**:
+- [ ] **3_5_5 Open File & Socket Inspection with `lsof`**:
   - Finding open files by process: `lsof -p <PID>`.
   - Finding which process is holding a port: `lsof -i :80` or `lsof -i TCP`.
-- [ ] **3_1_14 Linux Kernel Hardware Ring Buffer (`dmesg`)**:
+- [ ] **3_5_6 Linux Kernel Hardware Ring Buffer (`dmesg`)**:
   - Reading kernel events, boot logs, and hardware device discovery via `dmesg -T`.
-- [ ] **3_1_15 Linux Completely Fair Scheduler (CFS) Mechanics**: The concept of virtual runtime (`vruntime`) tracked inside red-black trees; process nice values (`-20` to `+19`).
 
 ---
 
 ### Domain 4: Operating System Realization: Windows Internals (10 Items)
 
+#### 4.1 Windows NT Kernel Architecture and Execution Modes
 - [ ] **4_1_1 Windows NT Kernel Architecture**: Executive Subsystem, Kernel, Hardware Abstraction Layer (HAL), and User-mode Subsystems (Win32 subsystem).
-- [ ] **4_1_2 Windows Process & Thread Structures**:
+
+#### 4.2 Windows Process and Thread Architecture
+- [ ] **4_2_1 Windows Process & Thread Structures**:
   - Executive Process Block (`EPROCESS`) and Executive Thread Block (`ETHREAD`) in kernel space.
   - Process Environment Block (`PEB`) and Thread Environment Block (`TEB`) in user space.
-- [ ] **4_1_3 Windows Process Creation**: The Win32 `CreateProcess()` and `CreateThread()` APIs; inheritance of handles.
-- [ ] **4_1_4 Windows Handle Concept**: The Windows Object Manager; using opaque 32/64-bit `HANDLE`s to reference files, events, semaphores, mutexes, and processes.
-- [ ] **4_1_5 Windows Memory Management Terminology**:
+- [ ] **4_2_2 Windows Process Creation**: The Win32 `CreateProcess()` and `CreateThread()` APIs; inheritance of handles.
+- [ ] **4_2_3 Windows Handle Concept**: The Windows Object Manager; using opaque 32/64-bit `HANDLE`s to reference files, events, semaphores, mutexes, and processes.
+
+#### 4.3 Windows Memory Management and Storage Internals
+- [ ] **4_3_1 Windows Memory Management Terminology**:
   - **Working Set**: The physical RAM currently allocated to a process (Private Working Set vs Shareable).
   - **Commit Charge**: Total virtual memory allocated that is backed by physical RAM or the pagefile (`pagefile.sys`).
   - **Paged Pool** (pageable kernel memory) vs **Non-Paged Pool** (kernel memory guaranteed to stay in physical RAM, used for interrupt handlers).
-- [ ] **4_1_6 NTFS Architecture**: Master File Table (MFT), file attributes, and Access Control Lists (DACLs for permissions, SACLs for auditing).
-- [ ] **4_1_7 Windows Task Manager & Resource Monitor**: Interpreting CPU Utilization, Processes vs Services tabs, Working Set vs Commit memory, and disk response times.
-- [ ] **4_1_8 Windows Performance Monitor (PerfMon)**: Adding and analyzing performance counter logs: `\Processor(_Total)\% Processor Time`, `\Memory\Available MBytes`.
-- [ ] **4_1_9 Windows Sysinternals - Process Explorer (`procexp`)**: Viewing the live GUI process hierarchy tree, viewing open handles, loaded DLLs, and finding which process locks a file.
-- [ ] **4_1_10 Windows Sysinternals - Process Monitor (`procmon`)**: Capturing and filtering real-time filesystem, registry, and process activity for troubleshooting application failures.
+- [ ] **4_3_2 NTFS Architecture**: Master File Table (MFT), file attributes, and Access Control Lists (DACLs for permissions, SACLs for auditing).
+
+#### 4.4 Practical Windows Diagnostics and Performance Toolkit
+- [ ] **4_4_1 Windows Task Manager & Resource Monitor**: Interpreting CPU Utilization, Processes vs Services tabs, Working Set vs Commit memory, and disk response times.
+- [ ] **4_4_2 Windows Performance Monitor (PerfMon)**: Adding and analyzing performance counter logs: `\Processor(_Total)\% Processor Time`, `\Memory\Available MBytes`.
+- [ ] **4_4_3 Windows Sysinternals - Process Explorer (`procexp`)**: Viewing the live GUI process hierarchy tree, viewing open handles, loaded DLLs, and finding which process locks a file.
+- [ ] **4_4_4 Windows Sysinternals - Process Monitor (`procmon`)**: Capturing and filtering real-time filesystem, registry, and process activity for troubleshooting application failures.
 
 ---
 
 ### Domain 5: Wire-Level Network Inspection & Diagnostics (10 Items)
 
+#### 5.1 Wire-Level Inspection and Diagnostic Toolkit
 - [ ] **5_1_1 Network Interface Inspection (`ip` / `ifconfig` / `ipconfig`)**:
   - Linux: `ip addr show`, `ip link show`, `ip route show`.
   - Windows: `ipconfig /all`.
@@ -394,7 +411,7 @@ flowchart TD
 ## 🖼️ Architectural Diagrams & Visual References
 
 ### 1. Dual-Mode Operation (User Mode vs Kernel Mode)
-[![Windows User Mode and Kernel Mode](https://learn.microsoft.com/en-us/windows-hardware/drivers/gettingstarted/images/userandkernelmodes.png)](https://learn.microsoft.com/en-us/windows-hardware/drivers/gettingstarted/user-mode-and-kernel-mode)  
+[![Windows User Mode and Kernel Mode](https://learn.microsoft.com/en-us/windows-hardware/drivers/gettingstarted/images/userandkernelmode01.png)](https://learn.microsoft.com/en-us/windows-hardware/drivers/gettingstarted/user-mode-and-kernel-mode)  
 *Architectural division between Ring 3 (Applications, Win32 Subsystems) and Ring 0 (Executive, Kernel, Hardware Abstraction Layer).*
 
 ### 2. The OSI 7-Layer Communication Model
@@ -414,7 +431,7 @@ flowchart TD
 *Sequence diagram detailing the client-server flag exchange (SYN, SYN-ACK, ACK) and sequence number synchronization.*
 
 ### 6. Forward Proxy Architecture (Client-Side Intermediary)
-[![Forward Proxy Architecture](https://upload.wikimedia.org/wikipedia/commons/b/bb/Forward_proxy_h2g2bob.svg)](https://commons.wikimedia.org/wiki/File:Forward_proxy_h2g2bob.svg)  
+[![Forward Proxy Architecture](https://upload.wikimedia.org/wikipedia/commons/1/19/Forward_proxy_h2g2bob.svg)](https://commons.wikimedia.org/wiki/File:Forward_proxy_h2g2bob.svg)  
 *Clients behind an internal network route external requests through a Forward Proxy to hide client identities, enforce egress filtering, and cache web content.*
 
 ### 7. Reverse Proxy Architecture (Server-Side Gateway)

@@ -12,7 +12,7 @@ All cloud, Kubernetes, and container abstractions have been stripped away so you
 
 | Roadmap Document | Primary Focus | Link |
 | :--- | :--- | :---: |
-| 📋 **Master Skills Checklist** | Interactive tracker of all 109 core competencies across 5 domains | **[CHECKLIST.md](./CHECKLIST.md)** |
+| 📋 **Master Skills Checklist** | Interactive tracker of all 113 core competencies across 5 domains | **[CHECKLIST.md](./CHECKLIST.md)** |
 | 🧠 **Operating Systems Roadmap** | Dual-mode, Processes, Threads, Concurrency, Deadlock, CPU Scheduling, Virtual Memory, Storage | **[os/README.md](./os/README.md)** |
 | 🌐 **Computer Networking Roadmap** | OSI 7 Layers, TCP/IP, MAC, Ethernet, ARP, IPv4 Subnetting, TCP/UDP, **Forward vs Reverse Proxy**, DNS | **[network/README.md](./network/README.md)** |
 | 🐧 **Linux Systems Realization** | `task_struct`, `fork`/`clone`, `pthreads`, `/proc`, VFS, Ext4, Inodes, signals, CLI diagnostics | **[linux/README.md](./linux/README.md)** |
@@ -125,7 +125,7 @@ flowchart LR
 ## 🖼️ Canonical Diagrams & Visual References
 
 ### 1. Forward Proxy Architecture
-[![Forward Proxy Architecture](https://upload.wikimedia.org/wikipedia/commons/b/bb/Forward_proxy_h2g2bob.svg)](https://commons.wikimedia.org/wiki/File:Forward_proxy_h2g2bob.svg)  
+[![Forward Proxy Architecture](https://upload.wikimedia.org/wikipedia/commons/1/19/Forward_proxy_h2g2bob.svg)](https://commons.wikimedia.org/wiki/File:Forward_proxy_h2g2bob.svg)  
 *Clients behind an internal network route external requests through a Forward Proxy to hide client identities, enforce egress filtering, and cache web content.*
 
 ### 2. Reverse Proxy Architecture

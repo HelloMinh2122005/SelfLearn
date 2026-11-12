@@ -1,7 +1,7 @@
 # 🧠 Operating Systems: Core Fundamentals Roadmap
 
 > **Domain**: Operating System Architecture & Classical CS Internals  
-> **Tracker Link**: [Return to Master Checklist](../CHECKLIST.md#domain-1-operating-system-core-fundamentals-35-items)  
+> **Tracker Link**: [Return to Master Checklist](../CHECKLIST.md#domain-1-operating-system-core-fundamentals-45-items)  
 > **Authoritative References**: *Operating System Concepts* (Silberschatz) | *Modern Operating Systems* (Tanenbaum) | [roadmap.sh/linux](https://roadmap.sh/linux)
 
 ---

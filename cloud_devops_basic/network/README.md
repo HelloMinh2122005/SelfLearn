@@ -1,7 +1,7 @@
 # 🌐 Computer Networking: Core Fundamentals Roadmap
 
 > **Domain**: Computer Networking Architecture & Protocol Engineering  
-> **Tracker Link**: [Return to Master Checklist](../CHECKLIST.md#domain-2-computer-networking-core-fundamentals-39-items)  
+> **Tracker Link**: [Return to Master Checklist](../CHECKLIST.md#domain-2-computer-networking-core-fundamentals-33-items)  
 > **Authoritative References**: RFC Standards (IETF) | *Computer Networking: A Top-Down Approach* (Kurose & Ross) | [roadmap.sh/network-engineer](https://roadmap.sh/network-engineer)
 
 ---
