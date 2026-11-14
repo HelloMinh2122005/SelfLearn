@@ -31,8 +31,10 @@ Assume the file is wrong until a source you opened shows it is right. A fluent e
 ### Step 1: Run the Mechanical Checks
 
 ```bash
-python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --online
+python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --online --only "<target file 1>" "<target file 2>"
 ```
+
+`--only` limits link checks to the target files. Checklist counters and the rewrite guard still cover the whole course. Links that answered successfully in the last 24 hours come from a cache. Add `--no-cache` if you suspect a link changed.
 
 Any `ERROR` means the verdict is FAIL.
 

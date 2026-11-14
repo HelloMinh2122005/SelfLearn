@@ -34,7 +34,7 @@ Writer lưu nguyên văn Ledger tại `<course-folder>/.evidence/<WRITING_TASK_I
 | **G1: Evidence** | Researcher trả báo cáo | Có báo cáo `COMPLETE`, có Ledger hợp lệ | Giao lại cho Researcher. **Cấm chuyển sang Writer.** |
 | **G2: Scope** | Teacher trước khi giao Writer | Ledger phủ đủ nội dung cần viết, `CONFLICT`/`NOT_FOUND` đã xử lý, đã rà soát coverage | Giao nghiên cứu bổ sung. |
 | **G3: Write Boundary** | Writer khi viết | Chỉ viết claim có trong Ledger, sửa cục bộ bằng `edit_file` | Writer dừng và báo Teacher. |
-| **G4: Mechanical** | Sau khi viết | `check_curriculum.py <course> --online` trả exit `0` | Writer sửa rồi chạy lại. |
+| **G4: Mechanical** | Sau khi viết | `check_curriculum.py <course> --online --only "<file đã sửa>"` trả exit `0`. Khi đóng module (sửa `CHECKLIST.md` hoặc README khóa học): chạy không có `--only`. | Writer sửa rồi chạy lại. |
 | **G5: Independent Verification** | Sau G4 | `verifier` trả `PASS` | Writer sửa theo báo cáo, sau đó chạy lại G4 và G5. |
 
 Chỉ sau khi G5 đạt mới được đánh dấu `[x]` trong `CHECKLIST.md` và trình bày bài học là đã kiểm chứng.

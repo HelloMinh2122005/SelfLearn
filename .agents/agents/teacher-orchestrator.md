@@ -163,7 +163,7 @@ sequenceDiagram
     Teacher->>W: Dispatch writing task (WRITE-01 with Ledger and Blueprint)
     activate W
     W->>FS: Organize 3-tier directories & write Lesson.md from Ledger
-    W->>W: Run check_curriculum.py --online
+    W->>W: Run check_curriculum.py --online --only <file>
     W-->>Teacher: Writing Report (Exit 0)
     deactivate W
     Teacher->>V: Verify file paths (Model: pro)

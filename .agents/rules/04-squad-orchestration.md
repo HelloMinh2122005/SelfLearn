@@ -49,7 +49,7 @@ $$\text{Learner} \longrightarrow \text{Teacher} \overset{\text{Task}}{\longright
      - Soạn file bài học `*.md` đủ 7 mục chuẩn hóa, **chỉ từ các claim trong Ledger**.
      - Nhúng hình ảnh minh họa dạng clickable nếu Ledger có link đã mở thành công.
      - Tuyệt đối chỉ dùng relative paths (không có `file:///home/...`).
-     - Chạy `check_curriculum.py <course-folder> --online` cho đến khi exit `0`.
+     - Chạy `check_curriculum.py <course-folder> --online --only "<file đã sửa>"` cho đến khi exit `0`.
      - Gửi báo cáo Writing Report cho Teacher.
 5. **Bước 5: Kiểm chứng độc lập (Verifier - G5)**
    - Teacher gọi `verifier` với `Model: "pro"`, chỉ giao đường dẫn file và lĩnh vực.

@@ -11,12 +11,12 @@
 
 | Domain | Focus Topics | Total Items | Completed | Progress |
 | :--- | :--- | :---: | :---: | :---: |
-| **Domain 1: Operating System Core Fundamentals** | Dual Mode, Syscalls, Processes, Threads, Concurrency, Deadlock, CPU Scheduling, Virtual Memory, File Systems | 45 items | `[ ] 0 / 45` | `0%` |
-| **Domain 2: Computer Networking Core Fundamentals** | OSI 7 Layers, TCP/IP Stack, MAC, Ethernet, ARP, IPv4/IPv6, Subnetting, TCP/UDP, **Forward & Reverse Proxies**, DNS, DHCP | 33 items | `[ ] 0 / 33` | `0%` |
-| **Domain 3: OS Realization & Diagnostics: Linux** | `task_struct`, `fork()`/`clone()`, pthreads, Virtual Memory & `/proc`, Inodes, Shell & Diagnostic CLI | 15 items | `[ ] 0 / 15` | `0%` |
-| **Domain 4: OS Realization & Diagnostics: Windows** | `EPROCESS`/`ETHREAD`, Win32 API, Working Set vs Commit, NTFS MFT, Sysinternals & Task Manager | 10 items | `[ ] 0 / 10` | `0%` |
-| **Domain 5: Wire-Level Network Inspection & Diagnostics** | Frame/Packet Analysis, TCP Handshake/Reset tracing, `ping`, `traceroute`, `arp`, `netstat`/`ss`, `tcpdump` | 10 items | `[ ] 0 / 10` | `0%` |
-| **TOTAL** | **Core Systems & Networking Engineering Knowledge Base** | **113 items** | `[ ] 0 / 113` | **`0%`** |
+| **Domain 1: Operating System Core Fundamentals** | Dual Mode, Syscalls, Processes, Threads, Concurrency, Deadlock, CPU Scheduling, Virtual Memory, File Systems | 45 items | `[ ] 35 / 45` | `78%` |
+| **Domain 2: Computer Networking Core Fundamentals** | OSI 7 Layers, TCP/IP Stack, MAC, Ethernet, ARP, IPv4/IPv6, Subnetting, TCP/UDP, **Forward & Reverse Proxies**, DNS, DHCP, VLANs, Routing, NAT, MTU, L4/L7 Load Balancing, TLS, SSH, Firewalls, VPNs | 43 items | `[ ] 14 / 43` | `33%` |
+| **Domain 3: OS Realization & Diagnostics: Linux** | Shell & FHS, Packages, Users & Permissions, `sudo`, `sshd`, `task_struct`, `clone()`, CFS/EEVDF, Signals & IPC, `/proc` & OOM, VFS & Mounts, Boot & systemd, journald, cron/timers, cgroups v2 & Namespaces, Diagnostic CLI | 32 items | `[ ] 0 / 32` | `0%` |
+| **Domain 4: OS Realization & Diagnostics: Windows** | NT Architecture & Boot, PowerShell, `EPROCESS`/`ETHREAD`, Handles, Thread Priorities, Working Set vs Commit, NTFS & Volumes, SIDs/Tokens/UAC, Services, Registry, Task Scheduler, Event Logs, Sysinternals | 22 items | `[ ] 0 / 22` | `0%` |
+| **Domain 5: Wire-Level Network Inspection & Diagnostics** | Frame/Packet Analysis, TCP Handshake/Reset tracing, `ping`, `traceroute`, `arp`, `netstat`/`ss`, `tcpdump`, `curl`, `openssl s_client`, firewall & conntrack state | 12 items | `[ ] 0 / 12` | `0%` |
+| **TOTAL** | **Core Systems & Networking Engineering Knowledge Base** | **154 items** | `[ ] 49 / 154` | **`32%`** |
 
 ---
 
@@ -38,79 +38,79 @@ flowchart TD
 ### Domain 1: Operating System Core Fundamentals (45 Items)
 
 #### 1.1 OS Architecture & Hardware Privilege Modes
-- [ ] **1_1_1 The Role of an Operating System**: Resource management (CPU, memory, I/O devices) and hardware abstraction; preventing user programs from destabilizing the machine.
-- [ ] **1_1_2 Dual-Mode Operation (User Mode vs Kernel Mode)**: Hardware protection rings (Ring 3 User Mode vs Ring 0 Kernel Mode); the hardware Mode Bit.
-- [ ] **1_1_3 System Calls (Syscalls) & Software Traps**: How user programs request privileged kernel operations via software interrupts/traps; CPU register state saving, trap vector table, and mode bit transitions.
-- [ ] **1_1_4 Kernel Architectures**: Monolithic Kernels (Linux - entire OS services in Ring 0) vs Microkernels (Mach/seL4 - minimal Ring 0 kernel with user-space services) vs Hybrid Kernels (Windows NT).
+- [x] **1_1_1 The Role of an Operating System**: Resource management (CPU, memory, I/O devices) and hardware abstraction; preventing user programs from destabilizing the machine.
+- [x] **1_1_2 Dual-Mode Operation (User Mode vs Kernel Mode)**: Hardware protection rings (Ring 3 User Mode vs Ring 0 Kernel Mode); the hardware Mode Bit.
+- [x] **1_1_3 System Calls (Syscalls) & Software Traps**: How user programs request privileged kernel operations via software interrupts/traps; CPU register state saving, trap vector table, and mode bit transitions.
+- [x] **1_1_4 Kernel Architectures**: Monolithic Kernels (Linux - entire OS services in Ring 0) vs Microkernels (Mach/seL4 - minimal Ring 0 kernel with user-space services) vs Hybrid Kernels (Windows NT).
 
 #### 1.2 Process Management & Anatomy
-- [ ] **1_2_1 Process Concept & Memory Anatomy**: What is a process (a program in execution). Anatomy of a process address space:
+- [x] **1_2_1 Process Concept & Memory Anatomy**: What is a process (a program in execution). Anatomy of a process address space:
   - **Text / Code segment**: Read-only machine instructions.
   - **Data segment**: Initialized global and static variables.
   - **BSS segment**: Uninitialized global and static variables (zero-initialized).
   - **Heap segment**: Dynamically allocated memory (`malloc`, `free`), grows upward.
   - **Stack segment**: Function call frames, local variables, return addresses, grows downward.
-- [ ] **1_2_2 Process States & Transitions**: 5-state model: `New` $\rightarrow$ `Ready` $\leftrightarrow$ `Running` $\rightarrow$ `Waiting / Blocked` $\rightarrow$ `Terminated`.
-- [ ] **1_2_3 Process Control Block (PCB)**: Information tracked by the OS for every process: Process ID (PID), Parent PID (PPID), Process State, Program Counter (PC), CPU Registers, Scheduling Priority, Memory Management Info (page table pointers), and Open File Descriptors list.
-- [ ] **1_2_4 Process Creation & Lifecycle (`fork`, `exec`, `wait`, `exit`)**:
+- [x] **1_2_2 Process States & Transitions**: 5-state model: `New` $\rightarrow$ `Ready` $\leftrightarrow$ `Running` $\rightarrow$ `Waiting / Blocked` $\rightarrow$ `Terminated`.
+- [x] **1_2_3 Process Control Block (PCB)**: Information tracked by the OS for every process: Process ID (PID), Parent PID (PPID), Process State, Program Counter (PC), CPU Registers, Scheduling Priority, Memory Management Info (page table pointers), and Open File Descriptors list.
+- [x] **1_2_4 Process Creation & Lifecycle (`fork`, `exec`, `wait`, `exit`)**:
   - `fork()`: Spawning a child process via Copy-on-Write (CoW) page duplication.
   - `exec()`: Overwriting current process address space with a new program image.
   - `wait()` / `waitpid()`: Parent waiting for child termination and reading its exit code.
-- [ ] **1_2_5 Zombie vs Orphan Processes**:
+- [x] **1_2_5 Zombie vs Orphan Processes**:
   - **Zombie Process**: A terminated process whose parent has not yet called `wait()` (retains an entry in process table).
   - **Orphan Process**: A running child whose parent terminated; automatically adopted by PID 1 (`init` / `systemd`) to prevent permanent zombies.
-- [ ] **1_2_6 Context Switching**: Mechanics of saving CPU hardware registers/state of the current process into its PCB and restoring the state of the scheduled process; CPU cache and TLB invalidation overhead.
+- [x] **1_2_6 Context Switching**: Mechanics of saving CPU hardware registers/state of the current process into its PCB and restoring the state of the scheduled process; CPU cache and TLB invalidation overhead.
 
 #### 1.3 Thread Management & Multithreading
-- [ ] **1_3_1 Process vs Thread**: Why threads are called "lightweight processes". What threads share within a process (Code, Data, Heap, File Descriptors) vs what is private per thread (Thread ID, Program Counter, CPU Registers, **Private Stack**).
-- [ ] **1_3_2 Concurrency vs Parallelism**: Concurrency (interleaving execution on a single core via time-slicing) vs Parallelism (simultaneous hardware execution across multiple physical cores).
-- [ ] **1_3_3 Multithreading Models**:
+- [x] **1_3_1 Process vs Thread**: Why threads are called "lightweight processes". What threads share within a process (Code, Data, Heap, File Descriptors) vs what is private per thread (Thread ID, Program Counter, CPU Registers, **Private Stack**).
+- [x] **1_3_2 Concurrency vs Parallelism**: Concurrency (interleaving execution on a single core via time-slicing) vs Parallelism (simultaneous hardware execution across multiple physical cores).
+- [x] **1_3_3 Multithreading Models**:
   - **Many-to-One**: User-level threads mapped to a single kernel thread (fast switching, but any blocking system call blocks all threads).
   - **One-to-One**: One user thread per kernel thread (standard POSIX `pthreads` on Linux, Win32 threads; true multicore parallelism).
   - **Many-to-Many**: Multiplexing $M$ user threads over $N$ kernel threads (Go Goroutines, virtual thread runtimes).
 
 #### 1.4 Process Synchronization & Concurrency
-- [ ] **1_4_1 Race Conditions & Critical Sections**: Definition of a race condition; definition of a Critical Section where shared mutable state is accessed.
-- [ ] **1_4_2 The 3 Critical Section Requirements**:
+- [x] **1_4_1 Race Conditions & Critical Sections**: Definition of a race condition; definition of a Critical Section where shared mutable state is accessed.
+- [x] **1_4_2 The 3 Critical Section Requirements**:
   1. **Mutual Exclusion**: If process $P_i$ is executing in its critical section, no other processes can enter.
   2. **Progress**: If no process is in its critical section, only processes wanting to enter can participate in deciding who enters next.
   3. **Bounded Waiting**: There must be a limit on the number of times other processes can enter after a process has requested entry (prevents starvation).
-- [ ] **1_4_3 Hardware Synchronization**: Atomic CPU instructions: Test-and-Set, Compare-and-Swap (CAS), and Memory Barriers.
-- [ ] **1_4_4 Mutex (Mutual Exclusion Lock)**: Locking mechanism with ownership semantics (the thread that locks must be the thread that unlocks).
-- [ ] **1_4_5 Spinlocks vs Sleep Locks**: Busy-waiting in user/kernel space; when to spin (very short wait, no context switch overhead) vs when to sleep (block and yield CPU).
-- [ ] **1_4_6 Semaphores (Dijkstra)**: Integer variable accessed via atomic `wait()` (`P()`) and `signal()` (`V()`):
+- [x] **1_4_3 Hardware Synchronization**: Atomic CPU instructions: Test-and-Set, Compare-and-Swap (CAS), and Memory Barriers.
+- [x] **1_4_4 Mutex (Mutual Exclusion Lock)**: Locking mechanism with ownership semantics (the thread that locks must be the thread that unlocks).
+- [x] **1_4_5 Spinlocks vs Sleep Locks**: Busy-waiting in user/kernel space; when to spin (very short wait, no context switch overhead) vs when to sleep (block and yield CPU).
+- [x] **1_4_6 Semaphores (Dijkstra)**: Integer variable accessed via atomic `wait()` (`P()`) and `signal()` (`V()`):
   - **Binary Semaphore**: Value 0 or 1 (similar to mutex, but lacks ownership; can be signaled by any thread).
   - **Counting Semaphore**: Value $N$ (controls access to a finite pool of resources).
-- [ ] **1_4_7 Condition Variables**: Synchronization primitive enabling threads to suspend execution until notified by another thread that a condition is true (`wait()`, `signal()`, `broadcast()`).
-- [ ] **1_4_8 Classic Synchronization Problems**:
+- [x] **1_4_7 Condition Variables**: Synchronization primitive enabling threads to suspend execution until notified by another thread that a condition is true (`wait()`, `signal()`, `broadcast()`).
+- [x] **1_4_8 Classic Synchronization Problems**:
   - **Producer-Consumer Problem** (Bounded buffer management using empty/full semaphores).
   - **Readers-Writers Problem** (Read-preference vs Write-preference starvation).
   - **Dining Philosophers Problem** (Demonstrating resource allocation deadlock and starvation).
 
 #### 1.5 Deadlock Deep Dive
-- [ ] **1_5_1 What is Deadlock?**: A set of blocked processes, each holding resources and waiting to acquire resources held by other processes in the set.
-- [ ] **1_5_2 The 4 Coffman Conditions**: All 4 conditions must hold simultaneously for a deadlock to exist:
+- [x] **1_5_1 What is Deadlock?**: A set of blocked processes, each holding resources and waiting to acquire resources held by other processes in the set.
+- [x] **1_5_2 The 4 Coffman Conditions**: All 4 conditions must hold simultaneously for a deadlock to exist:
   1. **Mutual Exclusion**: At least one resource is held in a non-shareable mode.
   2. **Hold and Wait**: A process holds at least one resource and is waiting to acquire additional resources held by other processes.
   3. **No Preemption**: Resources cannot be taken away forcibly; they can only be released voluntarily by the holding process.
   4. **Circular Wait**: A closed chain of processes exists ($P_0$ waits for $P_1$, $P_1$ waits for $P_2$, ..., $P_n$ waits for $P_0$).
-- [ ] **1_5_3 Resource Allocation Graph (RAG)**: Vertices (Processes, Resource types), edges (Request edges, Assignment edges); detecting cycles in single-instance vs multi-instance resource systems.
-- [ ] **1_5_4 Deadlock Prevention**: Techniques to eliminate at least one of the 4 Coffman conditions (e.g., imposing total resource ordering to eliminate Circular Wait).
-- [ ] **1_5_5 Deadlock Avoidance & Banker's Algorithm (Dijkstra)**: Safe State vs Unsafe State; using Available, Max, Allocation, and Need matrices to evaluate whether granting a request keeps the system in a safe state.
-- [ ] **1_5_6 Deadlock Detection & Recovery**: Wait-For Graphs; recovery strategies: process termination (kill all vs kill one-by-one) and resource preemption (rollback to checkpoint).
-- [ ] **1_5_7 Deadlock vs Livelock vs Starvation**:
+- [x] **1_5_3 Resource Allocation Graph (RAG)**: Vertices (Processes, Resource types), edges (Request edges, Assignment edges); detecting cycles in single-instance vs multi-instance resource systems.
+- [x] **1_5_4 Deadlock Prevention**: Techniques to eliminate at least one of the 4 Coffman conditions (e.g., imposing total resource ordering to eliminate Circular Wait).
+- [x] **1_5_5 Deadlock Avoidance & Banker's Algorithm (Dijkstra)**: Safe State vs Unsafe State; using Available, Max, Allocation, and Need matrices to evaluate whether granting a request keeps the system in a safe state.
+- [x] **1_5_6 Deadlock Detection & Recovery**: Wait-For Graphs; recovery strategies: process termination (kill all vs kill one-by-one) and resource preemption (rollback to checkpoint).
+- [x] **1_5_7 Deadlock vs Livelock vs Starvation**:
   - **Deadlock**: Processes are permanently asleep/blocked waiting for impossible events.
   - **Livelock**: Processes actively change their state in response to each other, consuming CPU without making progress.
   - **Starvation**: A runnable process is indefinitely delayed because other processes continuously receive higher priority.
 
 #### 1.6 CPU Scheduling
-- [ ] **1_6_1 CPU Burst vs I/O Burst Cycle**: Alternating phases of CPU execution and I/O wait; CPU-bound vs I/O-bound processes.
-- [ ] **1_6_2 Preemptive vs Non-Preemptive Scheduling**: Cooperative yielding vs timer-interrupt preemption by the kernel.
-- [ ] **1_6_3 First-Come, First-Served (FCFS)**: Non-preemptive scheduling; the **Convoy Effect** (short processes stuck waiting behind a massive CPU-bound job).
-- [ ] **1_6_4 Shortest Job First (SJF & SRTF)**: Provably optimal minimum average waiting time; impossibility of exact future knowledge; Shortest Remaining Time First (SRTF) preemptive variant.
-- [ ] **1_6_5 Priority Scheduling & Aging**: Assigning priority integers; preventing starvation of low-priority processes by gradually increasing their priority over time (**Aging**).
-- [ ] **1_6_6 Round Robin (RR)**: Time quantum ($q$) allocation; sizing tradeoffs (too large $\rightarrow$ degrades to FCFS; too small $\rightarrow$ context switch overhead dominates).
-- [ ] **1_6_7 Multilevel Feedback Queue (MLFQ)**: Multiple priority queues with varying time quanta; dynamically adjusting process priority based on observed behavior (I/O-bound jobs stay high; CPU-heavy jobs sink).
+- [x] **1_6_1 CPU Burst vs I/O Burst Cycle**: Alternating phases of CPU execution and I/O wait; CPU-bound vs I/O-bound processes.
+- [x] **1_6_2 Preemptive vs Non-Preemptive Scheduling**: Cooperative yielding vs timer-interrupt preemption by the kernel.
+- [x] **1_6_3 First-Come, First-Served (FCFS)**: Non-preemptive scheduling; the **Convoy Effect** (short processes stuck waiting behind a massive CPU-bound job).
+- [x] **1_6_4 Shortest Job First (SJF & SRTF)**: Provably optimal minimum average waiting time; impossibility of exact future knowledge; Shortest Remaining Time First (SRTF) preemptive variant.
+- [x] **1_6_5 Priority Scheduling & Aging**: Assigning priority integers; preventing starvation of low-priority processes by gradually increasing their priority over time (**Aging**).
+- [x] **1_6_6 Round Robin (RR)**: Time quantum ($q$) allocation; sizing tradeoffs (too large $\rightarrow$ degrades to FCFS; too small $\rightarrow$ context switch overhead dominates).
+- [x] **1_6_7 Multilevel Feedback Queue (MLFQ)**: Multiple priority queues with varying time quanta; dynamically adjusting process priority based on observed behavior (I/O-bound jobs stay high; CPU-heavy jobs sink).
 
 #### 1.7 Memory Management & Virtual Memory
 - [ ] **1_7_1 Logical (Virtual) vs Physical Address Space**: Base and Limit registers, hardware-level address translation by the Memory Management Unit (MMU).
@@ -137,7 +137,7 @@ flowchart TD
 
 ---
 
-### Domain 2: Computer Networking Core Fundamentals (33 Items)
+### Domain 2: Computer Networking Core Fundamentals (43 Items)
 
 #### 2.1 Network Fundamentals & Models
 - [ ] **2_1_1 How Networks Transfer Data**: Packet Switching vs Circuit Switching; Store-and-Forward transmission; Bandwidth, Latency, Propagation Delay, Transmission Delay, Queuing Delay.
@@ -166,28 +166,32 @@ flowchart TD
 ```
 
 #### 2.2 Data Link Layer (L2) & Physical Addressing
-- [ ] **2_2_1 MAC Address Structure**: 48-bit physical address formatted in hexadecimal (e.g., `00:1A:2B:3C:4D:5E`).
+- [x] **2_2_1 MAC Address Structure**: 48-bit physical address formatted in hexadecimal (e.g., `00:1A:2B:3C:4D:5E`).
   - First 24 bits: **OUI (Organizationally Unique Identifier)** assigned by IEEE to the manufacturer.
   - Last 24 bits: **NIC Specific / Extension Identifier** assigned by the vendor.
   - Broadcast MAC address (`FF:FF:FF:FF:FF:FF`) vs Multicast MAC addresses.
-- [ ] **2_2_2 Ethernet Frame Structure (IEEE 802.3 / Ethernet II)**:
+- [x] **2_2_2 Ethernet Frame Structure (IEEE 802.3 / Ethernet II)**:
   - **Preamble** (7 bytes) & **SFD (Start Frame Delimiter)** (1 byte).
   - **Destination MAC** (6 bytes) & **Source MAC** (6 bytes).
   - **EtherType / Length** (2 bytes, e.g., `0x0800` for IPv4, `0x0806` for ARP, `0x86DD` for IPv6).
   - **Payload** (46 to 1500 bytes).
   - **FCS (Frame Check Sequence)** (4 bytes CRC-32 cyclic redundancy check).
-- [ ] **2_2_3 Switches vs Hubs & The MAC Learning Process**:
+- [x] **2_2_3 Switches vs Hubs & The MAC Learning Process**:
   - Hubs: Layer 1 repeaters; electrical broadcast of every incoming bit to all ports.
   - Switches: Layer 2 intelligent devices; inspect Source MAC to populate **CAM / MAC Address Table** (Port-to-MAC mapping).
   - Unknown Unicast Flooding: When destination MAC is not in CAM table, switch floods frame to all ports except incoming port.
+- [x] **2_2_4 VLANs & IEEE 802.1Q Tagging**:
+  - Splitting one physical switched network into several isolated broadcast domains.
+  - The 802.1Q tag added to the Ethernet frame and the VLAN ID it carries.
+  - Access ports vs trunk ports; why traffic between VLANs must pass through a Layer 3 router.
 
 #### 2.3 Address Resolution Protocol (ARP)
-- [ ] **2_3_1 The Need for ARP (RFC 826)**: Bridging Layer 3 logical IP addresses to Layer 2 physical MAC addresses on the local area network.
-- [ ] **2_3_2 ARP Message Flow**:
+- [x] **2_3_1 The Need for ARP (RFC 826)**: Bridging Layer 3 logical IP addresses to Layer 2 physical MAC addresses on the local area network.
+- [x] **2_3_2 ARP Message Flow**:
   - **ARP Request**: Broadcast (`FF:FF:FF:FF:FF:FF`) asking "Who has IP 192.168.1.1? Tell 192.168.1.50".
   - **ARP Reply**: Unicast sent back by target: "192.168.1.1 is at 00:1A:2B:3C:4D:5E".
-- [ ] **2_3_3 ARP Cache / Table**: Dynamic vs static entries; cache expiration timers; inspecting via `arp -a`.
-- [ ] **2_3_4 Gratuitous ARP & ARP Poisoning / Spoofing**: Announcing IP changes or detecting duplicate IPs; how lack of authentication allows malicious ARP cache poisoning (Man-in-the-Middle).
+- [x] **2_3_3 ARP Cache / Table**: Dynamic vs static entries; cache expiration timers; inspecting via `arp -a`.
+- [x] **2_3_4 Gratuitous ARP & ARP Poisoning / Spoofing**: Announcing IP changes or detecting duplicate IPs; how lack of authentication allows malicious ARP cache poisoning (Man-in-the-Middle).
 
 #### 2.4 Network Layer (L3) & IP Addressing
 - [ ] **2_4_1 IPv4 Header Anatomy (RFC 791)**:
@@ -214,6 +218,22 @@ flowchart TD
   - Type 8 (Echo Request) & Type 0 (Echo Reply) - foundation of `ping`.
   - Type 3 (Destination Unreachable) & Type 11 (Time to Live Exceeded in Transit - foundation of `traceroute`).
 - [ ] **2_4_7 IPv6 Architecture**: 128-bit hexadecimal notation; elimination of broadcast (replaced by multicast and anycast); link-local (`fe80::/10`) vs global unicast (`2000::/3`).
+  - Neighbor Discovery Protocol (NDP, RFC 4861) as the IPv6 replacement for ARP.
+  - Stateless Address Autoconfiguration (SLAAC, RFC 4862) vs DHCPv6.
+- [ ] **2_4_8 Routing Tables & Longest Prefix Match**:
+  - Reading a routing table: destination prefix, next hop / gateway, outgoing interface, metric.
+  - Longest prefix match: how a router or host picks one route when several prefixes match; the default route `0.0.0.0/0`.
+  - Static vs dynamic routing; interior link-state routing (OSPF, RFC 2328) vs exterior path-vector routing (BGP-4, RFC 4271) at concept level.
+- [ ] **2_4_9 Network Address Translation (NAT & PAT, RFC 3022)**:
+  - Why hosts with private (RFC 1918) addresses need translation to reach the public internet.
+  - Basic NAT vs NAPT / PAT (port translation that lets many hosts share one public IP).
+  - The NAT translation table and connection tracking; source NAT vs destination NAT (port forwarding).
+  - Side effects: unsolicited inbound connections fail without port forwarding; loss of end-to-end addressing.
+- [ ] **2_4_10 MTU, Fragmentation & Path MTU Discovery**:
+  - Link MTU vs packet size; IPv4 fragmentation and reassembly (Identification, MF flag, Fragment Offset).
+  - The DF bit and the ICMP "Fragmentation Needed" message.
+  - Path MTU Discovery for IPv4 (RFC 1191) and IPv6 (RFC 8201); why IPv6 routers do not fragment in transit.
+  - PMTUD black holes when ICMP is blocked; the TCP Maximum Segment Size (MSS) option.
 
 #### 2.5 Transport Layer (L4): Ports, TCP & UDP
 - [ ] **2_5_1 Ports & Sockets**:
@@ -280,95 +300,175 @@ flowchart TD
     - IETF Standard Header (**RFC 7239 `Forwarded`**): Structured format combining metadata: `Forwarded: for=192.0.2.60;proto=https;host=example.com;by=203.0.113.43`.
 - [ ] **2_6_4 Forward Proxy vs Reverse Proxy Architectural Comparison**:
   - Distinguish: Directionality (Client-facing vs Server-facing), IP masked (Client IP hidden vs Server IP hidden), Configuration locus (Client must know proxy vs Server deploys proxy), and Primary beneficiary (Protects/empowers internal client vs Protects/empowers internal server).
+- [ ] **2_6_5 Layer 4 vs Layer 7 Load Balancing**:
+  - Layer 4: forwarding TCP/UDP connections by IP address and port, without reading the application payload.
+  - Layer 7: terminating HTTP and routing by host name, path, or headers.
+  - Health checks, session persistence (sticky sessions), and how each type preserves (or loses) the client IP address.
 
 #### 2.7 Core Application Layer Protocols
-- [ ] **2_7_1 Domain Name System (DNS, RFC 1034 / 1035)**:
+- [x] **2_7_1 Domain Name System (DNS, RFC 1034 / 1035)**:
   - Hierarchy: Root (`.`), Top-Level Domain (TLD, `.com`), Second-Level Domain (`google.com`), Subdomain (`api.google.com`).
   - Recursive Resolver vs Authoritative Name Server.
   - Record types: `A` (IPv4), `AAAA` (IPv6), `CNAME` (Alias), `PTR` (Reverse), `MX` (Mail), `TXT` (Text records).
   - Root Server Hints and Iterative vs Recursive query flows.
-- [ ] **2_7_2 Dynamic Host Configuration Protocol (DHCP)**:
+- [x] **2_7_2 Dynamic Host Configuration Protocol (DHCP)**:
   - The **DORA** cycle over UDP (Ports 67 Server, 68 Client):
     1. **Discover**: Client broadcasts to find DHCP servers.
     2. **Offer**: DHCP server offers IP address lease, subnet mask, default gateway, and DNS servers.
     3. **Request**: Client requests offered IP lease.
     4. **Acknowledge**: Server commits lease and confirms configuration.
-- [ ] **2_7_3 HTTP / HTTPS Basics**:
+- [x] **2_7_3 HTTP / HTTPS Basics**:
   - Client-server request-response protocol; request methods (`GET`, `POST`, `PUT`, `DELETE`), status codes (`2xx`, `3xx`, `4xx`, `5xx`), and headers.
   - Transport Layer Security (TLS) handshake purpose: Encrypting application traffic using asymmetric key exchange and symmetric stream ciphers.
+  - HTTP versions at a glance: HTTP/1.1 (RFC 9112), HTTP/2 (RFC 9113, binary framing and multiplexing), HTTP/3 (RFC 9114, over QUIC, RFC 9000).
+- [x] **2_7_4 TLS 1.3 Handshake & Certificate Chain of Trust**:
+  - The TLS 1.3 handshake flow (ClientHello, ServerHello, key exchange, server authentication). Current specification: RFC 9846, which obsoletes RFC 8446.
+  - X.509 certificates (RFC 5280): subject, issuer, validity period, Subject Alternative Name.
+  - Chain of trust: leaf certificate → intermediate CA → root CA in the client trust store; Server Name Indication (SNI).
+  - Common failures: expired certificate, host name mismatch, missing intermediate certificate, untrusted CA.
+- [x] **2_7_5 SSH Protocol & Port Forwarding (RFC 4251–4254)**:
+  - SSH layers: transport (server host key, key exchange, encryption), user authentication (password vs public key), connection (channels).
+  - Host key verification and the `known_hosts` file.
+  - Local (`-L`), remote (`-R`), and dynamic (`-D`) port forwarding; jump hosts (`-J`).
+- [x] **2_7_6 Host Name Resolution & DNS Caching**:
+  - How a Linux client resolves a name: `/etc/nsswitch.conf`, `/etc/hosts`, `/etc/resolv.conf`, and the stub resolver.
+  - Record TTL and caching at recursive resolvers and clients; negative caching.
+  - Why DNS changes appear to "propagate" slowly.
+
+#### 2.8 Network Security Boundaries: Firewalls & VPN Tunnels
+- [ ] **2_8_1 Stateless vs Stateful Packet Filtering**:
+  - Matching rules on the 5-tuple (source/destination IP, source/destination port, protocol) and a default-deny policy.
+  - Stateless filters need explicit rules for return traffic; stateful firewalls track connections and allow replies automatically.
+  - Host firewall examples: Linux netfilter / nftables and Windows Defender Firewall.
+- [ ] **2_8_2 VPNs & IP Tunneling**:
+  - Tunneling: carrying one packet inside another; GRE (RFC 2784).
+  - IPsec (RFC 4301) site-to-site vs remote-access VPNs; WireGuard.
+  - Overlay networks: VXLAN (RFC 7348) carrying Layer 2 frames over a Layer 3 network.
+  - Encapsulation overhead and its effect on MTU.
 
 ---
 
-### Domain 3: Operating System Realization: Linux Deep Dive (15 Items)
+### Domain 3: Operating System Realization: Linux Deep Dive (32 Items)
 
-#### 3.1 Process and Thread Implementation in the Linux Kernel
-- [ ] **3_1_1 Linux Process Representation (`task_struct`)**: How the Linux kernel represents both processes and threads in `/usr/src/linux/include/linux/sched.h`.
-- [ ] **3_1_2 Linux Thread Implementation (`clone` & NPTL)**: How `pthread_create()` invokes the `clone()` system call with shared memory flags (`CLONE_VM`, `CLONE_FS`, `CLONE_FILES`, `CLONE_SIGHAND`).
-- [ ] **3_1_3 Linux Process States in Practice**: Decoding output of `ps` / `top`: `R` (Running), `S` (Interruptible Sleep), `D` (Uninterruptible Sleep - blocked on disk/NFS I/O), `Z` (Zombie), `T` (Stopped).
-- [ ] **3_1_4 Linux Completely Fair Scheduler (CFS) Mechanics**: The concept of virtual runtime (`vruntime`) tracked inside red-black trees; process nice values (`-20` to `+19`).
+#### 3.1 Linux Command-Line Foundations, Filesystem Hierarchy and Packages
+- [ ] **3_1_1 Filesystem Hierarchy Standard & "Everything is a File"**: FHS 3.0 directory roles (`/etc`, `/var`, `/home`, `/tmp`, `/usr`, `/opt`, `/boot`, `/dev`, `/run`); `/proc` and `/sys` as kernel-generated virtual filesystems; file types shown by `ls -l` (`-`, `d`, `l`, `c`, `b`, `p`, `s`).
+- [ ] **3_1_2 Shell Fundamentals: Pipes, Redirection & Exit Codes**: Bash standard streams; redirection (`>`, `>>`, `<`, `2>`, `2>&1`); pipelines and `set -o pipefail`; exit status `$?`, `&&` / `||`; variables, `export`, `PATH`; quoting; shebang and `chmod +x`.
+- [ ] **3_1_3 Text Search & Processing (`find`, `grep`, `sed`, `awk`)**: Finding files by name, type, size and time; searching text with `grep`; stream editing with `sed`; field processing with `awk`; composing `sort`, `uniq -c`, `tail -f`, `wc`, `cut`, `xargs` for log analysis.
+- [ ] **3_1_4 Software Package Management (`apt` & `dnf`)**: `apt`/`dpkg` (Debian/Ubuntu) vs `dnf`/`rpm` (RHEL/Fedora); repositories and GPG signing keys; install, remove, update, search; finding which package owns a file (`dpkg -S`, `rpm -qf`).
 
-#### 3.2 Linux Signals and Inter-Process Communication
-- [ ] **3_2_1 Linux Signals in Detail**: Asynchronous notifications; `SIGINT` (Ctrl+C, 2), `SIGQUIT` (3), `SIGKILL` (9, non-catchable), `SIGTERM` (15, graceful stop), `SIGCHLD` (17), `SIGHUP` (1, reload config).
-- [ ] **3_2_2 Inter-Process Communication (IPC) on Linux**: Pipes (`|`), Named FIFOs (`mkfifo`), Unix Domain Sockets (`AF_UNIX`), POSIX Shared Memory (`shm_open`).
+#### 3.2 Users, Permissions and Remote Access
+- [ ] **3_2_1 Users, Groups & Linux Identity**: UID/GID, root (UID 0), real vs effective IDs; `/etc/passwd`, `/etc/shadow`, `/etc/group`; primary vs supplementary groups; `id`, `useradd`, `usermod -aG`, `passwd`.
+- [ ] **3_2_2 File Permissions, Ownership & `umask`**: `rwx` for user/group/other and its meaning on directories; octal vs symbolic `chmod`; `chown`, `chgrp`; how `umask` shapes the mode of new files and directories.
+- [ ] **3_2_3 Special Permission Bits & `sudo`**: setuid (`4000`), setgid (`2000`), sticky bit (`1000`) and how `ls -l` shows them; auditing setuid binaries; `sudo`, `/etc/sudoers`, `/etc/sudoers.d/`, `visudo`, `sudo -l`; least privilege.
+- [ ] **3_2_4 Remote Access with OpenSSH (Server Administration)**: `sshd` and `/etc/ssh/sshd_config` (`PermitRootLogin`, `PasswordAuthentication`, `PubkeyAuthentication`, `AllowUsers`); `sshd -t`; key-based login with `ssh-keygen` and `~/.ssh/authorized_keys`; `StrictModes` and file permissions; host keys. (Protocol internals: see 2_7_5.)
 
-#### 3.3 Linux Virtual Memory and the proc Subsystem
-- [ ] **3_3_1 Virtual Memory in `/proc`**: Reading memory statistics through `/proc/meminfo` (MemTotal, MemFree, MemAvailable, Buffers, Cached, SwapCached); inspecting per-process mappings via `/proc/[pid]/maps` and `/proc/[pid]/smaps`.
+#### 3.3 Process and Thread Implementation in the Linux Kernel
+- [ ] **3_3_1 Linux Process Representation (`task_struct`)**: How the Linux kernel represents both processes and threads in `/usr/src/linux/include/linux/sched.h`.
+- [ ] **3_3_2 Linux Thread Implementation (`clone` & NPTL)**: How `pthread_create()` invokes the `clone()` system call with shared memory flags (`CLONE_VM`, `CLONE_FS`, `CLONE_FILES`, `CLONE_SIGHAND`).
+- [ ] **3_3_3 Linux Process States in Practice**: Decoding output of `ps` / `top`: `R` (Running), `S` (Interruptible Sleep), `D` (Uninterruptible Sleep - blocked on disk/NFS I/O), `Z` (Zombie), `T` (Stopped).
+- [ ] **3_3_4 Linux Completely Fair Scheduler (CFS) Mechanics**: The concept of virtual runtime (`vruntime`) tracked inside red-black trees; process nice values (`-20` to `+19`).
 
-#### 3.4 Virtual Filesystem and Storage Internals
-- [ ] **3_4_1 Virtual Filesystem (VFS) in Linux**: VFS abstraction layer; Ext4 filesystem layout (Superblock, Inode tables, Data blocks, Journal); hard links vs soft/symbolic links.
-- [ ] **3_4_2 Linux File Descriptors & Limits**: Standard streams: stdin (0), stdout (1), stderr (2); inspecting open handles via `/proc/[pid]/fd/` and managing limits via `ulimit -n` and `/proc/sys/fs/file-max`.
+#### 3.4 Linux Signals and Inter-Process Communication
+- [ ] **3_4_1 Linux Signals in Detail**: Asynchronous notifications; `SIGINT` (Ctrl+C, 2), `SIGQUIT` (3), `SIGKILL` (9, non-catchable), `SIGTERM` (15, graceful stop), `SIGCHLD` (17), `SIGHUP` (1, reload config).
+- [ ] **3_4_2 Inter-Process Communication (IPC) on Linux**: Pipes (`|`), Named FIFOs (`mkfifo`), Unix Domain Sockets (`AF_UNIX`), POSIX Shared Memory (`shm_open`).
 
-#### 3.5 Practical Linux Diagnostics and Performance Toolkit
-- [ ] **3_5_1 Core Linux Process Commands**:
+#### 3.5 Linux Virtual Memory and the proc Subsystem
+- [ ] **3_5_1 Virtual Memory in `/proc`**: Reading memory statistics through `/proc/meminfo` (MemTotal, MemFree, MemAvailable, Buffers, Cached, SwapCached); inspecting per-process mappings via `/proc/[pid]/maps` and `/proc/[pid]/smaps`.
+- [ ] **3_5_2 Swap, Swappiness & the OOM Killer**: Swap partitions vs swap files (`swapon --show`); `vm.swappiness`; memory overcommit (`vm.overcommit_memory`); how the OOM killer chooses a victim (`oom_score`, `/proc/[pid]/oom_score_adj`) and where OOM kills are logged.
+
+#### 3.6 Virtual Filesystem and Storage Internals
+- [ ] **3_6_1 Virtual Filesystem (VFS) in Linux**: VFS abstraction layer; Ext4 filesystem layout (Superblock, Inode tables, Data blocks, Journal); hard links vs soft/symbolic links.
+- [ ] **3_6_2 Linux File Descriptors & Limits**: Standard streams: stdin (0), stdout (1), stderr (2); inspecting open handles via `/proc/[pid]/fd/` and managing limits via `ulimit -n` and `/proc/sys/fs/file-max`.
+- [ ] **3_6_3 Block Devices, Mounting & `/etc/fstab`**: `lsblk`, `blkid`; GPT vs MBR partitions; `mkfs`; `mount`, `umount`, `findmnt`; `/etc/fstab` fields, `UUID=`, `nofail`, and testing with `mount -a`.
+
+#### 3.7 Boot Process, systemd and Logging
+- [ ] **3_7_1 Linux Boot Process: Firmware to PID 1**: UEFI/BIOS → bootloader (GRUB 2) → kernel + initramfs → root filesystem → PID 1 (systemd) → default target; `/proc/cmdline`, `systemd-analyze blame`.
+- [ ] **3_7_2 systemd Units & `systemctl`**: Unit types; unit file sections (`[Unit]`, `[Service]`, `[Install]`); vendor files vs `/etc/systemd/system` overrides and drop-ins; `start` vs `enable`; `daemon-reload`; stop sequence (`SIGTERM` then `SIGKILL`).
+- [ ] **3_7_3 Logging with journald & `journalctl`**: Structured journal; filtering by unit, boot, priority, time and kernel (`-u`, `-b`, `-p`, `--since`, `-k`, `-f`); persistent vs volatile storage; `/var/log` text logs and `logrotate`.
+- [ ] **3_7_4 Scheduled Jobs: cron & systemd Timers**: crontab five-field syntax, user vs system crontabs, cron's minimal environment; systemd `.timer` units (`OnCalendar=`, `Persistent=`), `systemctl list-timers`.
+
+#### 3.8 Resource Control with cgroups and Namespaces
+- [ ] **3_8_1 Control Groups v2 (cgroups)**: Unified hierarchy at `/sys/fs/cgroup`; controllers (`cpu`, `memory`, `io`, `pids`); `memory.max`, `memory.events`, `cpu.max`, `cpu.weight`, `pids.max`; systemd slices, `systemd-cgls`, `systemd-cgtop`, `MemoryMax=`, `CPUQuota=`.
+- [ ] **3_8_2 Linux Namespaces**: Mount, PID, network, UTS, IPC, user, cgroup and time namespaces; `/proc/[pid]/ns/`, `lsns`, `unshare`, `nsenter`; namespaces + cgroups as the kernel basis of containers.
+
+#### 3.9 Practical Linux Diagnostics and Performance Toolkit
+- [ ] **3_9_1 Core Linux Process Commands**:
   - `ps aux` and `ps -ef` (Inspect active processes and hierarchy).
   - `top` / `htop` (Real-time CPU and memory monitoring; understanding load averages).
   - `kill` / `pkill` / `killall` (Sending signals to processes).
-- [ ] **3_5_2 Memory & Swap Inspection CLI**:
+- [ ] **3_9_2 Memory & Swap Inspection CLI**:
   - `free -h` (Distinguishing between Free memory and Available memory).
   - `vmstat 1` (Paging rates: `si` swap-in, `so` swap-out; runnable `r` queue).
-- [ ] **3_5_3 Disk & Storage Inspection CLI**:
+- [ ] **3_9_3 Disk & Storage Inspection CLI**:
   - `df -h` (Filesystem disk usage) and `df -i` (Inode usage).
   - `du -sh *` (Directory disk space accounting).
   - `iostat -xz 1` (Disk utilization `%util` and service time `await`).
-- [ ] **3_5_4 System Call Tracing with `strace`**:
+- [ ] **3_9_4 System Call Tracing with `strace`**:
   - Running `strace -c <command>` to summarize syscall execution time and count.
   - Attaching `strace -p <PID> -T` to diagnose why a process is hung or blocked.
-- [ ] **3_5_5 Open File & Socket Inspection with `lsof`**:
+- [ ] **3_9_5 Open File & Socket Inspection with `lsof`**:
   - Finding open files by process: `lsof -p <PID>`.
   - Finding which process is holding a port: `lsof -i :80` or `lsof -i TCP`.
-- [ ] **3_5_6 Linux Kernel Hardware Ring Buffer (`dmesg`)**:
+- [ ] **3_9_6 Linux Kernel Hardware Ring Buffer (`dmesg`)**:
   - Reading kernel events, boot logs, and hardware device discovery via `dmesg -T`.
+- [ ] **3_9_7 Linux Troubleshooting Scenarios**:
+  - High load average with idle CPU (`D` state, I/O wait).
+  - A process killed by the OOM killer.
+  - "No space left on device" with free blocks (inode exhaustion, deleted-but-open files via `lsof +L1`).
+  - "Address already in use", a service that will not start, and "Permission denied" (`namei -l`).
 
 ---
 
-### Domain 4: Operating System Realization: Windows Internals (10 Items)
+### Domain 4: Operating System Realization: Windows Internals (22 Items)
 
 #### 4.1 Windows NT Kernel Architecture and Execution Modes
 - [ ] **4_1_1 Windows NT Kernel Architecture**: Executive Subsystem, Kernel, Hardware Abstraction Layer (HAL), and User-mode Subsystems (Win32 subsystem).
+- [ ] **4_1_2 Windows Boot Process**: PreBoot (UEFI/BIOS) → Windows Boot Manager and the BCD → Windows OS Loader (`winload`) → kernel initialization → Session Manager (`smss.exe`) → `services.exe`, `lsass.exe`, `winlogon.exe`; `bcdedit /enum`.
 
-#### 4.2 Windows Process and Thread Architecture
-- [ ] **4_2_1 Windows Process & Thread Structures**:
+#### 4.2 PowerShell and Windows Command-Line Fundamentals
+- [ ] **4_2_1 PowerShell Fundamentals: Cmdlets & the Object Pipeline**: Windows PowerShell 5.1 vs PowerShell 7.x; `Verb-Noun` cmdlets; `Get-Command`, `Get-Help`, `Get-Member`; objects (not text) in the pipeline with `Where-Object`, `Sort-Object`, `Select-Object`; providers and drives (`HKLM:`, `Env:`, `Cert:`).
+- [ ] **4_2_2 PowerShell Scripts, Execution Policy & Remoting**: `.ps1` scripts; execution policies and scopes (and why they are not a security boundary); WinRM-based remoting (`Enable-PSRemoting`, `Enter-PSSession`, `Invoke-Command`); SSH-based remoting in PowerShell 7.
+
+#### 4.3 Windows Process and Thread Architecture
+- [ ] **4_3_1 Windows Process & Thread Structures**:
   - Executive Process Block (`EPROCESS`) and Executive Thread Block (`ETHREAD`) in kernel space.
   - Process Environment Block (`PEB`) and Thread Environment Block (`TEB`) in user space.
-- [ ] **4_2_2 Windows Process Creation**: The Win32 `CreateProcess()` and `CreateThread()` APIs; inheritance of handles.
-- [ ] **4_2_3 Windows Handle Concept**: The Windows Object Manager; using opaque 32/64-bit `HANDLE`s to reference files, events, semaphores, mutexes, and processes.
+- [ ] **4_3_2 Windows Process Creation**: The Win32 `CreateProcess()` and `CreateThread()` APIs; inheritance of handles.
+- [ ] **4_3_3 Windows Handle Concept**: The Windows Object Manager; using opaque 32/64-bit `HANDLE`s to reference files, events, semaphores, mutexes, and processes.
+- [ ] **4_3_4 Windows Thread Scheduling & Priorities**: Preemptive, quantum-based thread scheduling; priority levels 0–31 (priority class + relative thread priority = base priority; real-time range 16–31); dynamic priority boosts; inspecting `PriorityClass`.
 
-#### 4.3 Windows Memory Management and Storage Internals
-- [ ] **4_3_1 Windows Memory Management Terminology**:
+#### 4.4 Windows Memory Management and Storage Internals
+- [ ] **4_4_1 Windows Memory Management Terminology**:
   - **Working Set**: The physical RAM currently allocated to a process (Private Working Set vs Shareable).
   - **Commit Charge**: Total virtual memory allocated that is backed by physical RAM or the pagefile (`pagefile.sys`).
   - **Paged Pool** (pageable kernel memory) vs **Non-Paged Pool** (kernel memory guaranteed to stay in physical RAM, used for interrupt handlers).
-- [ ] **4_3_2 NTFS Architecture**: Master File Table (MFT), file attributes, and Access Control Lists (DACLs for permissions, SACLs for auditing).
+- [ ] **4_4_2 NTFS Architecture**: Master File Table (MFT), file attributes, and Access Control Lists (DACLs for permissions, SACLs for auditing).
+- [ ] **4_4_3 Disks, Partitions & Volumes**: GPT vs MBR; partitions, volumes, drive letters and mount points; `Get-Disk`, `Initialize-Disk`, `New-Partition`, `Format-Volume`, `Get-Volume`; `diskpart` and Disk Management.
 
-#### 4.4 Practical Windows Diagnostics and Performance Toolkit
-- [ ] **4_4_1 Windows Task Manager & Resource Monitor**: Interpreting CPU Utilization, Processes vs Services tabs, Working Set vs Commit memory, and disk response times.
-- [ ] **4_4_2 Windows Performance Monitor (PerfMon)**: Adding and analyzing performance counter logs: `\Processor(_Total)\% Processor Time`, `\Memory\Available MBytes`.
-- [ ] **4_4_3 Windows Sysinternals - Process Explorer (`procexp`)**: Viewing the live GUI process hierarchy tree, viewing open handles, loaded DLLs, and finding which process locks a file.
-- [ ] **4_4_4 Windows Sysinternals - Process Monitor (`procmon`)**: Capturing and filtering real-time filesystem, registry, and process activity for troubleshooting application failures.
+#### 4.5 Windows Security Identity and Access Control
+- [ ] **4_5_1 Users, Groups & Security Identifiers (SIDs)**: SID structure and well-known SIDs; local users and groups (`Get-LocalUser`, `Get-LocalGroupMember`); built-in service accounts (LocalSystem, LocalService, NetworkService); `whoami /user /groups`.
+- [ ] **4_5_2 Access Tokens, Privileges, Integrity Levels & UAC**: Access token contents; the access check against a DACL; privileges (`whoami /priv`); Mandatory Integrity Control levels; UAC filtered token and elevation.
+
+#### 4.6 Windows Services, Registry and Scheduled Tasks
+- [ ] **4_6_1 Windows Services & the Service Control Manager**: `services.exe`, `svchost.exe`; startup types, service accounts, dependencies, recovery actions; `Get-Service`, `Set-Service`, `Restart-Service`, `sc.exe query` / `qc` / `config`.
+- [ ] **4_6_2 The Windows Registry**: Predefined root keys; hives and their backing files; value types; `regedit`, `reg query` / `reg add` / `reg export`; the PowerShell registry provider.
+- [ ] **4_6_3 Task Scheduler**: Triggers, actions, conditions and run-as accounts; `schtasks`, `Get-ScheduledTask`, `Register-ScheduledTask`; the TaskScheduler Operational log.
+
+#### 4.7 Practical Windows Diagnostics and Performance Toolkit
+- [ ] **4_7_1 Windows Event Logs & Event Viewer**: Windows Logs (Application, Security, Setup, System) vs Applications and Services Logs; event level, provider and Event ID; `eventvwr.msc`, `Get-WinEvent -FilterHashtable`, `wevtutil qe`.
+- [ ] **4_7_2 Windows Task Manager & Resource Monitor**: Interpreting CPU Utilization, Processes vs Services tabs, Working Set vs Commit memory, and disk response times.
+- [ ] **4_7_3 Windows Performance Monitor (PerfMon)**: Adding and analyzing performance counter logs: `\Processor(_Total)\% Processor Time`, `\Memory\Available MBytes`.
+- [ ] **4_7_4 Windows Sysinternals - Process Explorer (`procexp`)**: Viewing the live GUI process hierarchy tree, viewing open handles, loaded DLLs, and finding which process locks a file.
+- [ ] **4_7_5 Windows Sysinternals - Process Monitor (`procmon`)**: Capturing and filtering real-time filesystem, registry, and process activity for troubleshooting application failures.
+- [ ] **4_7_6 Windows Troubleshooting Scenarios**:
+  - A service that will not start (SCM events in the System log, `sc.exe qc`).
+  - High CPU, memory leak (growing commit), and handle leak.
+  - "The file is in use" (Process Explorer *Find Handle or DLL*).
+  - Silent application failures (Process Monitor `ACCESS DENIED` / `NAME NOT FOUND`).
 
 ---
 
-### Domain 5: Wire-Level Network Inspection & Diagnostics (10 Items)
+### Domain 5: Wire-Level Network Inspection & Diagnostics (12 Items)
 
 #### 5.1 Wire-Level Inspection and Diagnostic Toolkit
 - [ ] **5_1_1 Network Interface Inspection (`ip` / `ifconfig` / `ipconfig`)**:
@@ -405,6 +505,13 @@ flowchart TD
 - [ ] **5_1_10 Wire-Level Troubleshooting Scenarios**:
   - Verifying a TCP 3-way handshake on the wire.
   - Distinguishing between "Connection Refused" (Target host sends TCP `RST`) vs "Connection Timed Out" (Firewall silently drops `SYN` packet).
+- [ ] **5_1_11 HTTP & TLS Inspection (`curl` / `openssl s_client`)**:
+  - `curl -v` to watch name resolution, TCP connect, the TLS handshake, and HTTP headers; `curl -I`, `curl --resolve`, and `curl -x` through a proxy.
+  - `openssl s_client -connect <host>:443 -servername <host> -showcerts` to inspect the certificate chain.
+- [ ] **5_1_12 Firewall & NAT State Inspection**:
+  - Linux: `nft list ruleset`, `iptables -L -n -v`, `iptables -t nat -L -n -v`, and `conntrack -L` for tracked connections and NAT translations.
+  - Windows: `Get-NetFirewallRule` and `Get-NetFirewallProfile` (PowerShell).
+  - Correlating rules with a `tcpdump` capture to prove where a packet is dropped.
 
 ---
 
@@ -459,7 +566,10 @@ flowchart TD
 | Virtual Memory        | free -h                               | Inspect Total, Used, Free, and Available RAM and Swap       |
 | System Call Tracing   | strace -p <PID> -c                    | Count and measure execution time of all process syscalls    |
 | Open File Handles     | lsof -p <PID>                         | Inspect all files, sockets, and pipes held by a process     |
+| Service Management    | systemctl status <unit>               | Inspect a systemd service's state, PID, and recent log lines |
+| Service Logs          | journalctl -u <unit> -b               | Read a unit's journal entries for the current boot          |
 | Windows Diagnostics   | procexp.exe                           | Sysinternals GUI for process tree, handles, and DLLs        |
+| Windows Services/Logs | Get-Service / Get-WinEvent            | PowerShell: service state and filtered event log queries    |
 +-----------------------+---------------------------------------+-------------------------------------------------------------+
 ```
 

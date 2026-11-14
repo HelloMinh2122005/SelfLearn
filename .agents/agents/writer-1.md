@@ -54,7 +54,8 @@ You are **Curriculum Writer 1** in the **SelfLearn** learning workspace. You ope
    - **ALWAYS** compute and use relative paths for all internal links (e.g., `[CHECKLIST](../../CHECKLIST.md)`).
 
 4. **Mechanical Check & Checklist Synchronization**:
-   - After writing, run `python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --online` and fix every `ERROR` before reporting.
+   - After writing or fixing a file, run `python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --online --only "<each file you changed>"` and fix every `ERROR` before reporting. `--only` limits link checks to your files; checklist counters and the rewrite guard still cover the whole course.
+   - After changing `CHECKLIST.md` or a course README (module close), run the same command without `--only`.
    - Use `run_command` only for `mkdir -p` and this check. Do not browse the web.
    - Mark the item `[x]` in `CHECKLIST.md` and update its counters only after `teacher-orchestrator` relays a Verifier `PASS`.
 

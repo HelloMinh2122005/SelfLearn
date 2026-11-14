@@ -24,6 +24,8 @@ flowchart TD
 ## 📚 Detailed Study Modules
 
 ### Module 1: OS Architecture & Hardware Protection Modes
+> 📂 **Bài học chi tiết**: [1_1 OS Architecture and Hardware Privilege Modes](<./1 Domain 1 - Operating System Core Fundamentals/1_1 OS Architecture and Hardware Privilege Modes/README.md>)
+
 1. **The Purpose of an Operating System**: Resource allocation (CPU time, RAM pages, I/O bandwidth) and abstracting messy hardware interfaces into clean programming APIs; preventing catastrophic software bugs from halting hardware.
 2. **Dual-Mode Operation (User Mode vs. Kernel Mode)**:
    - **User Mode (Ring 3)**: Unprivileged execution mode where user applications run. Direct hardware and raw physical memory access is prohibited.
@@ -44,6 +46,8 @@ flowchart TD
 ---
 
 ### Module 2: Process Anatomy & Process Lifecycle
+> 📂 **Bài học chi tiết**: [1_2 Process Management and Anatomy](<./1 Domain 1 - Operating System Core Fundamentals/1_2 Process Management and Anatomy/README.md>)
+
 1. **Memory Anatomy of a Process**:
    When an executable binary is loaded into virtual memory, it is divided into distinct functional segments:
    - **Text / Code**: Contains compiled machine instructions. Marked read-only to allow multiple process instances to share the same code pages safely.
@@ -104,6 +108,8 @@ flowchart TD
 ---
 
 ### Module 3: Threads & Multithreading Models
+> 📂 **Bài học chi tiết**: [1_3 Thread Management and Multithreading](<./1 Domain 1 - Operating System Core Fundamentals/1_3 Thread Management and Multithreading/README.md>)
+
 1. **Process vs. Thread (Lightweight Process)**:
    - A **Process** is an independent unit of resource allocation and memory isolation.
    - A **Thread** is the basic unit of CPU execution and scheduling within a process.
@@ -128,6 +134,8 @@ flowchart TD
 ---
 
 ### Module 4: Process Synchronization & Concurrency
+> 📂 **Bài học chi tiết**: [1_4 Process Synchronization and Concurrency](<./1 Domain 1 - Operating System Core Fundamentals/1_4 Process Synchronization and Concurrency/README.md>)
+
 1. **Race Conditions & Critical Section Problem**:
    - **Race Condition**: A bug where multiple concurrent threads access and manipulate shared data, and the final outcome depends on the non-deterministic order of execution.
    - **Critical Section**: A block of code that accesses shared mutable state (variables, files, linked lists).
@@ -156,6 +164,7 @@ flowchart TD
 ---
 
 ### Module 5: Deadlock Deep Dive
+> 📂 **Bài học chi tiết**: [1_5 Deadlock Deep Dive](<./1 Domain 1 - Operating System Core Fundamentals/1_5 Deadlock Deep Dive/README.md>)
 1. **Deadlock Definition**:
    A situation where a set of processes are blocked permanently because each process holds resources and waits for resources held by other processes in the same set.
 2. **The 4 Coffman Conditions (Must all hold simultaneously for Deadlock)**:
@@ -189,6 +198,7 @@ flowchart TD
 ---
 
 ### Module 6: CPU Scheduling
+> 📂 **Bài học chi tiết**: [1_6 CPU Scheduling](<./1 Domain 1 - Operating System Core Fundamentals/1_6 CPU Scheduling/README.md>)
 1. **Burst Cycles & Preemption**:
    - Process execution consists of alternating **CPU Bursts** (computation) and **I/O Bursts** (disk/network wait).
    - **Non-Preemptive Scheduling**: Once a process gets the CPU, it holds it until it voluntarily yields or blocks for I/O.

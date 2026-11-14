@@ -13,12 +13,14 @@ This skill runs the mechanical half of the release gate. It does not judge wheth
 Run from the repository root:
 
 ```bash
-python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --online
+python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --online --only "<lesson file>"
 ```
 
 | Option | Effect |
 | :--- | :--- |
-| `--online` | Also tests every external link. Required for the Verifier gate. |
+| `--online` | Also tests external links. Required for G4 and the Verifier gate. |
+| `--only FILE ...` | Checks links only in these files. Checklist counters and the rewrite guard still cover the whole course. Use it for lesson writes, fixes, and verification. Omit it when `CHECKLIST.md` or a course README changes. |
+| `--no-cache` | Tests every link again. By default, links that answered successfully in the last 24 hours come from `~/.cache/curriculum-link-check.json`. Dead or unreachable links are never cached. |
 | `--allow-rewrite` | Downgrades file shrink and heading loss to warnings. Use only after the learner explicitly approves that rewrite. |
 
 ## What It Checks
@@ -29,7 +31,7 @@ python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-fol
 | Local paths | A link uses `file:` or starts with `/`. |
 | Checklist counters | A domain heading, tracker row, progress value, or total disagrees with the real item count. |
 | Rewrite guard | A file shrinks by more than 10% against git `HEAD`, or a heading is removed or renamed. |
-| External links (`--online`) | A URL returns 404 or 410. Other failures are warnings to check by hand. |
+| External links (`--online`) | A URL returns 404 or 410. Other failures are warnings to check by hand. HTTP 429 (rate limited) is reported as a warning at once, without retrying. |
 
 ## Reading the Result
 

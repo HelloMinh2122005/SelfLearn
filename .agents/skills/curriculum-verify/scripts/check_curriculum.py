@@ -9,12 +9,14 @@ Catches the failures that do not need judgement:
   - dead external links (with --online)
 
 Usage:
-  check_curriculum.py <course-folder> [--online] [--allow-rewrite]
+  check_curriculum.py <course-folder> [--online] [--only FILE ...] [--no-cache] [--allow-rewrite]
 
 Exit code: 0 = no errors, 1 = errors found, 2 = bad usage.
 """
 import argparse
 import concurrent.futures
+import json
+import os
 import pathlib
 import re
 import subprocess
@@ -27,9 +29,16 @@ import urllib.request
 SHRINK_LIMIT = 0.10
 USER_AGENT = "curriculum-link-check/1.0"
 HOST_DELAY = 1.0
-MAX_RETRIES = 3
-MAX_RETRY_WAIT = 30
-RETRY_STATUSES = {429, 503}
+MAX_RETRIES = 2
+MAX_RETRY_WAIT = 10
+# 429 is not retried: a rate-limited URL ends as a warning either way, so waiting
+# for it only stalls the gate (6 Wikimedia URLs cost ~4.5 minutes per run).
+RETRY_STATUSES = {503}
+CACHE_TTL = 24 * 3600
+CACHE_FILE = (
+    pathlib.Path(os.environ.get("XDG_CACHE_HOME", pathlib.Path.home() / ".cache"))
+    / "curriculum-link-check.json"
+)
 SKIP_DIRS = {"node_modules", ".git", ".evidence", "dist", "build"}
 GENERIC_PATHS = {"", "/", "/linux/man-pages", "/linux/man-pages/"}
 
@@ -269,10 +278,31 @@ def probe_host(urls):
     return results
 
 
-def check_external(external, report):
+def load_cache():
+    try:
+        data = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    now = time.time()
+    return {url: entry for url, entry in data.items() if now - entry.get("checked", 0) < CACHE_TTL}
+
+
+def save_cache(cache):
+    try:
+        CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        CACHE_FILE.write_text(json.dumps(cache, indent=0, sort_keys=True), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def check_external(external, report, use_cache):
+    """Probe external links. Only links that worked are cached, so dead or
+    unreachable links are always tested again."""
+    cache = load_cache() if use_cache else {}
     by_host = {}
     for url in external:
-        by_host.setdefault(urllib.parse.urlsplit(url).netloc, []).append(url)
+        if url not in cache:
+            by_host.setdefault(urllib.parse.urlsplit(url).netloc, []).append(url)
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
         for results in pool.map(probe_host, by_host.values()):
             for url, status, problem in results:
@@ -283,12 +313,29 @@ def check_external(external, report):
                     report.warn(where, f"could not reach {url}: {problem}")
                 elif status >= 400:
                     report.warn(where, f"HTTP {status}, check by hand: {url}")
+                else:
+                    cache[url] = {"status": status, "checked": time.time()}
+    if use_cache:
+        save_cache(cache)
+    return len(external) - sum(len(urls) for urls in by_host.values())
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("course", type=pathlib.Path)
     parser.add_argument("--online", action="store_true", help="also test external links")
+    parser.add_argument(
+        "--only",
+        nargs="+",
+        type=pathlib.Path,
+        metavar="FILE",
+        help="check links only in these markdown files; checklist counters and the rewrite guard still cover the whole course",
+    )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help=f"test every external link again instead of trusting results from the last {CACHE_TTL // 3600} hours",
+    )
     parser.add_argument(
         "--allow-rewrite",
         action="store_true",
@@ -303,21 +350,31 @@ def main():
     files = {
         path: path.read_text(encoding="utf-8", errors="replace") for path in markdown_files(root)
     }
+    link_files = files
+    if options.only:
+        selected = {path.resolve() for path in options.only}
+        unknown = [str(path) for path in selected if path not in files]
+        if unknown:
+            print(f"--only files are not markdown files in {root}: {', '.join(unknown)}", file=sys.stderr)
+            return 2
+        link_files = {path: files[path] for path in selected}
     report = Report()
     external = {}
-    check_links(files, report, external)
+    check_links(link_files, report, external)
     for path, text in files.items():
         if path.name == "CHECKLIST.md":
             check_checklist(path, text, report)
     check_rewrites(files, root, report, options.allow_rewrite)
+    cached = 0
     if options.online:
-        check_external(external, report)
+        cached = check_external(external, report, not options.no_cache)
 
     for line in report.warnings + report.errors:
         print(line)
+    tested = f"tested, {cached} from cache" if options.online else "not tested"
     print(
-        f"\nChecked {len(files)} files, {len(external)} external links"
-        f" ({'tested' if options.online else 'not tested'}):"
+        f"\nChecked {len(files)} files ({len(link_files)} for links),"
+        f" {len(external)} external links ({tested}):"
         f" {len(report.errors)} errors, {len(report.warnings)} warnings."
     )
     return 1 if report.errors else 0

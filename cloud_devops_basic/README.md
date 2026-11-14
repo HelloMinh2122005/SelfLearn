@@ -12,11 +12,11 @@ All cloud, Kubernetes, and container abstractions have been stripped away so you
 
 | Roadmap Document | Primary Focus | Link |
 | :--- | :--- | :---: |
-| 📋 **Master Skills Checklist** | Interactive tracker of all 113 core competencies across 5 domains | **[CHECKLIST.md](./CHECKLIST.md)** |
+| 📋 **Master Skills Checklist** | Interactive tracker of all 154 core competencies across 5 domains | **[CHECKLIST.md](./CHECKLIST.md)** |
 | 🧠 **Operating Systems Roadmap** | Dual-mode, Processes, Threads, Concurrency, Deadlock, CPU Scheduling, Virtual Memory, Storage | **[os/README.md](./os/README.md)** |
 | 🌐 **Computer Networking Roadmap** | OSI 7 Layers, TCP/IP, MAC, Ethernet, ARP, IPv4 Subnetting, TCP/UDP, **Forward vs Reverse Proxy**, DNS | **[network/README.md](./network/README.md)** |
-| 🐧 **Linux Systems Realization** | `task_struct`, `fork`/`clone`, `pthreads`, `/proc`, VFS, Ext4, Inodes, signals, CLI diagnostics | **[linux/README.md](./linux/README.md)** |
-| 🪟 **Windows Systems Realization** | Windows NT, `EPROCESS`/`ETHREAD`, Win32 `HANDLE`s, Working Set vs Commit, NTFS MFT, Sysinternals | **[windows/README.md](./windows/README.md)** |
+| 🐧 **Linux Systems Realization** | Shell & FHS, packages, users & permissions, `sudo`/`sshd`, `task_struct`, `clone`, signals, `/proc` & OOM, VFS & mounts, boot & systemd, journald, cron, cgroups & namespaces, CLI diagnostics | **[linux/README.md](./linux/README.md)** |
+| 🪟 **Windows Systems Realization** | Windows NT & boot, PowerShell, `EPROCESS`/`ETHREAD`, `HANDLE`s, thread priorities, Working Set vs Commit, NTFS & volumes, SIDs/tokens/UAC, services, registry, Task Scheduler, Event Logs, Sysinternals | **[windows/README.md](./windows/README.md)** |
 
 ---
 
@@ -30,8 +30,8 @@ flowchart TD
     end
 
     subgraph OS_Realizations ["Level 2: Operating System Realizations"]
-        LINUX["<b>Linux Systems Realization</b><br/>(linux/README.md)<br/>task_struct, clone(), /proc, VFS, Ext4 Inodes, CLI Diagnostics"]
-        WIN["<b>Windows Systems Realization</b><br/>(windows/README.md)<br/>EPROCESS, Win32 API, Working Set vs Commit, NTFS MFT, Sysinternals"]
+        LINUX["<b>Linux Systems Realization</b><br/>(linux/README.md)<br/>Shell, Permissions, task_struct, /proc, VFS, systemd, cgroups, CLI Diagnostics"]
+        WIN["<b>Windows Systems Realization</b><br/>(windows/README.md)<br/>PowerShell, EPROCESS, Memory, NTFS, Security Tokens, Services, Registry, Event Logs"]
     end
 
     subgraph Inspection ["Level 3: Wire & System Diagnostics"]
@@ -159,7 +159,10 @@ flowchart LR
 | Virtual Memory        | free -h                               | Inspect Total, Used, Free, and Available RAM and Swap       |
 | System Call Tracing   | strace -p <PID> -c                    | Count and measure execution time of all process syscalls    |
 | Open File Handles     | lsof -p <PID>                         | Inspect all files, sockets, and pipes held by a process     |
+| Service Management    | systemctl status <unit>               | Inspect a systemd service's state, PID, and recent log lines |
+| Service Logs          | journalctl -u <unit> -b               | Read a unit's journal entries for the current boot          |
 | Windows Diagnostics   | procexp.exe                           | Sysinternals GUI for process tree, handles, and DLLs        |
+| Windows Services/Logs | Get-Service / Get-WinEvent            | PowerShell: service state and filtered event log queries    |
 +-----------------------+---------------------------------------+-------------------------------------------------------------+
 ```
 

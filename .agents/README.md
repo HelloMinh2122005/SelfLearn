@@ -72,7 +72,7 @@ sequenceDiagram
     activate W
     W->>FS: Định vị vị trí, tạo thư mục 3 tầng (mkdir -p)
     W->>FS: Viết Lesson.md chỉ từ Ledger
-    W->>W: Chạy check_curriculum.py --online
+    W->>W: Chạy check_curriculum.py --online --only <file>
     W-->>Teacher: Báo cáo Soạn bài (Exit 0)
     deactivate W
     Teacher->>V: Giao đường dẫn file (Model: pro)

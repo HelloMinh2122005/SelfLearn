@@ -1,7 +1,7 @@
 # 🌐 Computer Networking: Core Fundamentals Roadmap
 
 > **Domain**: Computer Networking Architecture & Protocol Engineering  
-> **Tracker Link**: [Return to Master Checklist](../CHECKLIST.md#domain-2-computer-networking-core-fundamentals-33-items)  
+> **Tracker Link**: [Return to Master Checklist](../CHECKLIST.md#domain-2-computer-networking-core-fundamentals-43-items)  
 > **Authoritative References**: RFC Standards (IETF) | *Computer Networking: A Top-Down Approach* (Kurose & Ross) | [roadmap.sh/network-engineer](https://roadmap.sh/network-engineer)
 
 ---
@@ -10,13 +10,14 @@
 
 ```mermaid
 flowchart TD
-    M1["<b>1. Network Mechanics & Models</b><br/>Packet Switching, Collision vs Broadcast, OSI 7 vs TCP/IP"] --> M2["<b>2. Data Link Layer (L2)</b><br/>48-bit MAC (OUI/NIC), Ethernet II Frame, CAM Table"]
+    M1["<b>1. Network Mechanics & Models</b><br/>Packet Switching, Collision vs Broadcast, OSI 7 vs TCP/IP"] --> M2["<b>2. Data Link Layer (L2)</b><br/>48-bit MAC (OUI/NIC), Ethernet II Frame, CAM Table, VLAN 802.1Q"]
     M2 --> M3["<b>3. Address Resolution Protocol (ARP)</b><br/>L3-to-L2 Resolution, Request/Reply, ARP Cache, Spoofing"]
-    M3 --> M4["<b>4. Network Layer (L3) & IPv4</b><br/>IPv4 Header, Subnetting (CIDR), RFC 1918, ICMP"]
+    M3 --> M4["<b>4. Network Layer (L3) & IPv4</b><br/>IPv4 Header, Subnetting (CIDR), RFC 1918, ICMP, IPv6, Routing, NAT, MTU"]
     M4 --> M5["<b>5. Transport Layer (L4): TCP & UDP</b><br/>Ports, Sockets, 3-Way Handshake, Teardown, Sliding Window"]
-    M5 --> M6["<b>6. Intermediaries: Forward vs Reverse Proxy</b><br/>HTTP CONNECT Tunneling, Origin Shielding, X-Forwarded-For"]
-    M6 --> M7["<b>7. Application Protocols</b><br/>DNS Resolution Tree, DHCP DORA, HTTP/HTTPS"]
-    M7 --> M8["<b>8. Wire-Level Inspection & CLI</b><br/>ping, traceroute, arp, ss, tcpdump, Wireshark"]
+    M5 --> M6["<b>6. Intermediaries: Forward vs Reverse Proxy</b><br/>HTTP CONNECT Tunneling, Origin Shielding, X-Forwarded-For, L4 vs L7 LB"]
+    M6 --> M7["<b>7. Application Protocols</b><br/>DNS Resolution Tree, DHCP DORA, HTTP/HTTPS, TLS, SSH"]
+    M7 --> M9["<b>9. Network Security Boundaries</b><br/>Stateless vs Stateful Firewalls, VPN & Tunnels"]
+    M9 --> M8["<b>8. Wire-Level Inspection & CLI</b><br/>ping, traceroute, arp, ss, tcpdump, Wireshark, curl, openssl, nft"]
 ```
 
 ---
@@ -45,6 +46,8 @@ flowchart TD
 ---
 
 ### Module 2: Data Link Layer (L2), MAC Addresses & Ethernet Frames
+> 📂 **Bài học chi tiết**: [2_2 Data Link Layer and Physical Addressing](<./2 Domain 2 - Computer Networking Core Fundamentals/2_2 Data Link Layer and Physical Addressing/README.md>)
+
 1. **MAC Address Structure (IEEE 802)**:
    - A 48-bit (6-byte) burned-in hardware address formatted as 12 hexadecimal digits (e.g., `00:1A:2B:3C:4D:5E`).
    - **First 24 bits (3 bytes)**: **OUI (Organizationally Unique Identifier)** assigned by IEEE to the hardware manufacturer (e.g., Cisco, Intel, Apple).
@@ -70,10 +73,17 @@ flowchart TD
      - If Destination MAC is in CAM table $\rightarrow$ Forward frame strictly out of that specific port.
      - If Destination MAC is unknown $\rightarrow$ Execute **Unknown Unicast Flooding** (forward frame out of all ports except the incoming port).
      - If Destination MAC is `FF:FF:FF:FF:FF:FF` $\rightarrow$ Flood frame out of all ports.
+4. **VLANs & IEEE 802.1Q Tagging**:
+   - A VLAN splits one physical switched network into several isolated broadcast domains.
+   - IEEE 802.1Q adds a tag to the Ethernet frame that carries the VLAN ID.
+   - **Access ports** carry one VLAN to an end host; **trunk ports** carry tagged frames for many VLANs between switches.
+   - Traffic between two VLANs must pass through a Layer 3 router.
 
 ---
 
 ### Module 3: Address Resolution Protocol (ARP, RFC 826)
+> 📂 **Bài học chi tiết**: [2_3 Address Resolution Protocol](<./2 Domain 2 - Computer Networking Core Fundamentals/2_3 Address Resolution Protocol/README.md>)
+
 1. **The Need for ARP**:
    An application knows the target host's logical IP address (e.g., `192.168.1.10`), but Ethernet switches only understand physical MAC addresses. ARP translates Layer 3 IPs to Layer 2 MACs on the local link.
 2. **ARP Message Exchange**:
@@ -121,6 +131,28 @@ flowchart TD
      - Host computes: $\text{Target Network} = D \ \& \ \text{Subnet Mask}$.
      - If $\text{Local Network} == \text{Target Network}$ $\rightarrow$ Destination is on local LAN. Send ARP request for $D$ and transmit frame directly to $D$'s MAC address.
      - If $\text{Local Network} \ne \text{Target Network}$ $\rightarrow$ Destination is on remote network. Send ARP request for the **Default Gateway** and transmit frame to the Gateway's MAC address with destination IP unchanged.
+5. **ICMP (RFC 792)**:
+   - Error and diagnostic messages carried directly inside IP packets.
+   - Echo Request (Type 8) and Echo Reply (Type 0) are the basis of `ping`.
+   - Destination Unreachable (Type 3) and Time Exceeded (Type 11) are the basis of `traceroute`.
+6. **IPv6 Essentials**:
+   - 128-bit addresses in hexadecimal notation; no broadcast (multicast and anycast instead); link-local vs global unicast addresses.
+   - **Neighbor Discovery Protocol (NDP, RFC 4861)** replaces ARP.
+   - **SLAAC (RFC 4862)** lets a host configure its own address, as an alternative to DHCPv6.
+7. **Routing Tables & Longest Prefix Match**:
+   - Each route has a destination prefix, a next hop (gateway), an outgoing interface, and a metric.
+   - When several prefixes match a destination, the most specific one (the longest prefix) wins. `0.0.0.0/0` is the default route.
+   - Routes are either configured by hand (static) or learned from a routing protocol (dynamic): link-state OSPF (RFC 2328) inside an organization, path-vector BGP-4 (RFC 4271) between organizations.
+8. **Network Address Translation (NAT & PAT, RFC 3022)**:
+   - Rewrites private source addresses to a public address so private hosts can reach the internet.
+   - **NAPT / PAT** also rewrites ports, so many hosts can share one public IP. The router keeps a translation table of active connections.
+   - **Source NAT** (outbound) vs **destination NAT / port forwarding** (inbound to a private server).
+   - Side effect: a host behind NAT cannot accept unsolicited inbound connections unless a port is forwarded.
+9. **MTU, Fragmentation & Path MTU Discovery**:
+   - When a packet is larger than the next link's MTU, IPv4 can fragment it (Identification, MF flag, Fragment Offset), unless the DF bit is set.
+   - With DF set, the router drops the packet and returns ICMP "Fragmentation Needed". **Path MTU Discovery** (RFC 1191 for IPv4, RFC 8201 for IPv6) uses these messages to find the largest packet size along a path.
+   - IPv6 routers do not fragment packets in transit; only the sender may fragment.
+   - If a firewall blocks those ICMP messages, PMTUD breaks silently (a "black hole"). The TCP MSS option limits segment size to avoid this.
 
 ---
 
@@ -275,7 +307,23 @@ flowchart LR
 
 ---
 
+#### 4. Layer 4 vs Layer 7 Load Balancing
+
+| Dimension | Layer 4 Load Balancer | Layer 7 Load Balancer |
+| :--- | :--- | :--- |
+| **What it sees** | IP addresses and ports of TCP/UDP connections | The full HTTP request: host name, path, headers |
+| **Routing decision** | Per connection | Per request (can route `/api` and `/static` to different backends) |
+| **TLS** | Usually passes encrypted traffic through | Usually terminates TLS to read the request |
+| **Client IP at the backend** | Depends on the mode (address rewritten or preserved) | Passed in headers such as `X-Forwarded-For` / `Forwarded` |
+
+- **Health checks** remove failed backends from rotation.
+- **Session persistence (sticky sessions)** sends one client's requests to the same backend.
+
+---
+
 ### Module 7: Core Application Layer Protocols
+> 📂 **Bài học chi tiết**: [2_7 Core Application Layer Protocols](<./2 Domain 2 - Computer Networking Core Fundamentals/2_7 Core Application Layer Protocols/README.md>)
+
 1. **Domain Name System (DNS, RFC 1034 / 1035)**:
    - Hierarchical inverted tree structure: Root Zone (`.`) $\rightarrow$ Top-Level Domain (TLD, e.g., `.com`, `.org`) $\rightarrow$ Second-Level Domain (`google.com`) $\rightarrow$ Subdomain (`mail.google.com`).
    - **Recursive Resolver** (ISP DNS, 8.8.8.8, 1.1.1.1): Performs full query traversal on behalf of client.
@@ -290,6 +338,21 @@ flowchart LR
 3. **HTTP / HTTPS Fundamentals**:
    - HTTP/1.1: ASCII text-based, persistent connections (`Connection: keep-alive`), stateless client-server request-response.
    - HTTPS: Standard HTTP over a Transport Layer Security (TLS) cryptographic tunnel on port 443.
+   - **HTTP versions**: HTTP/1.1 (RFC 9112) text messages; HTTP/2 (RFC 9113) binary framing with many requests multiplexed over one TCP connection; HTTP/3 (RFC 9114) over QUIC (RFC 9000), which runs on UDP.
+4. **TLS 1.3 Handshake & Certificate Chain of Trust**:
+   - The handshake (ClientHello, ServerHello, key exchange, server authentication) agrees on keys before any application data is sent. The current TLS 1.3 specification is **RFC 9846**, which obsoletes RFC 8446.
+   - An **X.509 certificate** (RFC 5280) binds a public key to names listed in its Subject Alternative Name, and is valid only between its start and end dates.
+   - **Chain of trust**: the server sends its leaf certificate plus intermediates; the client builds a path to a root CA already in its trust store.
+   - **SNI** tells the server which host name the client wants, so one IP address can serve many certificates.
+   - Typical failures: expired certificate, host name mismatch, missing intermediate, untrusted CA.
+5. **SSH (RFC 4251–4254)**:
+   - Three layers: transport (server host key, key exchange, encryption), user authentication (password or public key), and connection (channels).
+   - The client records each server's host key in `known_hosts` and warns if it changes.
+   - **Port forwarding**: local (`-L`), remote (`-R`), dynamic SOCKS (`-D`); reaching private hosts through a **jump host** (`-J`).
+6. **Host Name Resolution & DNS Caching**:
+   - On Linux, `/etc/nsswitch.conf` decides the lookup order, `/etc/hosts` holds static entries, and `/etc/resolv.conf` lists the DNS servers the stub resolver queries.
+   - Every record has a **TTL**; resolvers and clients cache answers until it expires, and may also cache "name does not exist" answers (negative caching).
+   - This caching is why a DNS change seems to "propagate" gradually.
 
 ---
 
@@ -308,6 +371,31 @@ flowchart LR
 - **Wire Packet Sniffing (`tcpdump` & Wireshark)**:
   - `tcpdump -i eth0 -nn 'tcp[tcpflags] & (tcp-syn|tcp-rst) != 0'`: Sniffs connection attempts and resets.
   - `tcpdump -i any -nn -w capture.pcap 'port 80 or port 443'`: Writes raw network wire frames to standard PCAP files for deep inspection in Wireshark.
+- **DNS Resolution Inspection**:
+  - `dig <name>`, `dig +trace <name>`, `nslookup <name> <server>`: Query a specific resolver and follow the delegation chain.
+- **Windows Equivalents**:
+  - `ipconfig /all`, `arp -a`, `route print`, `netstat -ano`, `tracert <ip>`, `Test-NetConnection <host> -Port <port>`.
+- **HTTP & TLS Inspection**:
+  - `curl -v https://<host>`: Shows name resolution, TCP connect, the TLS handshake, and HTTP headers. `curl --resolve` pins a host name to an IP; `curl -x` sends the request through a proxy.
+  - `openssl s_client -connect <host>:443 -servername <host> -showcerts`: Prints the certificate chain the server sends.
+- **Firewall & NAT State Inspection**:
+  - `nft list ruleset`, `iptables -L -n -v`, `iptables -t nat -L -n -v`: Show filter and NAT rules with packet counters.
+  - `conntrack -L`: Lists tracked connections and their NAT translations.
+  - Windows: `Get-NetFirewallRule`, `Get-NetFirewallProfile`.
+
+---
+
+### Module 9: Network Security Boundaries: Firewalls & VPN Tunnels
+1. **Stateless vs Stateful Packet Filtering**:
+   - A filter matches packets on the 5-tuple (source IP, destination IP, source port, destination port, protocol) and applies allow or deny, ideally with a **default-deny** policy.
+   - A **stateless** filter judges every packet alone, so return traffic needs its own explicit rule.
+   - A **stateful** firewall tracks each connection and automatically allows its reply packets.
+   - Host firewalls: Linux netfilter (managed with `nftables`, or the older `iptables`) and Windows Defender Firewall.
+2. **VPNs & IP Tunneling**:
+   - A **tunnel** carries one packet inside another packet, for example GRE (RFC 2784).
+   - **IPsec** (RFC 4301) protects tunnels between sites (site-to-site) or for single users (remote access). **WireGuard** is a newer, smaller VPN protocol.
+   - **Overlay networks** such as VXLAN (RFC 7348) carry Layer 2 frames across a Layer 3 network.
+   - Every encapsulation adds headers, so the usable MTU inside a tunnel is smaller (see Module 4, MTU).
 
 ---
 
@@ -320,4 +408,15 @@ flowchart LR
 - [RFC 9110: HTTP Semantics - Section 7: Intermediaries, Proxies & Gateways](https://datatracker.ietf.org/doc/html/rfc9110#section-7)
 - [RFC 7239: Forwarded HTTP Extension](https://datatracker.ietf.org/doc/html/rfc7239)
 - [MDN Web Docs: Proxy servers and tunneling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Proxy_servers_and_tunneling)
+- [RFC 1191: Path MTU Discovery](https://datatracker.ietf.org/doc/html/rfc1191) and [RFC 8201: Path MTU Discovery for IPv6](https://datatracker.ietf.org/doc/html/rfc8201)
+- [RFC 3022: Traditional IP Network Address Translator (Traditional NAT)](https://datatracker.ietf.org/doc/html/rfc3022)
+- [RFC 4861: Neighbor Discovery for IPv6](https://datatracker.ietf.org/doc/html/rfc4861) and [RFC 4862: IPv6 Stateless Address Autoconfiguration](https://datatracker.ietf.org/doc/html/rfc4862)
+- [RFC 9846: The Transport Layer Security (TLS) Protocol Version 1.3](https://datatracker.ietf.org/doc/html/rfc9846) (obsoletes RFC 8446)
+- [RFC 5280: Internet X.509 PKI Certificate and CRL Profile](https://datatracker.ietf.org/doc/html/rfc5280)
+- [RFC 4251: The Secure Shell (SSH) Protocol Architecture](https://datatracker.ietf.org/doc/html/rfc4251)
+- [RFC 9113: HTTP/2](https://datatracker.ietf.org/doc/html/rfc9113) and [RFC 9114: HTTP/3](https://datatracker.ietf.org/doc/html/rfc9114)
+- [RFC 4301: Security Architecture for the Internet Protocol (IPsec)](https://datatracker.ietf.org/doc/html/rfc4301)
+- [RFC 7348: Virtual eXtensible Local Area Network (VXLAN)](https://datatracker.ietf.org/doc/html/rfc7348)
+- [resolv.conf(5)](https://man7.org/linux/man-pages/man5/resolv.conf.5.html) and [nsswitch.conf(5)](https://man7.org/linux/man-pages/man5/nsswitch.conf.5.html) - Linux name resolution configuration
+- [nftables wiki](https://wiki.nftables.org/wiki-nftables/index.php/Main_Page) and [conntrack-tools manual](https://conntrack-tools.netfilter.org/manual.html) - Linux firewall and connection tracking
 - *Computer Networking: A Top-Down Approach* (8th Edition) - James F. Kurose, Keith W. Ross.

@@ -2,7 +2,7 @@
 
 RUN: PHASE-0
 <!-- Change RUN for each session: PHASE-0, then one module ID at a time in this order:
-     1_1 1_2 1_3 1_4 1_5 1_6 1_7 1_8 | 2_1 2_2 2_3 2_4 2_5 2_6 2_7 | 3_1 3_2 3_3 3_4 3_5 | 4_1 4_2 4_3 4_4 | 5_1 -->
+     1_1 1_2 1_3 1_4 1_5 1_6 1_7 1_8 | 2_1 2_2 2_3 2_4 2_5 2_6 2_7 2_8 | 3_1 3_2 3_3 3_4 3_5 3_6 3_7 3_8 3_9 | 4_1 4_2 4_3 4_4 4_5 4_6 4_7 | 5_1 -->
 
 ## Mission
 
@@ -55,5 +55,5 @@ Follow plan section 3 for that one module only, using the steps below:
 
 Then give:
 - **Module DoD (9.3)**: each item ticked or failed.
-- **Run metrics (9.5)**: lesson progress (module and course-wide out of 113), first-pass PASS rate, average verify loops, research re-dispatches, UNVERIFIED ratio, flagged-claim resolution (x / 13), and checker result. Mark any metric that misses its target.
+- **Run metrics (9.5)**: lesson progress (module and course-wide out of 154), first-pass PASS rate, average verify loops, research re-dispatches, UNVERIFIED ratio, flagged-claim resolution (x / 24), and checker result. Mark any metric that misses its target.
 - open issues, flagged section 5 claims and what the sources actually said, and the next `RUN` value.
