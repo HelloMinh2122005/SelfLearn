@@ -65,14 +65,14 @@ sequenceDiagram
     Teacher->>R: Gửi Task Nghiên cứu (TASK_ID & Acceptance Criteria)
     activate R
     R->>R: Tìm và mở tài liệu Tier-1
-    R-->>Teacher: Báo cáo Nghiên cứu (Claim Ledger + Trích dẫn nguyên văn)
+    R-->>Teacher: Tóm tắt ngắn + đường dẫn Ledger (.evidence/research/)
     deactivate R
     Teacher->>Teacher: G1 + G2 (Kiểm tra bằng chứng & độ phủ)
     Teacher->>W: Gửi Task Soạn bài (WRITE_ID + Ledger + Khung ẩn dụ sư phạm)
     activate W
     W->>FS: Định vị vị trí, tạo thư mục 3 tầng (mkdir -p)
     W->>FS: Viết Lesson.md chỉ từ Ledger
-    W->>W: Chạy check_curriculum.py --online --only <file>
+    W->>W: check_curriculum.py (offline) + evidence.py lesson
     W-->>Teacher: Báo cáo Soạn bài (Exit 0)
     deactivate W
     Teacher->>V: Giao đường dẫn file (Model: pro)

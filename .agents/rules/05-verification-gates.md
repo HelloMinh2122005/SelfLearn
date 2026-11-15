@@ -16,14 +16,16 @@ Quy tắc này áp dụng cho mọi thao tác tạo mới hoặc sửa nội dun
 
 ## 2. Claim Ledger (Sổ Bằng Chứng)
 
-Researcher phải trả về bảng sau. Thiếu cột nào thì báo cáo không hợp lệ.
+Researcher lưu bảng sau vào `<course-folder>/.evidence/research/<TASK_ID>.md`. Thiếu cột nào thì báo cáo không hợp lệ.
 
-| # | Atomic claim | URL + section đã mở | Trích dẫn nguyên văn | Áp dụng cho (phiên bản/nền tảng) | Trạng thái |
-| :--- | :--- | :--- | :--- | :--- | :--- |
+| ID | Lesson | Atomic claim | URL + section đã mở | Trích dẫn nguyên văn (≤ 300 ký tự) | Áp dụng cho (phiên bản/nền tảng) | Trạng thái |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| R1.1 | 6_3_7 | ... | ... | "..." | ... | VERIFIED |
 
-Trạng thái chỉ gồm: `VERIFIED`, `CONFLICT`, `NOT_FOUND`.
-
-Writer lưu nguyên văn Ledger tại `<course-folder>/.evidence/<WRITING_TASK_ID>.md`.
+- Trạng thái chỉ gồm: `VERIFIED`, `CONFLICT`, `NOT_FOUND`.
+- **Một dòng = một fact** (một con số, một flag, một hành vi). Dòng gộp nhiều fact phải tách ra.
+- `evidence.py quotes <ledger>` phải không có dòng `MISSING`, tức trích dẫn thật sự nằm trên trang.
+- Writer gắn tag `<!-- ev: R1.1 -->` cho mỗi câu chứa fact, và lưu **file chỉ mục** (đường dẫn ledger + các claim ID đã dùng) tại `<course-folder>/.evidence/<WRITING_TASK_ID>.md`, không chép lại ledger.
 
 ---
 
@@ -31,11 +33,11 @@ Writer lưu nguyên văn Ledger tại `<course-folder>/.evidence/<WRITING_TASK_I
 
 | Cổng | Vị trí | Điều kiện đạt | Khi không đạt |
 | :--- | :--- | :--- | :--- |
-| **G1: Evidence** | Researcher trả báo cáo | Có báo cáo `COMPLETE`, có Ledger hợp lệ | Giao lại cho Researcher. **Cấm chuyển sang Writer.** |
+| **G1: Evidence** | Researcher trả báo cáo | Có báo cáo `COMPLETE`, Ledger đã lưu file, `evidence.py quotes` không có `MISSING` | Giao lại cho Researcher. **Cấm chuyển sang Writer.** |
 | **G2: Scope** | Teacher trước khi giao Writer | Ledger phủ đủ nội dung cần viết, `CONFLICT`/`NOT_FOUND` đã xử lý, đã rà soát coverage | Giao nghiên cứu bổ sung. |
-| **G3: Write Boundary** | Writer khi viết | Chỉ viết claim có trong Ledger, sửa cục bộ bằng `edit_file` | Writer dừng và báo Teacher. |
-| **G4: Mechanical** | Sau khi viết | `check_curriculum.py <course> --online --only "<file đã sửa>"` trả exit `0`. Khi đóng module (sửa `CHECKLIST.md` hoặc README khóa học): chạy không có `--only`. | Writer sửa rồi chạy lại. |
-| **G5: Independent Verification** | Sau G4 | `verifier` trả `PASS` | Writer sửa theo báo cáo, sau đó chạy lại G4 và G5. |
+| **G3: Write Boundary** | Writer khi viết | Chỉ viết claim có trong Ledger, mỗi fact có tag `ev`, nằm trong ngân sách kích thước, sửa cục bộ bằng `edit_file` | Writer dừng và báo Teacher. |
+| **G4: Mechanical** | Sau khi viết | `check_curriculum.py` (offline khi đang sửa, `--online` một lần trước khi báo cáo) và `evidence.py lesson` đều exit `0`. Khi đóng module: chạy `check_curriculum.py` không có `--only`. | Writer sửa rồi chạy lại. |
+| **G5: Independent Verification** | Sau G4 | `verifier` trả `PASS` (script tự mở trang để đối chiếu trích dẫn; Verifier tự nghiên cứu các fact không có tag) | Writer sửa theo báo cáo. Verifier mới chạy **chế độ re-check**: chỉ kiểm lại claim FAIL/UNVERIFIED và các dòng đã sửa. |
 
 Chỉ sau khi G5 đạt mới được đánh dấu `[x]` trong `CHECKLIST.md` và trình bày bài học là đã kiểm chứng.
 
@@ -43,10 +45,11 @@ Chỉ sau khi G5 đạt mới được đánh dấu `[x]` trong `CHECKLIST.md` v
 
 ## 4. Điều Phối Subagent
 
-1. **Không poll và không hối thúc**: Không dùng `sleep`, `tail` transcript hoặc tin nhắn kiểu "gửi báo cáo ngay". Subagent sẽ tự gửi kết quả khi xong.
-2. **Không kill Researcher hoặc Verifier đang chạy** trừ khi người học yêu cầu hoặc subagent đã treo quá 15 phút không có bước mới.
-3. **Subagent bị kill hoặc trả kết quả rỗng nghĩa là G1 không đạt**. Giao lại nhiệm vụ. Không tự viết thay.
-4. **Verifier phải chạy trên model khác tác giả**: Gọi `invoke_subagent` với `TypeName: "verifier"` và `Model: "pro"`, không dùng `inherit`.
+1. **Không poll và không hối thúc**: Không dùng `sleep`, `tail` transcript, `manage_subagents`/`manage_task` để hỏi tiến độ, hoặc tin nhắn kiểu "gửi báo cáo ngay". Subagent sẽ tự gửi kết quả khi xong. Mỗi lần poll là một lượt gọi model đọc lại toàn bộ context.
+2. **Mỗi task một subagent mới**: Không giao task mới cho subagent đã làm xong task khác (xem `04-squad-orchestration.md` mục 2.1).
+3. **Không kill Researcher hoặc Verifier đang chạy** trừ khi người học yêu cầu hoặc subagent đã treo quá 15 phút không có bước mới.
+4. **Subagent bị kill hoặc trả kết quả rỗng nghĩa là G1 không đạt**. Giao lại nhiệm vụ. Không tự viết thay.
+5. **Verifier phải chạy trên model khác tác giả**: Gọi `invoke_subagent` với `TypeName: "verifier"` và `Model: "pro"`, không dùng `inherit`.
 
 ---
 

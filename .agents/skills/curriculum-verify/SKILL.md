@@ -13,8 +13,11 @@ This skill runs the mechanical half of the release gate. It does not judge wheth
 Run from the repository root:
 
 ```bash
-python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --online --only "<lesson file>"
+python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --only "<lesson file>"            # while drafting (offline, ~1 s)
+python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --online --only "<lesson file>"   # once before reporting, and in the verifier
 ```
+
+Run it in the foreground. It finishes in seconds, so never move it to the background and poll it.
 
 | Option | Effect |
 | :--- | :--- |
@@ -32,6 +35,18 @@ python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-fol
 | Checklist counters | A domain heading, tracker row, progress value, or total disagrees with the real item count. |
 | Rewrite guard | A file shrinks by more than 10% against git `HEAD`, or a heading is removed or renamed. |
 | External links (`--online`) | A URL returns 404 or 410. Other failures are warnings to check by hand. HTTP 429 (rate limited) is reported as a warning at once, without retrying. |
+
+## Evidence Tools (`evidence.py`)
+
+Cheap, deterministic checks that replace reading whole pages and whole lessons into an agent's context.
+
+| Command | Who uses it | What it does |
+| :--- | :--- | :--- |
+| `evidence.py fetch '<url>' --grep '<term>' ...` | researchers, verifier | Downloads the page once (cache `~/.cache/selflearn-pages/`, 7 days, one file per URL, so it is parallel-safe), converts HTML or PDF to text, and prints only the matching lines with their line numbers. Read more with `sed -n 'a,bp' <cache path>`. |
+| `evidence.py quotes <ledger.md> [--lesson <id>] [--ids R1.3,R2.7]` | researchers (before reporting), teacher (G1) | Fetches every ledger URL and checks the verbatim quote is really on the page: `FOUND`, `PARTIAL`, `MISSING`, `FETCH_ERROR`. |
+| `evidence.py lesson <lesson.md> --ledger <ledger.md> ... [--quotes]` | writers (G4, offline), verifier (G5, with `--quotes`) | Checks the 7 section headings in order, the status header, Mermaid, quiz `<details>`, links in section 7, the size budget (warn at 18 KB, error at 24 KB), and that every `<!-- ev: R1.3 -->` tag points to a `VERIFIED` ledger row. Lists factual-looking lines with no tag. With `--quotes`, also checks the quotes of every tagged claim and prints the page text around each one. |
+
+Ledger rows need an `ID` column (`R1.1`, `R2.7`) and a `Lesson` column. Older ledgers without IDs are ignored by `quotes`, and lessons with no tags are verified the old way.
 
 ## Reading the Result
 

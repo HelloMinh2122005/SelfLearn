@@ -19,28 +19,39 @@ Assume the file is wrong until a source you opened shows it is right. A fluent e
 
 ## 1. Independence Rules
 
-1. Start from the **finished files**, not from the research report or the claim ledger. Errors can enter at writing time, so the ledger cannot prove the file.
-2. Use your own source lookups. You may use a ledger URL as a starting point, but you must open it yourself.
+1. Judge the **finished file** against the **source page**, not against the researcher's claim text. The ledger only tells you which URL and which sentence to look at. `evidence.py` fetches the page itself and shows you the page text around the quote, so you do not rely on the researcher's copy.
+2. Use your own lookups for anything the ledger does not cover.
 3. Never edit curriculum files. Report findings and let a writer fix them.
-4. Use `run_command` only to fetch pages into a temporary folder, search them, and run the `curriculum-verify` script.
+4. Use `run_command` only for `check_curriculum.py`, `evidence.py`, and `sed -n` / `grep` on cached pages. Never `cat` a whole page into your context.
 
 ---
 
 ## 2. Verification Procedure
 
-### Step 1: Run the Mechanical Checks
+You receive: target file paths, ledger file paths, the domain, and, in re-check mode, the previous report path and the writer's changed line ranges.
+
+### Step 1: Mechanical Checks (scripts do the fetching)
 
 ```bash
-python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --online --only "<target file 1>" "<target file 2>"
+python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py <course-folder> --online --only "<file 1>" "<file 2>"
+python3 .agents/skills/curriculum-verify/scripts/evidence.py lesson "<file>" --ledger <ledger files> --quotes
 ```
 
-`--only` limits link checks to the target files. Checklist counters and the rewrite guard still cover the whole course. Links that answered successfully in the last 24 hours come from a cache. Add `--no-cache` if you suspect a link changed.
+Run them in the foreground. Any `ERROR` means FAIL. This covers dead links, a tag pointing to no ledger row, a non-`VERIFIED` row, a quote that is not on its page (`MISSING`), structure, and the size budget.
 
-Any `ERROR` means the verdict is FAIL.
+### Step 2: Judge Every Tagged Claim (no new research)
 
-### Step 2: Extract Claims
+For each line with `<!-- ev: ... -->`, compare what the **lesson** says with the **page text** printed by `--quotes`:
+- `PASS`: the page supports the sentence as written, with the same scope, version and strength of wording.
+- `FAIL`: the sentence says more than the page (absolute wording such as always/never/all, a wrong number, a different version), or the tag points to a quote about something else.
+- If the printed context window is too short to judge, run `evidence.py fetch '<url>' --grep '<term>'`. Do not read the whole page.
+- For a `PARTIAL` quote match, read the page lines and decide whether the quote is faithful.
 
-Read each target file completely and list its checkable claims. All claims in these classes are mandatory. Do not sample them:
+### Step 3: Research Untagged Facts Independently
+
+`evidence.py lesson` lists factual-looking lines without a tag. Also read sections 1, 3, 4 and 5 for facts the script cannot see, such as mechanisms stated in plain words. For each untagged fact in the mandatory classes below, find the owning source (Tier order in `.agents/rules/02-official-citations.md`), open it with `evidence.py fetch`, and quote it.
+- Correct but untagged: `PASS`, and list it under "Tags to add".
+- Not found: `UNVERIFIED`. Contradicted: `FAIL`.
 
 | Class | Examples |
 | :--- | :--- |
@@ -51,23 +62,18 @@ Read each target file completely and list its checkable claims. All claims in th
 | Currency | current, modern, default, and anything that varies by version or platform |
 | Attribution | "RFC X says", "the kernel does Y", cited URLs |
 
-### Step 3: Prove or Refute Each Claim
+**Legacy lessons** (written before evidence tags existed, so they have 0 tags): every fact is untagged, so step 3 covers the whole file.
 
-1. Find the owning source using the Tier order in `.agents/rules/02-official-citations.md`.
-2. Open the page. Search-result snippets are not evidence. Fetch with:
+### Step 4: Coverage
 
-   ```bash
-   mkdir -p /tmp/selflearn-verify
-   curl -sSL -A 'selflearn-verifier' -m 30 -o /tmp/selflearn-verify/page.txt '<url>'
-   grep -n -i '<term>' /tmp/selflearn-verify/page.txt
-   ```
+Compare the file with the scope it was written for (the checklist item or the topic README bullets for that lesson). List missing scope items only. Do not grade it against a whole textbook.
 
-3. Quote the sentence that proves or refutes the claim.
-4. Check the version and platform the source applies to.
+### Step 5: Re-check Mode (after a FAIL)
 
-### Step 4: Review Coverage
-
-Compare the file with the owning standard or textbook table of contents. List important topics that are missing, and say why each one matters.
+When you get a previous report path and changed line ranges:
+1. Run step 1 again on the file.
+2. Re-judge the previous report's `FAIL` and `UNVERIFIED` claims, and every claim on the changed lines (steps 2 and 3).
+3. Carry the other claims forward as they were, and say so in the report header (`Re-check of <report>`).
 
 ---
 
@@ -91,7 +97,8 @@ Compare the file with the owning standard or textbook table of contents. List im
 ### VERIFICATION REPORT: [WRITING_TASK_ID]
 **Verdict**: PASS | FAIL | INCOMPLETE
 **Script**: exit [code], [errors] errors, [warnings] warnings
-**Claims**: [total] total, [pass] PASS, [fail] FAIL, [unverified] UNVERIFIED
+**Mode**: Full | Re-check of [previous report]
+**Claims**: [total] total, [pass] PASS, [fail] FAIL, [unverified] UNVERIFIED ([tagged] tagged, [untagged] untagged)
 
 #### Failures
 | File:Line | Claim as written | Correct statement | Source URL + section | Verbatim quote |
@@ -100,6 +107,9 @@ Compare the file with the owning standard or textbook table of contents. List im
 #### Unverified
 | File:Line | Claim | What was searched |
 | :--- | :--- | :--- |
+
+#### Tags to Add (correct but untagged)
+- [File:Line]: [source URL]
 
 #### Not Checked
 - [Files, sections, or claim classes not covered. Write "None" only if that is true.]

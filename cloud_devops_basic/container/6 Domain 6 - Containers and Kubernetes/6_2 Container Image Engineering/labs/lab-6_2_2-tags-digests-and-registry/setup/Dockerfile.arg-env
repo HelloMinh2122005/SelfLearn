@@ -1,0 +1,4 @@
+# Experiment for lab 6_2_2: an ARG used only in ENV.
+FROM docker.io/library/eclipse-temurin:21-jre
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}

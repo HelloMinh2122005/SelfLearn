@@ -122,11 +122,10 @@ GA vs Preview, deprecations, limits"]
 
 ### Step 2: Read & Verify via Official URL
 - Open every page you rely on. Search snippets only help you find URLs, and they are never evidence for a claim.
-- Fetch the page with `read_url_content(Url='<official_url>')` if that tool is available. Otherwise use `run_command`:
+- Fetch the page with the evidence script. It converts HTML/PDF to text, caches one file per URL (parallel-safe), and prints only the matching lines, never the whole page:
   ```bash
-  mkdir -p /tmp/selflearn-research
-  curl -sSL -A 'selflearn-research' -m 30 -o /tmp/selflearn-research/page.txt '<official_url>'
-  grep -n -i '<term>' /tmp/selflearn-research/page.txt
+  python3 .agents/skills/curriculum-verify/scripts/evidence.py fetch '<official_url>' --grep '<term>' '<term 2>'
+  sed -n '<start>,<end>p' <cache path printed above>   # at most 80 lines at a time
   ```
 - Inspect specific sections, code blocks, parameter flags, and configuration properties directly from the canonical page.
 - Check constraints: minimum versions required, breaking changes, deprecated fields, and platform compatibility.

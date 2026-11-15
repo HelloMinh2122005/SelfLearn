@@ -12,7 +12,8 @@ The checklist stays at `cloud_devops_basic/CHECKLIST.md` and remains the single 
 ```text
 cloud_devops_basic/
 ├── CHECKLIST.md                                   # single tracker, 5 domains, 154 items
-├── .evidence/WRITE-CDB-<id>.md                    # verbatim Claim Ledgers (written by writers)
+├── .evidence/research/TASK-CDB-<module>-R<n>.md   # Claim Ledgers (written by researchers)
+├── .evidence/WRITE-CDB-<id>.md                    # evidence index per lesson (written by writers)
 ├── os/
 │   ├── README.md                                  # existing roadmap (edit links only)
 │   └── 1 Domain 1 - Operating System Core Fundamentals/
@@ -65,8 +66,8 @@ One run = one Tier-2 module folder. IDs: research `TASK-CDB-<module>-R1/R2`, wri
    - `researcher-2`: numbers, header sizes, ports, defaults, commands and flags, code examples from Tier-1 pages (for example the `EXAMPLES` section of man7 pages), version and platform currency, and every flagged claim in section 5 for this module.
    - Acceptance criteria are phrased as claims to prove, one block per lesson.
 3. **G1 + G2**: Every lesson has enough `VERIFIED` claims to fill sections 1, 3, and 4 of the template. Remove or re-research any claim marked `CONFLICT` or `NOT_FOUND`.
-4. **Write (parallel)**: `writer-1` takes the odd-numbered lessons and `writer-2` the even-numbered ones. One `WRITE-` task per lesson. Each writer creates the folders with `mkdir -p`, saves the ledger to `.evidence/`, and runs the checker with `--online --only "<lesson file>"` until it exits `0`.
-5. **G5 Verify**: Send `verifier` (`Model: "pro"`) at most 3 lesson paths per call. On `FAIL` or `INCOMPLETE`, the writer fixes and the verifier runs again.
+4. **Write (parallel)**: `writer-1` takes the odd-numbered lessons and `writer-2` the even-numbered ones. One `WRITE-` task per lesson. Each writer is a **fresh** subagent, gets ledger paths and claim IDs (not pasted ledgers), creates the folders with `mkdir -p`, tags every fact with `<!-- ev: R<n>.<m> -->`, keeps the lesson within 12–18 KB (hard limit 24 KB), saves an evidence index to `.evidence/`, and runs `check_curriculum.py --only` and `evidence.py lesson` offline until both exit `0` (`--online` once before reporting).
+5. **G5 Verify**: Send `verifier` (`Model: "pro"`) at most 3 lesson paths per call. On `FAIL` or `INCOMPLETE`, the writer fixes and a new verifier runs in re-check mode (failed claims and changed lines only).
 6. **Module overview**: After every lesson in the module has a PASS, one writer writes `<module folder>/README.md` (template in section 6). Then run G4 and G5 on it.
 7. **Close**: The writer marks the module's items `[x]` in `CHECKLIST.md` and updates the counters. Then the writer adds one link line under the module's heading in the course README (template in section 6), and runs the checker once on the whole course (`--online`, no `--only`). The teacher teaches the module to the learner and states the verification results.
 
@@ -279,7 +280,8 @@ A Definition of Done (DoD) item is a **gate**: every item must hold, or the unit
 - [ ] Section 7 has at least 2 links to specific Tier-1 pages. No `generic homepage citation` warning is reported for this file.
 
 **Evidence and verification**
-- [ ] The ledger is saved at `cloud_devops_basic/.evidence/WRITE-CDB-<id>.md`.
+- [ ] The ledger is saved under `cloud_devops_basic/.evidence/research/`, and the evidence index at `cloud_devops_basic/.evidence/WRITE-CDB-<id>.md`.
+- [ ] `evidence.py lesson <file> --ledger <ledger files>` exits `0` (size budget, tags resolve to VERIFIED rows). Lessons written before 16-11-2026 are exempt from tags and size.
 - [ ] The checker exits `0`.
 - [ ] The verifier returns `PASS` on the **final** version of the file. Any edit after a PASS requires a new verifier run.
 - [ ] **0** `FAIL` claims.

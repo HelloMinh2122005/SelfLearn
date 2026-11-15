@@ -13,8 +13,8 @@ Quy tắc này quy định chuẩn giao tiếp, phân chia trách nhiệm và qu
 | Tác tử | Định Danh | Trách Nhiệm Trọng Tâm | Quyền Ghi File | Quyền Truy Cập Mạng |
 | :--- | :--- | :--- | :---: | :---: |
 | **Teacher - Orchestrator** | `teacher-orchestrator` | **Chỉ giao task, review chất lượng, giải thích sư phạm và truyền đạt cho người học**. Tuyệt đối không search web và không ghi file giáo trình trong mọi trường hợp. | ❌ (Chỉ đọc) | ❌ (Ủy quyền cho Researchers) |
-| **Researcher 1** | `researcher-1` | Mở tài liệu Tier-1 và **trả về Claim Ledger có trích dẫn nguyên văn**. Hình ảnh minh họa là tùy chọn. | ❌ (Read-only) | ✅ (`search_web`, tải trang bằng `curl`) |
-| **Researcher 2** | `researcher-2` | Hoạt động song song với Researcher 1 để nghiên cứu các mảng độc lập (CLI, cú pháp, quotas, bảng giá, deprecations). **Trả về Claim Ledger**. Hình ảnh là tùy chọn. | ❌ (Read-only) | ✅ (`search_web`, tải trang bằng `curl`) |
+| **Researcher 1** | `researcher-1` | Mở tài liệu Tier-1 và **lưu Claim Ledger có trích dẫn nguyên văn vào file**, chỉ gửi Teacher bản tóm tắt ngắn. Hình ảnh chỉ tìm khi được yêu cầu. | ⚠️ Chỉ ghi `.evidence/research/<TASK_ID>.md` | ✅ (`search_web`, tải trang bằng `curl`) |
+| **Researcher 2** | `researcher-2` | Hoạt động song song với Researcher 1 để nghiên cứu các mảng độc lập (CLI, cú pháp, quotas, bảng giá, deprecations). **Lưu Claim Ledger vào file**, chỉ gửi bản tóm tắt. Hình ảnh chỉ tìm khi được yêu cầu. | ⚠️ Chỉ ghi `.evidence/research/<TASK_ID>.md` | ✅ (`search_web`, tải trang bằng `curl`) |
 | **Writer 1** | `writer-1` | **Xác định đường dẫn thư mục, tổ chức cấu trúc 3 tầng chuẩn hóa, soạn thảo file bài học `*.md` chỉ từ Claim Ledger** (đủ 7 mục chuẩn sư phạm, 100% relative path) và cập nhật `CHECKLIST.md` sau khi Verifier đạt. | ✅ (Ghi `*.md`) | ❌ |
 | **Writer 2** | `writer-2` | Hoạt động song song với Writer 1 khi có nhiều bài học hoặc cần tạo đồng thời bài lab/code mẫu/dự án thực hành. Cập nhật `CHECKLIST.md` sau khi Verifier đạt. | ✅ (Ghi `*.md`) | ❌ |
 | **Verifier** | `verifier` | **Kiểm chứng độc lập file đã viết**, chạy `check_curriculum.py`, trả PASS/FAIL. Không sửa giáo trình. | ❌ (Read-only) | ✅ (`search_web`, tải trang bằng `curl`) |
@@ -41,15 +41,15 @@ $$\text{Learner} \longrightarrow \text{Teacher} \overset{\text{Task}}{\longright
    - Nếu chưa đạt: Yêu cầu researcher bổ sung.
    - Nếu đạt: Teacher thiết kế khung bài giảng (ẩn dụ đời thực, ý niệm cốt lõi, takeaways).
 4. **Bước 4: Tổ chức thư mục & Soạn bài (Writers)**
-   - Teacher chuyển giao toàn bộ dữ liệu đã thẩm định và khung sư phạm cho `writer-1` (hoặc `writer-2`).
+   - Teacher giao cho một `writer-1` (hoặc `writer-2`) **mới**: đường dẫn ledger, các claim ID của bài và khung sư phạm. Không dán nội dung ledger.
    - Writer:
      - Xác định vị trí thư mục chính xác theo cấu trúc 3 tầng:
        `<course-folder>/<N> Domain <N> - <Name>/<N>_<M> <Topic>/<N>_<M>_<P> <Lesson Name>.md`
      - Tạo thư mục nếu chưa có (`mkdir -p`).
-     - Soạn file bài học `*.md` đủ 7 mục chuẩn hóa, **chỉ từ các claim trong Ledger**.
+     - Soạn file bài học `*.md` đủ 7 mục chuẩn hóa, **chỉ từ các claim trong Ledger**, gắn tag `<!-- ev: R1.n -->` cho mỗi fact, trong ngân sách 12–18 KB (tối đa 24 KB).
      - Nhúng hình ảnh minh họa dạng clickable nếu Ledger có link đã mở thành công.
      - Tuyệt đối chỉ dùng relative paths (không có `file:///home/...`).
-     - Chạy `check_curriculum.py <course-folder> --online --only "<file đã sửa>"` cho đến khi exit `0`.
+     - Chạy `check_curriculum.py <course-folder> --only "<file đã sửa>"` và `evidence.py lesson` (offline, foreground) cho đến khi exit `0`; chạy `--online` một lần trước khi báo cáo.
      - Gửi báo cáo Writing Report cho Teacher.
 5. **Bước 5: Kiểm chứng độc lập (Verifier - G5)**
    - Teacher gọi `verifier` với `Model: "pro"`, chỉ giao đường dẫn file và lĩnh vực.
@@ -57,6 +57,19 @@ $$\text{Learner} \longrightarrow \text{Teacher} \overset{\text{Task}}{\longright
 6. **Bước 6: Đóng bài & Giảng dạy (Teacher -> Learner)**
    - Sau khi Verifier trả `PASS`, Writer đánh dấu `[x]` trong `CHECKLIST.md`.
    - Teacher trình bày bài giảng tương tác cho người học kèm câu hỏi củng cố (Active Recall Quiz) và nêu kết quả Verification Report.
+
+---
+
+## 2.1 Ngân Sách Ngữ Cảnh & Chi Phí (Context and Cost Budget)
+
+Số liệu đo từ đợt chạy 12–14/11/2026 (module 1_1 đến 1_7, khoảng 42 bài): **243M input token**. **78%** đến từ các subagent bị dùng lại qua nhiều bài/module cho tới khi context chạm giới hạn 256K, nên mỗi lượt gọi phải đọc lại 100–260K token. Research report 100–140 KB được gửi thẳng vào context của Teacher. Writer chuyển lệnh kiểm tra xuống chạy nền rồi poll tới 75 lần. Teacher gọi `manage_subagents` 50 lần để kiểm tra tiến độ. Các quy định dưới đây **không nới lỏng cổng kiểm chứng nào**:
+
+1. **Mỗi task một subagent mới**: Mỗi research contract và mỗi task `WRITE-` bắt đầu bằng `invoke_subagent` mới. Chỉ dùng `send_message` cho chính task đó (ví dụ yêu cầu sửa sau FAIL).
+2. **Truyền đường dẫn, không truyền nội dung**: Ledger nằm ở `<course>/.evidence/research/<TASK_ID>.md`. Writer và Verifier nhận đường dẫn + claim ID, không nhận ledger hay bài học dán vào tin nhắn.
+3. **Không poll**: Sau `invoke_subagent` thì chờ tin nhắn kết quả. Lệnh kiểm tra chạy foreground (mỗi lệnh dưới 30 giây), không đẩy xuống nền rồi poll bằng `manage_task`.
+4. **Mở trang bằng script**: `evidence.py fetch <url> --grep <term>` chuyển HTML/PDF thành text, cache mỗi URL một file (hai researcher chạy song song không ghi đè nhau như `/tmp/.../page.txt` trước đây) và chỉ in dòng khớp. Cấm `cat` cả trang.
+5. **Ngân sách bài học**: 12–18 KB, tối đa 24 KB, từ 12–25 claim nguyên tử. Bài cũ trung bình 31 KB nhưng ledger trung vị chỉ 5 claim, nên Verifier phải tự nghiên cứu lại hàng chục fact không có trong ledger.
+6. **Mỗi RUN một conversation**: Báo cáo xong thì dừng. Chạy tiếp trong cùng conversation sẽ kéo theo toàn bộ context của run trước.
 
 ---
 
@@ -76,11 +89,14 @@ ASSIGNEE: "researcher-1 | researcher-2"
 TOPIC: "<Chủ đề / Dịch vụ cần điều tra>"
 CURRICULUM_DOMAIN: "<Azure | AWS | React+Vite | Java | DevOps>"
 AUTHORIZED_SOURCES: ["<Tier-1 canonical domains>"]
+LEDGER_FILE: "<course>/.evidence/research/<TASK_ID>.md"
+ID_PREFIX: "R1 | R2"
+LESSONS: ["<lesson id>: <12-25 claims>"]
 ACCEPTANCE_CRITERIA:
   - "<Câu hỏi hoặc claim cần chứng minh, không chỉ là danh sách chủ đề>"
   - "<Mọi claim phải có URL đã mở và trích dẫn nguyên văn>"
   - "<Báo cáo chủ đề quan trọng mà nguồn có nhưng nhiệm vụ chưa nêu>"
-OPTIONAL: "<Link ảnh/sơ đồ chính thức, chỉ tìm sau khi Ledger đã xong>"
+OPTIONAL: "none"   # mặc định; chỉ yêu cầu ảnh khi bài thật sự cần
 OUT_OF_SCOPE: "<Chủ đề ngoài phạm vi>"
 ```
 
@@ -92,10 +108,10 @@ TARGET_COURSE: "<react+vite | azure/az-104 | aws/saa-c03 | cloud_devops_basic>"
 TARGET_FILE: "<Đường dẫn tương đối tới file bài học>"
 TOPIC_TITLE: "<Tên bài học chuẩn>"
 RESEARCH_INPUT:
-  CLAIM_LEDGER: "<Nguyên văn Claim Ledger đã qua G1 và G2>"
-  OFFICIAL_URLS: ["<Link Tier-1 đã mở>"]
+  LEDGER_FILES: ["<course>/.evidence/research/<TASK_ID>.md"]   # đường dẫn, không dán nội dung
+  CLAIM_IDS: "<ví dụ R1.4-R1.15, R2.2>"
   DEMO_IMAGE_URLS: ["<Link ảnh đã mở thành công, có thể rỗng>"]
-  CODE_OR_CLI: "<Code mẫu / CLI đã kiểm chứng>"
+SIZE_BUDGET: "12-18 KB, tối đa 24 KB"
 PEDAGOGICAL_BLUEPRINT:
   ANALOGY: "<Ẩn dụ đời sống thực tế>"
   CORE_MESSAGE: "<Thông điệp cốt lõi>"

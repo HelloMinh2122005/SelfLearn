@@ -1,0 +1,13 @@
+# A working but poorly designed Dockerfile. Your job in lab 6_2_1 is to fix it.
+# Do not use this as a template.
+FROM docker.io/library/maven:3.9-eclipse-temurin-21
+
+WORKDIR /app
+COPY . .
+RUN mvn -B package
+
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+EXPOSE 8080
+CMD ["/app/start.sh"]

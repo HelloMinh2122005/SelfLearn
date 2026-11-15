@@ -1,0 +1,5 @@
+# Answer for lab 6_2_2 part B: use the ARG in a RUN step so its value is part of the cache key.
+FROM docker.io/library/eclipse-temurin:21-jre
+ARG APP_VERSION=dev
+RUN echo "${APP_VERSION}" > /VERSION
+ENV APP_VERSION=${APP_VERSION}
