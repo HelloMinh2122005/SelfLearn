@@ -43,10 +43,10 @@ Cheap, deterministic checks that replace reading whole pages and whole lessons i
 | Command | Who uses it | What it does |
 | :--- | :--- | :--- |
 | `evidence.py fetch '<url>' --grep '<term>' ...` | researchers, verifier | Downloads the page once (cache `~/.cache/selflearn-pages/`, 7 days, one file per URL, so it is parallel-safe), converts HTML or PDF to text, and prints only the matching lines with their line numbers. Read more with `sed -n 'a,bp' <cache path>`. |
-| `evidence.py quotes <ledger.md> [--lesson <id>] [--ids R1.3,R2.7]` | researchers (before reporting), teacher (G1) | Fetches every ledger URL and checks the verbatim quote is really on the page: `FOUND`, `PARTIAL`, `MISSING`, `FETCH_ERROR`. |
-| `evidence.py lesson <lesson.md> --ledger <ledger.md> ... [--quotes]` | writers (G4, offline), verifier (G5, with `--quotes`) | Checks the 7 section headings in order, the status header, Mermaid, quiz `<details>`, links in section 7, the size budget (warn at 18 KB, error at 24 KB), and that every `<!-- ev: R1.3 -->` tag points to a `VERIFIED` ledger row. Lists factual-looking lines with no tag. With `--quotes`, also checks the quotes of every tagged claim and prints the page text around each one. |
+| `evidence.py quotes <ledger.md> [--lesson <id>] [--ids R4.3,R4.7]` | the researcher, once before reporting (G1). The verifier re-checks tagged quotes (G5), so nobody runs it a third time. | Fetches every ledger URL and checks the verbatim quote is really on the page: `FOUND`, `PARTIAL`, `MISSING`, `FETCH_ERROR`. |
+| `evidence.py lesson <lesson.md> --ledger <ledger.md> ... [--quotes]` | writers (G4, offline), verifier (G5, with `--quotes`) | Checks the 7 section headings in order, the status header, Mermaid, quiz `<details>`, links in section 7, the size hard limit (error over 24 KB; there is no soft target), and that every `<!-- ev: R1.3 -->` tag points to a `VERIFIED` ledger row. Lists factual-looking lines with no tag. With `--quotes`, also checks the quotes of every tagged claim and prints the page text around each one. |
 
-Ledger rows need an `ID` column (`R1.1`, `R2.7`) and a `Lesson` column. Older ledgers without IDs are ignored by `quotes`, and lessons with no tags are verified the old way.
+Ledger rows need an `ID` column (`R4.1` for lesson research, `L2.3` for lab research; older ledgers use `R1`/`R2`) and a `Lesson` column. A `|` inside a quote is written `\|`. Older ledgers without IDs are ignored by `quotes`, and lessons with no tags are verified the old way.
 
 ## Reading the Result
 

@@ -45,19 +45,20 @@ Totals: **76 lesson files** in 8 topics (6_1 to 6_8) and **33 lab folders** (6_1
 Recommended order (interview priority first, then the foundations):
 `6_3` → `6_5:1-6` → `6_5:7-11` → `6_6:1-6` → `6_6:7-11` → `6_8` → `6_4` → `6_7:1-5` → `6_7:6-10` → `6_1:1-5` → `6_1:6-10` → `6_2:1-6` → `6_2:7-11`, then `LAB` runs in the same topic order.
 
-IDs: research `TASK-CTR-<run>-R1/R2`, writing `WRITE-CTR-<lesson id>`, topic README edit `WRITE-CTR-<module>-README`, labs `LAB-CTR-<lab id>`.
+IDs: research `TASK-CTR-<lesson id>` (one per lesson, claim prefix `R<P>`; lab research `TASK-CTR-LAB-<lab id>`, prefix `L<N>`), writing `WRITE-CTR-<lesson id>`, topic README edit `WRITE-CTR-<module>-README`, labs `LAB-CTR-<lab id>`.
 
 ---
 
 ## 3. Per-Run Procedure (lesson runs)
 
 1. **Scope**: Read the topic README section of each lesson (the `### 6_M_P` heading and its bullets), section 4 of this plan, and the section 5 claims for the topic.
-2. **Research (parallel)**:
-   - `researcher-1`: mechanisms, object model, controllers and lifecycles, request flows (for example how a Deployment rollout progresses, the Pod termination sequence, how Helm stores a release, how a GitLab job reaches the cluster through the agent).
-   - `researcher-2`: exact commands, flags, YAML fields and `apiVersion`s, default values, limits, version and feature-state currency (Kubernetes minor version and `alpha`/`beta`/`stable`; Helm 4 vs Helm 3; GitLab version and tier), runnable examples from Tier-1 pages (kubernetes.io example manifests, helm.sh examples, docs.gitlab.com `.gitlab-ci.yml` examples), and every section 5 claim for this run.
-   - Acceptance criteria are phrased as claims to prove, one block per lesson.
-3. **G1 + G2**: Every lesson has enough `VERIFIED` claims to fill sections 1, 3 and 4 of the template. Re-research anything `CONFLICT` or `NOT_FOUND`. Never fill a gap from memory.
-4. **Write (parallel)**: `writer-1` takes odd-numbered lessons, `writer-2` even-numbered ones. One `WRITE-` task per lesson. Each writer is a **fresh** subagent with ledger paths and claim IDs, tags every fact with `<!-- ev: R<n>.<m> -->`, keeps the lesson within 12–18 KB (hard limit 24 KB), saves an evidence index to `cloud_devops_basic/container/.evidence/`, and runs `check_curriculum.py --only` and `evidence.py lesson` offline until both exit `0` (`--online` once before reporting).
+2. **Research (parallel, one `researcher` per lesson)**: each contract covers one lesson, both
+   - its mechanisms (object model, controllers and lifecycles, request flows, for example how a Deployment rollout progresses, the Pod termination sequence, how Helm stores a release, how a GitLab job reaches the cluster through the agent), and
+   - its exact commands, flags, YAML fields and `apiVersion`s, default values, limits, version and feature-state currency (Kubernetes minor version and `alpha`/`beta`/`stable`; Helm 4 vs Helm 3; GitLab version and tier), runnable examples from Tier-1 pages, and the section 5 claims that belong to that lesson.
+   - 12–25 claims, hard maximum 25. `LEDGER_FILE: cloud_devops_basic/container/.evidence/research/TASK-CTR-<lesson id>.md`, `ID_PREFIX: R<P>`.
+   - Acceptance criteria are phrased as claims to prove.
+3. **G1 + G2**: Each researcher's summary shows a clean `evidence.py quotes` line (no `MISSING`). Every lesson has enough `VERIFIED` claims to fill sections 1, 3 and 4 of the template. Re-research anything `CONFLICT` or `NOT_FOUND`. Never fill a gap from memory.
+4. **Write (parallel)**: one **fresh** `writer` per lesson (`WRITE-` task) with ledger paths and claim IDs. It plans the size, writes the file once, tags every fact with `<!-- ev: R<P>.<m> -->` as it writes, stays under the 24 KB hard limit (there is no soft target), saves an evidence index to `cloud_devops_basic/container/.evidence/`, and runs `check_curriculum.py --only` and `evidence.py lesson` at most 3 times (offline, fix batch, `--online` once before reporting).
 5. **G5 Verify**: `verifier` (`Model: "pro"`), at most 3 lesson paths per call. On `FAIL` or `INCOMPLETE`, the writer fixes and a new verifier runs in re-check mode.
 6. **README bullet corrections** (section 1.1 rule 4), if any, go through G4 and G5 like a lesson edit.
 7. **Close** (only in the run that finishes the topic): one writer
@@ -102,7 +103,7 @@ Folder prefix: `cloud_devops_basic/container/6 Domain 6 - Containers and Kuberne
 
 ---
 
-## 5. Claims to Verify (Hand to `researcher-2`, Do Not Teach as Written)
+## 5. Claims to Verify (Hand to the Lesson's Researcher, Do Not Teach as Written)
 
 Statements in the topic READMEs that are version-dependent, were taken from search snippets, or are easy to get wrong. They are **leads, not findings**.
 

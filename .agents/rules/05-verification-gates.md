@@ -24,7 +24,7 @@ Researcher lưu bảng sau vào `<course-folder>/.evidence/research/<TASK_ID>.md
 
 - Trạng thái chỉ gồm: `VERIFIED`, `CONFLICT`, `NOT_FOUND`.
 - **Một dòng = một fact** (một con số, một flag, một hành vi). Dòng gộp nhiều fact phải tách ra.
-- `evidence.py quotes <ledger>` phải không có dòng `MISSING`, tức trích dẫn thật sự nằm trên trang.
+- Researcher chạy `evidence.py quotes <ledger>` một lần trước khi báo cáo: không có dòng `MISSING`, tức trích dẫn thật sự nằm trên trang. Dấu `|` trong trích dẫn viết là `\|`.
 - Writer gắn tag `<!-- ev: R1.1 -->` cho mỗi câu chứa fact, và lưu **file chỉ mục** (đường dẫn ledger + các claim ID đã dùng) tại `<course-folder>/.evidence/<WRITING_TASK_ID>.md`, không chép lại ledger.
 
 ---

@@ -9,10 +9,8 @@ Biệt đội tác tử hỗ trợ học tập thông minh (Autonomous Self-Lear
 | Tác Tử (Agent) | Vai Trò (Role) | Mô Hình (Model) | Quyền Hạn Công Cụ (Tools) |
 | :--- | :--- | :--- | :--- |
 | [**`teacher-orchestrator`**](./agents/teacher-orchestrator.md) | **Master Teacher & Pipeline Orchestrator** | `inherit` / `pro` | `invoke_subagent`, `send_message`, `manage_subagents`, `ask_question`, `read_file` |
-| [**`researcher-1`**](./agents/researcher-1.md) | **Deep Internet & Official Doc Researcher 1** | `flash` | `search_web`, `read_file`, `run_command` (chỉ tải trang) |
-| [**`researcher-2`**](./agents/researcher-2.md) | **Deep Internet & Official Doc Researcher 2** | `flash` | `search_web`, `read_file`, `run_command` (chỉ tải trang) |
-| [**`writer-1`**](./agents/writer-1.md) | **Curriculum Writer & Structural Organizer 1** | `inherit` / `flash` | `read_file`, `write_file`, `edit_file`, `run_command` |
-| [**`writer-2`**](./agents/writer-2.md) | **Curriculum Writer & Structural Organizer 2** | `inherit` / `flash` | `read_file`, `write_file`, `edit_file`, `run_command` |
+| [**`researcher`**](./agents/researcher.md) | **Official Doc Researcher** (1 instance mới / bài, chạy song song) | `flash` | `search_web`, `read_file`, `run_command` (`evidence.py fetch`), `write_file` (chỉ ledger) |
+| [**`writer`**](./agents/writer.md) | **Curriculum Writer & Structural Organizer** (1 instance mới / bài hoặc lab) | `inherit` / `flash` | `read_file`, `write_file`, `edit_file`, `run_command` |
 | [**`verifier`**](./agents/verifier.md) | **Independent Post-Write Verifier** | `pro` | `search_web`, `read_file`, `run_command` (tải trang và chạy kiểm tra) |
 
 ---
@@ -21,22 +19,23 @@ Biệt đội tác tử hỗ trợ học tập thông minh (Autonomous Self-Lear
 
 ### 🎓 `teacher-orchestrator` (Teacher & Orchestrator)
 - **Ranh giới nghiêm ngặt**: **Chỉ giao task, review thẩm định chất lượng, giải thích kiến thức sư phạm và điều phối quy trình**.
-- **Không tự search web** (ủy thác hoàn toàn cho `researcher-1` & `researcher-2`).
-- **Không bao giờ ghi file giáo trình** (ủy thác cho `writer-1` & `writer-2`).
+- **Không tự search web** (ủy thác cho các instance `researcher`, mỗi bài một instance).
+- **Không bao giờ ghi file giáo trình** (ủy thác cho các instance `writer`).
 - **Review Gate**: Kiểm tra Claim Ledger và độ phủ trước khi chuyển sang Writer. Không đủ báo cáo thì không được viết.
 - **Đa ngôn ngữ linh hoạt**: Tự động phản hồi theo ngôn ngữ của người học (tiếng Việt hoặc tiếng Anh).
 
-### 🔍 `researcher-1` & `researcher-2` (Parallel Deep Researchers)
+### 🔍 `researcher` (One Researcher per Lesson)
 - **Tra cứu Internet chuyên sâu**: Tìm URL qua `search_web`, sau đó mở trang để đọc tài liệu, thông số kỹ thuật, cú pháp CLI và giới hạn dịch vụ.
 - **Claim Ledger là sản phẩm chính**: Mỗi claim có URL đã mở và trích dẫn nguyên văn. Ảnh minh họa là tùy chọn và chỉ tìm sau khi Ledger đã xong.
 - **Tuyệt đối trung thực (Strict Truthfulness)**: Bám sát phân cấp nguồn Tier-1 (Microsoft Learn, AWS Documentation, Oracle Java / OpenJDK, React Docs, Vite Docs, MDN, RFCs).
 - **Chống ảo giác (Anti-Hallucination)**: Tuyệt đối không tự bịa đặt flag CLI hoặc URL. Xác minh rõ trạng thái GA, Preview hay Deprecated.
-- **Phối hợp song song**: Chia nhỏ mảng nghiên cứu để tối ưu thời gian.
+- **Song song theo bài**: Mỗi bài học có một researcher riêng (12–25 claim, khoảng 12 trang, ledger riêng `R<P>`), nên context không phình theo cả chủ đề.
 
-### ✍️ `writer-1` & `writer-2` (Curriculum Writers & Folder Organizers)
+### ✍️ `writer` (One Writer per Lesson or Lab)
 - **Định vị & Tổ chức thư mục**: Tìm đúng vị trí trong workspace, tạo thư mục 3 tầng chuẩn hóa (`mkdir -p` theo `<N> Domain <N> - <Name>/<N>_<M> <Topic>/<N>_<M>_<P> <Lesson Name>.md`).
 - **Soạn thảo từ Ledger**: Viết file bài học `*.md` chuẩn 7 mục (Khái niệm -> Ẩn dụ thực tế -> Sơ đồ & Ảnh có href -> Code mẫu -> Gotchas -> Quiz -> Nguồn Tier-1), không thêm sự kiện kỹ thuật từ trí nhớ.
 - **Chuẩn hóa đường dẫn tương đối**: Đảm bảo 100% liên kết nội bộ là relative paths (không có `file:///home/...`).
+- **Viết một lượt**: Lập dàn ý theo KB, ghi file một lần, tối đa 3 lần chạy kiểm tra, giới hạn cứng 24 KB.
 - **Sửa cục bộ**: Không ghi đè toàn bộ file đã có nội dung.
 - **Cập nhật Checklist**: Chỉ đánh dấu `[x]` trong `CHECKLIST.md` sau khi Verifier trả `PASS`.
 
@@ -55,8 +54,8 @@ sequenceDiagram
     autonumber
     actor Learner as Người Học (User)
     participant Teacher as Teacher - Orchestrator
-    participant R as Researchers (R1 / R2)
-    participant W as Writers (W1 / W2)
+    participant R as Researcher (1 / bài)
+    participant W as Writer (1 / bài)
     participant V as Verifier
     participant FS as Workspace (Thư mục & File .md)
 
@@ -95,10 +94,8 @@ sequenceDiagram
 ├── README.md                      # Tài liệu tổng quan về biệt đội
 ├── agents/                        # Định nghĩa tác tử (Agent Manifests)
 │   ├── teacher-orchestrator.md    # Master Teacher & Squad Orchestrator
-│   ├── researcher-1.md            # Deep Internet & Doc Researcher 1
-│   ├── researcher-2.md            # Deep Internet & Doc Researcher 2
-│   ├── writer-1.md                # Curriculum Writer & Structural Organizer 1
-│   ├── writer-2.md                # Curriculum Writer & Structural Organizer 2
+│   ├── researcher.md              # Official Doc Researcher (1 instance / bài)
+│   ├── writer.md                  # Curriculum Writer & Structural Organizer (1 instance / bài)
 │   └── verifier.md                # Independent Post-Write Verifier
 ├── rules/                         # Quy tắc bắt buộc
 │   ├── 01-strict-truthfulness.md  # Nguyên tắc trung thực 100% & chống ảo giác
@@ -127,10 +124,10 @@ Trong không gian làm việc `SelfLearn`:
    - `"@teacher-orchestrator hãy dạy tôi về React 19 Actions và Server Components"`
    - `"@teacher-orchestrator teach me about AWS S3 Storage Classes and Lifecycle Rules"`
 2. **Quy trình vận hành tự động**:
-   - Teacher phân chia nhiệm vụ cho Researchers (R1, R2).
-   - Researchers mở tài liệu chính thống và lập Claim Ledger.
+   - Teacher giao mỗi bài học cho một `researcher` mới, chạy song song.
+   - Mỗi researcher mở tài liệu chính thống và lưu Claim Ledger của bài đó.
    - Teacher kiểm tra bằng chứng và độ phủ.
-   - Writer (W1, W2) định vị thư mục, tạo folder 3 tầng, viết file `.md` từ Ledger và chạy kiểm tra cơ học.
+   - Mỗi bài một `writer` mới: định vị thư mục, tạo folder 3 tầng, viết file `.md` từ Ledger một lượt và chạy kiểm tra cơ học.
    - Verifier kiểm chứng độc lập file đã viết.
    - Sau khi Verifier trả `PASS`, Writer cập nhật `CHECKLIST.md`.
    - Teacher hướng dẫn bài học tương tác, nêu kết quả kiểm chứng và kiểm tra độ hiểu sâu của bạn.

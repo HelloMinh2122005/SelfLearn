@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cheap, deterministic evidence tools for the SelfLearn squad.
+r"""Cheap, deterministic evidence tools for the SelfLearn squad.
 
 They replace work that agents used to do by reading whole pages and whole
 lessons into their context.
@@ -24,6 +24,8 @@ lessons into their context.
 Ledger format: a markdown table whose header contains the columns
 ID | Lesson | Atomic claim | URL | Quote | Applies to | Status
 (Vietnamese headers "Trích dẫn", "Áp dụng", "Trạng thái" are accepted).
+A literal pipe inside a cell is written as \| (standard markdown escape) and
+is matched against the page as a plain "|". Never replace it with "/".
 
 Exit code: 0 = no errors, 1 = errors found, 2 = bad usage.
 """
@@ -52,7 +54,10 @@ CACHE_DIR = (
 CACHE_TTL = 7 * 24 * 3600
 SECTION_TITLES = [f"## {n}." for n in range(1, 8)]
 TAG = re.compile(r"<!--\s*ev:\s*([^>]*?)\s*-->")
-TAG_ID = re.compile(r"\b(R\d+\.\d+)\b")
+# Claim ids: R<lesson number>.<n> for lesson research, L<lab number>.<n> for lab research
+# (legacy ledgers use R1/R2 per topic). Distinct prefixes keep ids unique per topic.
+TAG_ID = re.compile(r"\b([RL]\d+\.\d+)\b")
+CELL_SPLIT = re.compile(r"(?<!\\)\|")
 URL = re.compile(r"https?://[^\s|)>\]`\"']+")
 FENCE = re.compile(r"^\s*(```|~~~)")
 
@@ -198,7 +203,10 @@ def read_ledgers(paths):
             if not line.startswith("|"):
                 keys = None if not line.strip() else keys
                 continue
-            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            row = line.strip()
+            row = row[1:] if row.startswith("|") else row
+            row = row[:-1] if row.endswith("|") and not row.endswith("\\|") else row
+            cells = [c.strip().replace("\\|", "|") for c in CELL_SPLIT.split(row)]
             if keys is None:
                 keys = _cell_map(cells)
                 continue
@@ -264,15 +272,16 @@ def visible(lines):
         yield number, line, fenced
 
 
-def check_lesson(path, ledger_rows, max_kb, warn_kb, with_quotes):
+def check_lesson(path, ledger_rows, max_kb, with_quotes):
     errors, warnings = [], []
     text = pathlib.Path(path).read_text(encoding="utf-8")
     lines = text.splitlines()
     size_kb = len(text.encode("utf-8")) / 1024
+    # One hard limit only. A soft "target" warning made writers trim the same
+    # lesson 5-7 times (one model call per trim), which cost more than it saved.
     if size_kb > max_kb:
-        errors.append(f"size {size_kb:.1f} KB is over the {max_kb} KB budget")
-    elif size_kb > warn_kb:
-        warnings.append(f"size {size_kb:.1f} KB is over the {warn_kb} KB target")
+        errors.append(f"size {size_kb:.1f} KB is over the {max_kb} KB hard limit: "
+                      "remove whole sub-topics or examples in one edit, not sentence by sentence")
 
     head = "\n".join(lines[:15])
     for field in ("**Trạng thái**",):
@@ -373,7 +382,6 @@ def main():
     p_lesson.add_argument("--ledger", nargs="+", required=True)
     p_lesson.add_argument("--quotes", action="store_true")
     p_lesson.add_argument("--max-kb", type=float, default=24)
-    p_lesson.add_argument("--warn-kb", type=float, default=18)
 
     args = parser.parse_args()
     if args.cmd == "fetch":
@@ -400,14 +408,14 @@ def main():
         chosen = [r for r in rows.values()
                   if (not ids or r["id"] in ids) and (not args.lesson or args.lesson in r["lesson"])]
         if not chosen:
-            print("No ledger rows with ids like R1.3 matched. Check the ID column.")
+            print("No ledger rows with ids like R1.3 or L2.4 matched. Check the ID column.")
             return 1
         errors = print_quote_results(check_quotes(chosen))
         print(f"Result: {len(chosen)} rows, {errors} errors.")
         return 1 if errors else 0
 
     rows = read_ledgers(args.ledger)
-    return check_lesson(args.lesson, rows, args.max_kb, args.warn_kb, args.quotes)
+    return check_lesson(args.lesson, rows, args.max_kb, args.quotes)
 
 
 if __name__ == "__main__":

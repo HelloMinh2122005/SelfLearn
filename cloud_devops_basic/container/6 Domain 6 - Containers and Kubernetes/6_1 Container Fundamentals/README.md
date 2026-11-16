@@ -3,7 +3,7 @@
 > **Khóa học**: Cloud DevOps Basic — Containers & Kubernetes
 > **Phân nhóm**: 6 Domain 6 - Containers and Kubernetes › 6_1 Container Fundamentals
 > **Chủ đề**: Container thực chất là gì ở tầng Linux kernel: namespaces, cgroups, filesystem phân lớp, chuẩn OCI và các container runtime
-> **Trạng thái**: README lộ trình + 2 lab ở dạng định nghĩa (chưa có thư mục `labs/`, chưa chạy thử), cập nhật 15-11-2026
+> **Trạng thái**: Bài học: 10/10 viết xong, qua G1–G4 (ledger + `evidence.py` + checker), **chưa qua G5 (verifier độc lập)** (16-11-2026); Lab: 2 lab ở dạng định nghĩa (chưa có thư mục `labs/`, chưa chạy thử)
 > **Lộ trình tổng**: [container/README.md](../../README.md) · **Checkpoint**: [CHECKLIST.md](../../CHECKLIST.md#6_1-container-fundamentals)
 
 ---
@@ -89,6 +89,25 @@ flowchart LR
 - [ ] Volume (runtime quản lý) vs bind mount (thư mục của máy chủ) vs tmpfs (RAM).
 - [ ] Dữ liệu trong lớp ghi của container mất khi xóa container → dữ liệu cần giữ phải nằm ở volume.
 - [ ] Quyền sở hữu file khi chạy rootless/non-root (UID ánh xạ khác nhau giữa container và máy chủ).
+
+---
+
+## 📂 Bài Học Chi Tiết (Lessons)
+
+> Mỗi bài có 7 mục (khái niệm, ví dụ đời thường, sơ đồ, thực hành, cạm bẫy, quiz, nguồn Tier-1). Trạng thái **Draft**: đã đối chiếu từng claim với trang chính thức (ledger tại `.evidence/research/`), chưa chạy lệnh thật và chưa qua verifier độc lập.
+
+| Bài | Mục tiêu một dòng | Trạng thái |
+| :--- | :--- | :--- |
+| [6_1_1 Containers vs Virtual Machines](<./6_1_1 Containers vs Virtual Machines.md>) | Container là process bị cô lập dùng chung kernel; khác VM ở đâu | Draft (16-11-2026) |
+| [6_1_2 Linux Namespaces for Containers](<./6_1_2 Linux Namespaces for Containers.md>) | 8 loại namespace, PID 1, `veth`, `unshare`/`nsenter`/`lsns` | Draft (16-11-2026) |
+| [6_1_3 Control Groups v2 for Containers](<./6_1_3 Control Groups v2 for Containers.md>) | `memory.max`, `cpu.max`, `pids.max`, OOM kill và exit 137 | Draft (16-11-2026) |
+| [6_1_4 Images Layers and Overlay Filesystem](<./6_1_4 Images Layers and Overlay Filesystem.md>) | Layer bất biến, lớp ghi, overlayfs, copy_up, whiteout | Draft (16-11-2026) |
+| [6_1_5 Open Container Initiative Specifications](<./6_1_5 Open Container Initiative Specifications.md>) | Ba đặc tả OCI: image, runtime, distribution | Draft (16-11-2026) |
+| [6_1_6 Container Runtimes and Ecosystem](<./6_1_6 Container Runtimes and Ecosystem.md>) | Docker, Podman, runc/crun, containerd, CRI-O, CRI | Draft (16-11-2026) |
+| [6_1_7 Container Security Fundamentals](<./6_1_7 Container Security Fundamentals.md>) | User namespace/rootless, capabilities, seccomp, SELinux `:z`/`:Z` | Draft (16-11-2026) |
+| [6_1_8 Container Lifecycle PID 1 and Signals](<./6_1_8 Container Lifecycle PID 1 and Signals.md>) | PID 1, `SIGTERM`/`SIGKILL`, exec vs shell form, `--init`, exit code | Draft (16-11-2026) |
+| [6_1_9 Container Networking Basics](<./6_1_9 Container Networking Basics.md>) | `veth`, bridge vs `pasta`, publish cổng (NAT), DNS | Draft (16-11-2026) |
+| [6_1_10 Container Data Storage](<./6_1_10 Container Data Storage.md>) | Volume vs bind mount vs tmpfs, UID khi rootless | Draft (16-11-2026) |
 
 ---
 

@@ -58,15 +58,12 @@ Phase 0 changes no technical claims, so it needs only G4. G1 to G3 and G5 do not
 
 ## 3. Per-Module Run (Repeat 33 Times)
 
-One run = one Tier-2 module folder. IDs: research `TASK-CDB-<module>-R1/R2`, writing `WRITE-CDB-<lesson id>`, module overview `WRITE-CDB-<module>-README`.
+One run = one Tier-2 module folder. IDs: research `TASK-CDB-<lesson id>` (one per lesson, claim prefix `R<P>`; older ledgers use `TASK-CDB-<module>-R1/R2`), writing `WRITE-CDB-<lesson id>`, module overview `WRITE-CDB-<module>-README`.
 
 1. **Scope**: Read the module's section in the course README, the checklist items listed in section 4, and the "Claims to Verify" in section 5.
-2. **Research (parallel)**:
-   - `researcher-1`: mechanisms, definitions, state machines, and data structures for every lesson in the module.
-   - `researcher-2`: numbers, header sizes, ports, defaults, commands and flags, code examples from Tier-1 pages (for example the `EXAMPLES` section of man7 pages), version and platform currency, and every flagged claim in section 5 for this module.
-   - Acceptance criteria are phrased as claims to prove, one block per lesson.
-3. **G1 + G2**: Every lesson has enough `VERIFIED` claims to fill sections 1, 3, and 4 of the template. Remove or re-research any claim marked `CONFLICT` or `NOT_FOUND`.
-4. **Write (parallel)**: `writer-1` takes the odd-numbered lessons and `writer-2` the even-numbered ones. One `WRITE-` task per lesson. Each writer is a **fresh** subagent, gets ledger paths and claim IDs (not pasted ledgers), creates the folders with `mkdir -p`, tags every fact with `<!-- ev: R<n>.<m> -->`, keeps the lesson within 12–18 KB (hard limit 24 KB), saves an evidence index to `.evidence/`, and runs `check_curriculum.py --only` and `evidence.py lesson` offline until both exit `0` (`--online` once before reporting).
+2. **Research (parallel, one `researcher` per lesson)**: each contract covers one lesson completely: its mechanisms, definitions, state machines and data structures, **and** its numbers, header sizes, ports, defaults, commands and flags, code examples from Tier-1 pages (for example the `EXAMPLES` section of man7 pages), version and platform currency, and the section 5 claims that belong to that lesson. 12–25 claims (hard maximum 25), one `LEDGER_FILE` per lesson, `ID_PREFIX: R<P>`. Acceptance criteria are phrased as claims to prove.
+3. **G1 + G2**: Each researcher's summary shows a clean `evidence.py quotes` line (no `MISSING`). Every lesson has enough `VERIFIED` claims to fill sections 1, 3, and 4 of the template. Remove or re-research any claim marked `CONFLICT` or `NOT_FOUND`.
+4. **Write (parallel)**: one **fresh** `writer` per lesson (`WRITE-` task), with ledger paths and claim IDs (not pasted ledgers). It creates the folders with `mkdir -p`, plans the size, writes the file once, tags every fact with `<!-- ev: R<P>.<m> -->` as it writes, stays under the 24 KB hard limit (no soft target), saves an evidence index to `.evidence/`, and runs `check_curriculum.py --only` and `evidence.py lesson` at most 3 times (offline, fix batch, `--online` once before reporting).
 5. **G5 Verify**: Send `verifier` (`Model: "pro"`) at most 3 lesson paths per call. On `FAIL` or `INCOMPLETE`, the writer fixes and a new verifier runs in re-check mode (failed claims and changed lines only).
 6. **Module overview**: After every lesson in the module has a PASS, one writer writes `<module folder>/README.md` (template in section 6). Then run G4 and G5 on it.
 7. **Close**: The writer marks the module's items `[x]` in `CHECKLIST.md` and updates the counters. Then the writer adds one link line under the module's heading in the course README (template in section 6), and runs the checker once on the whole course (`--online`, no `--only`). The teacher teaches the module to the learner and states the verification results.
@@ -141,7 +138,7 @@ Overlap rules: `ipconfig`, `netstat`, Windows Defender Firewall and other networ
 
 ---
 
-## 5. Claims to Verify (Hand to `researcher-2`, Do Not Teach as Written)
+## 5. Claims to Verify (Hand to the Lesson's Researcher, Do Not Teach as Written)
 
 These are statements in the course READMEs (or areas where they are easy to get wrong) that look wrong, overstated, or version-dependent. They are **leads, not findings**. Research each one. Teach only what the sources support.
 
@@ -176,7 +173,7 @@ These are statements in the course READMEs (or areas where they are easy to get 
 
 ## 6. File Templates
 
-### 6.1 Lesson file: 7 sections (from `writer-1.md`, adapted to this course)
+### 6.1 Lesson file: 7 sections (from `writer.md`, adapted to this course)
 
 ```markdown
 # <N_M_P> <Lesson Title>

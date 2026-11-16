@@ -1,0 +1,68 @@
+# =====================================================================
+# CHỈ CÓ 1 ĐỐI TƯỢNG DUY NHẤT (Deployment) trong file này.
+# ReplicaSet và Pod KHÔNG được viết riêng: chúng được định nghĩa gián tiếp
+#   - Pod         -> khối  spec.template   (mẫu Pod)
+#   - ReplicaSet  -> do Deployment controller TỰ TẠO từ replicas + selector + template
+# Luồng: Deployment --(tạo)--> ReplicaSet --(tạo)--> Pod
+# =====================================================================
+apiVersion: apps/v1            # Deployment thuộc nhóm API "apps" (khác Pod là "v1")
+kind: Deployment               # Loại đối tượng; đây là tầng trên cùng, bạn chỉ khai báo tầng này
+metadata:                      # Danh tính của CHÍNH Deployment (không phải của Pod)
+  name: order-service          # Tên Deployment, duy nhất trong namespace
+  namespace: default           # Phân vùng chứa Deployment
+  annotations:
+    # Ghi chú cho người đọc, KHÔNG dùng để chọn đối tượng. Được copy sang các revision
+    # và hiện ở cột CHANGE-CAUSE của "kubectl rollout history".
+    # Nằm ngoài spec.template nên chỉ sửa dòng này KHÔNG kích hoạt rollout.
+    kubernetes.io/change-cause: "Release order-service v1.4.2"
+  labels:                      # Nhãn trên Deployment, để tìm kiếm và gom nhóm
+    app.kubernetes.io/name: order-service
+spec:
+  # ------------------------------------------------------------------
+  # (A) CẤP DEPLOYMENT: cách Deployment điều phối rollout và lịch sử
+  # ------------------------------------------------------------------
+  revisionHistoryLimit: 10     # Giữ tối đa 10 ReplicaSet cũ (mỗi cái = 1 revision) để rollback; mặc định 10.
+                               # Đặt 0 sẽ xóa sạch lịch sử và không thể rollback.
+  minReadySeconds: 10          # Pod mới phải Ready liên tục 10 giây (không crash) mới tính là "available"; mặc định 0.
+                               # Giúp bắt lỗi "báo Ready rồi sập ngay" trước khi thay tiếp Pod cũ.
+  progressDeadlineSeconds: 600 # Chờ tối đa 600 giây để rollout tiến triển; mặc định 600, phải lớn hơn minReadySeconds.
+                               # Quá hạn: condition Progressing=False, reason=ProgressDeadlineExceeded.
+                               # Kubernetes KHÔNG tự rollback, chỉ báo cho công cụ bên ngoài (CI/CD, con người).
+  strategy:
+    type: RollingUpdate        # Thay cuốn chiếu (mặc định); lựa chọn khác: Recreate (tắt hết rồi mới tạo mới)
+    rollingUpdate:
+      maxSurge: 25%            # Được tạo THỪA tối đa 25% so với replicas (làm tròn LÊN): 4 x 25% = 1 -> tối đa 5 Pod
+      maxUnavailable: 25%      # Được THIẾU tối đa 25% Pod phục vụ (làm tròn XUỐNG): 4 x 25% = 1 -> luôn có >= 3 Pod
+                               # Hai giá trị này không được cùng bằng 0, nếu không rollout không có chỗ để nhúc nhích.
+
+  # ------------------------------------------------------------------
+  # (B) NGUYÊN LIỆU ĐỂ DEPLOYMENT SINH RA REPLICASET
+  #     (ReplicaSet con sẽ nhận replicas, selector và template bên dưới)
+  # ------------------------------------------------------------------
+  replicas: 4                  # Số Pod mong muốn. Đổi số này chỉ SCALE, không tạo revision hay rollout mới.
+  selector:                    # "Máy quét" cho biết Pod nào thuộc Deployment/ReplicaSet này
+    matchLabels:
+      app.kubernetes.io/name: order-service
+      # BẮT BUỘC khớp với labels của Pod template bên dưới, nếu không API server sẽ từ chối.
+      # Deployment controller tự thêm nhãn pod-template-hash vào selector của từng ReplicaSet con
+      # để các ReplicaSet (cũ/mới) không giành Pod của nhau. Bạn KHÔNG tự viết và KHÔNG sửa nhãn này.
+
+  # ------------------------------------------------------------------
+  # (C) MẪU POD: đây chính là nơi bạn "định nghĩa Pod"
+  #     Rollout chỉ xảy ra khi và chỉ khi khối .spec.template này thay đổi
+  # ------------------------------------------------------------------
+  template:
+    metadata:                  # Danh tính của từng POD được tạo ra (không có name: tên Pod do ReplicaSet sinh)
+      labels:                  # Nhãn dán lên mỗi Pod; phải khớp selector ở trên
+        app.kubernetes.io/name: order-service
+    spec:                      # spec của Pod, giống phần spec trong một file kind: Pod
+      containers:
+        - name: app            # Tên container, duy nhất trong Pod
+          # Tag cố định 1.4.2 (không dùng :latest) để biết chính xác bản nào đang chạy.
+          # registry.example.com chỉ là tên minh họa: chạy trên cụm thật cần thay bằng registry của bạn,
+          # nếu không Pod sẽ lỗi kéo image (ErrImagePull / ImagePullBackOff).
+          image: registry.example.com/order-service:1.4.2
+          imagePullPolicy: Always  # Luôn kiểm tra lại registry khi khởi tạo container (mặc định của tag cụ thể là IfNotPresent)
+          ports:
+            - containerPort: 8080  # Cổng ứng dụng lắng nghe; các container trong cùng Pod dùng chung dải cổng
+              name: http           # Tên cổng để tham chiếu từ Service hoặc probe
