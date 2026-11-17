@@ -13,6 +13,11 @@
 
 ### 1.1 OCI Là Gì Và Có Những Đặc Tả Nào
 
+OCI không phải một phần mềm. OCI là bộ chuẩn kỹ thuật chung để các công cụ container (Docker, Podman, Kubernetes, registry...) hiểu được file và lệnh của nhau.
+- Không bị khóa vào một hãng: image build bằng Docker chạy được ở Podman hay runtime của Kubernetes. 
+- Chia việc rõ ràng: công cụ cấp cao lo image, mạng, volume; runtime cấp thấp (runc, crun) chỉ lo tạo process.
+- Phần ngoài chuẩn thì có thể không tương thích: ví dụ HEALTHCHECK (bài 6_2_1) là tính năng ngoài chuẩn, không phải lỗi của OCI.
+
 OCI (Open Container Initiative) được Docker, CoreOS và các bên khác ra mắt ngày 22-06-2015. <!-- ev: R5.1 --> OCI hiện có **ba đặc tả**: Runtime Specification, Image Specification và Distribution Specification. <!-- ev: R5.2 -->
 Dự án runC được tặng cho OCI để làm nền tảng của nỗ lực chuẩn hóa này. <!-- ev: R5.13 --> `runc` là công cụ CLI tạo và chạy container theo OCI specification. <!-- ev: R5.14 -->
 

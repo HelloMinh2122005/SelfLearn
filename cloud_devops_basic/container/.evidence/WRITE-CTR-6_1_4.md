@@ -34,3 +34,6 @@
   - `R4.23`: Dữ liệu ghi nhiều, cần tồn tại sau container hoặc chia sẻ giữa container nên dùng Docker volume.
   - `R4.24`: Whiteout được tạo như character device 0/0 hoặc file thường kích thước 0 có xattr trusted.overlay.whiteout.
   - `R4.25`: Ví dụ mount overlay trong tài liệu kernel dùng lowerdir, upperdir, workdir và thư mục /merged.
+  - `R4.26`: Entrypoint trong image config là lệnh chạy khi container khởi động; là giá trị mặc định và có thể bị thay khi tạo container.
+  - `R4.27`: Cmd trong image config là đối số mặc định của entrypoint; có thể bị thay khi tạo container.
+  - `R4.28`: Env trong image config là các biến VARNAME=VARVALUE mặc định, được gộp với biến chỉ định khi tạo container.

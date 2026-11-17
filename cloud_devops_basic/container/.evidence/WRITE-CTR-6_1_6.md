@@ -25,3 +25,21 @@
   - `R6.14`: Docker Engine 29.0 trở lên dùng containerd image store mặc định cho cài mới.
   - `R6.15`: Kubernetes cho chọn runtime khác nhau cho từng Pod để cân bằng hiệu năng và bảo mật (RuntimeClass).
   - `R6.16`: kubectl get nodes -o wide có cột CONTAINER-RUNTIME hiển thị runtime và phiên bản.
+  - `R6.17`: dockerd là process chạy lâu dài (persistent) quản lý container.
+  - `R6.18`: Daemon Docker làm phần việc nặng: build, chạy và phân phối container; client nói chuyện với daemon.
+  - `R6.19`: Client và daemon Docker giao tiếp bằng REST API qua UNIX socket hoặc giao diện mạng.
+  - `R6.20`: Socket mặc định của dockerd là /var/run/docker.sock, cần quyền root hoặc thuộc nhóm docker.
+  - `R6.21`: Thư mục lưu trạng thái bền vững mặc định của Docker (--data-root) là /var/lib/docker.
+  - `R6.22`: Daemon Docker dựa vào một OCI runtime được gọi qua daemon containerd làm giao diện với kernel (namespaces, cgroups, SELinux).
+  - `R6.23`: Mặc định Docker daemon dùng runc làm container runtime.
+  - `R6.24`: Docker daemon cần quyền root trừ khi dùng Rootless mode.
+  - `R6.25`: Mặc định khi Docker daemon dừng, các container đang chạy bị tắt theo.
+  - `R6.26`: Có thể cấu hình để container tiếp tục chạy khi daemon không khả dụng; tính năng gọi là live restore.
+  - `R6.27`: Podman không có daemon quản lý, để an toàn hơn và tốn ít tài nguyên khi rảnh.
+  - `R6.28`: conmon thường double-fork để daemonize và tách khỏi tiến trình cha đã khởi chạy nó, rồi chạy runtime như tiến trình con.
+  - `R6.29`: Nhờ conmon, process quản lý có thể thoát nhưng vẫn theo dõi và kết nối được với process con (container).
+  - `R6.30`: Khi container chạy, conmon cung cấp socket để attach, giữ mở các luồng chuẩn của container.
+  - `R6.31`: podman system service hỗ trợ systemd socket activation, nên API có thể được cung cấp theo yêu cầu.
+  - `R6.32`: Podman có REST API cung cấp giao diện tương thích Docker và giao diện cải tiến riêng.
+  - `R6.33`: conmon chạy ở process riêng với Podman; điều này cần thiết khi dùng systemd để restart container Podman.
+  - `R6.34`: containerd là daemon quản lý toàn bộ vòng đời container: từ tải và lưu image đến chạy, giám sát, lưu trữ cấp thấp và gắn mạng.

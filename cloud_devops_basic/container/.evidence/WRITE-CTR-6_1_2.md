@@ -34,3 +34,19 @@
   - `R2.23`: Cột "Isolates" cho PID, time, user, UTS: process IDs; boot và monotonic clocks; user và group IDs; hostname và NIS domain name.
   - `R2.24`: Tạo PID namespace bền vững (persistent) sẽ lỗi nếu không chỉ định --fork.
   - `R2.25`: Trang unshare(1) ở mục --pid nhắc xem thêm các tùy chọn --fork và --mount-proc.
+  - `R2.26`: Tạo namespace bằng clone(2)/unshare(2) trong hầu hết trường hợp cần capability CAP_SYS_ADMIN.
+  - `R2.27`: User namespace là ngoại lệ: từ Linux 3.8, tạo user namespace không cần đặc quyền.
+  - `R2.28`: clone(2) với cờ CLONE_NEW* tạo namespace mới và process con trở thành thành viên của chúng.
+  - `R2.29`: unshare(2) chuyển chính process gọi sang namespace mới.
+  - `R2.30`: setns(2) cho process gọi gia nhập namespace đã có, chỉ định qua file descriptor tới /proc/pid/ns/*.
+  - `R2.31`: User namespace mới tạo ra chưa có ánh xạ user ID/group ID tới user namespace cha.
+  - `R2.32`: Mỗi dòng trong uid_map mô tả ánh xạ 1-1 một dải user ID liên tiếp giữa hai user namespace.
+  - `R2.33`: Time namespace ảo hóa giá trị của hai đồng hồ hệ thống: CLOCK_MONOTONIC và CLOCK_BOOTTIME.
+  - `R2.34`: unshare(2) với CLONE_NEWTIME không đưa process gọi vào namespace mới; chỉ các process con được tạo sau đó vào namespace mới.
+  - `R2.35`: Mỗi time namespace có offset (tương đối so với time namespace khởi tạo) định nghĩa giá trị đồng hồ monotonic và boot-time.
+  - `R2.36`: unshare -T/--time tạo time namespace mới; --monotonic và --boottime chỉ định offset tương ứng.
+  - `R2.37`: unshare -r/--map-root-user ánh xạ effective user và group ID hiện tại thành UID/GID superuser trong user namespace mới.
+  - `R2.38`: unshare --mount-proc mount proc filesystem ngay trước khi chạy chương trình, hữu ích khi tạo PID namespace mới.
+  - `R2.39`: Process ở user namespace cha và có effective UID trùng chủ sở hữu (owner) của một user namespace thì có mọi capability trong namespace đó.
+  - `R2.40`: Để gia nhập user namespace bằng setns(2), process gọi cần CAP_SYS_ADMIN trong user namespace đích.
+  - `R2.41`: Để gia nhập network/IPC/time/UTS namespace bằng setns(2), cần CAP_SYS_ADMIN cả trong user namespace của chính mình và trong user namespace sở hữu namespace đích.

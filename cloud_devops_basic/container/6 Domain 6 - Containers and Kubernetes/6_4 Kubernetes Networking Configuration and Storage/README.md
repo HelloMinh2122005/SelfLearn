@@ -91,7 +91,7 @@ flowchart LR
   2. Chạy Pod debug (`kubectl run tmp --rm -it --image=docker.io/library/busybox:1.36 -- sh`), `nslookup hello-svc`, `nslookup hello-svc.default.svc.cluster.local`, `wget -qO- hello-svc`.
   3. `cat /etc/resolv.conf` trong Pod debug, giải thích `search` và `ndots`.
   4. Đổi `selector` sai một chữ → Service còn IP nhưng không có endpoint → client nhận lỗi kết nối.
-  5. Đặt `STARTUP_DELAY_MS` lớn, xóa 1 Pod → quan sát Pod mới **không** có trong EndpointSlice tới khi Ready.
+  5. Đặt `STARTUP_DELAY_MS` lớn, xóa 1 Pod → quan sát Pod mới có trong EndpointSlice nhưng `conditions.ready=false` (không nhận traffic) tới khi Ready. *Đã kiểm chứng trên kind 1.37: Pod chưa Ready vẫn nằm trong slice, xem [6_4_2](<./6_4_2 Services and EndpointSlices.md>).*
   6. Tạo headless Service, so sánh kết quả `nslookup`.
 - **Checkpoint**:
   - [ ] Giải thích được đường đi gói tin: Pod debug → DNS → ClusterIP → kube-proxy → Pod.
