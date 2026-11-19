@@ -10,6 +10,20 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: "Helm Của Tôi Đâu Rồi?"
+
+Bạn đã quen `helm upgrade`, `helm history`, `helm rollback`. Rồi đội chuyển sang GitOps với Argo CD, và bạn gõ `helm history` cho ứng dụng mới... không thấy gì có ích. Không phải vì ai đó làm hỏng. Theo tài liệu Argo CD, **Helm chỉ được dùng để render chart bằng `helm template`; vòng đời ứng dụng do Argo CD xử lý, không phải Helm.** Lịch sử và trạng thái nằm ở **Git và Argo CD** (Application, sync history). Muốn quay lại thì sync về revision cũ hoặc `git revert`.
+
+Hệ quả kéo theo những chuyện "kỳ lạ" mà bài này sẽ giải thích:
+
+- Mỗi thao tác là một **`sync`**; Argo CD không biết đó là "install" hay "upgrade".
+- Chart dùng `randAlphaNum` sẽ **luôn `OutOfSync`**, vì Argo CD chạy `helm template` định kỳ để so sánh và giá trị ngẫu nhiên đổi mỗi lần render.
+- Hook `pre-rollback` và `helm test` **không chạy**; hook Helm chỉ được ánh xạ sang hook của Argo CD (`pre-install`/`pre-upgrade` → `PreSync`), tương thích ở mức annotation chứ không bảo đảm cùng ngữ nghĩa.
+
+Flux đi con đường khác: **Helm Controller chạy thật các hành động Helm**. Hai công cụ, hai cách dùng Helm, và bạn cần biết mình đang ở bên nào trước khi debug. Bài này ở mức **khái niệm** và **chưa chạy thử** (xem Trạng thái).
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 ### 1.1 GitOps Là Gì, Trong Một Đoạn

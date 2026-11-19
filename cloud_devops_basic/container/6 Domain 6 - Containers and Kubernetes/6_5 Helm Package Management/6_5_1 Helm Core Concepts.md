@@ -10,6 +10,18 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: "Ứng Dụng Chạy Ở 3 Môi Trường, Bản Nâng Cấp Hỏng Thì Sao?"
+
+Ở 6_3 và 6_4 bạn viết YAML tay cho **một** môi trường. Giờ ứng dụng gồm Deployment, Service, ConfigMap, Ingress... và phải chạy ở dev, staging, prod. Ba câu hỏi sẽ xuất hiện ngay:
+
+1. **Nâng cấp hỏng giữa chừng, quay lại bản trước bằng cách nào?** Nếu chỉ có `kubectl apply`, "bản trước" là thứ bạn phải tự giữ ở đâu đó.
+2. **Gỡ ứng dụng, làm sao chắc không sót tài nguyên nào?** Có những file YAML rời rạc, ai nhớ hết?
+3. **Cluster đang chạy bản nào, với cấu hình nào?** Không có sổ ghi chép thì chỉ còn cách đoán.
+
+Helm trả lời cả ba bằng ba khái niệm: **Chart** (gói ứng dụng), **Release** (một lần cài chart vào cluster, có tên riêng) và **Revision** (mỗi lần cài/nâng cấp/rollback là một số thứ tự tăng dần). Phần "sổ ghi chép" không nằm trong database nào: Helm lưu thẳng trong **Kubernetes Secret** tên `sh.helm.release.v1.<tên>.v<revision>` ngay trong namespace của release. Bài này giải thích mô hình đó, vì sao Helm 3 bỏ Tiller, và mốc EOL của Helm 3 cần để mắt tới. <!-- ev: R1.2 R1.4 R1.9 R1.16 -->
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 Trong hệ sinh thái Kubernetes, Helm là trình quản lý gói (package manager) giúp định nghĩa, cài đặt và nâng cấp các ứng dụng container hóa từ đơn lẻ đến phức tạp. <!-- ev: R1.1 -->
@@ -50,13 +62,18 @@ Helm không cần cơ sở dữ liệu riêng mà lưu thông tin release trực
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)
 
-Hãy liên tưởng Helm như **Hệ thống quản lý gói `apt`/`npm` của Kubernetes**:
+**Cài phần mềm lên máy Linux, bằng tay và bằng `apt`.**
 
-- **Manifest YAML thủ công giống như biên dịch từ mã nguồn**: Phải tự tạo thư mục cấu hình, quản lý file rời rạc và dễ sót tài nguyên khi gỡ bỏ.
-- **Chart giống như gói `.deb` hoặc `package.json`**: Đóng gói sẵn bản vẽ ứng dụng, danh mục tài nguyên và chỉ dẫn cấu hình chuẩn hóa.
-- **Repository giống như `apt repository` hoặc `npmjs.org`**: Kho lưu trữ chia sẻ và phân phối các gói ứng dụng.
-- **Release giống như phần mềm đang chạy**: Cùng chart Nginx, có thể cài thành hai release `web-dev` và `web-prod` trong các namespace khác nhau với `values.yaml` riêng.
-- **Revision giống như Git commit hash cho lịch sử cấu hình**: Mỗi lần nâng cấp, Helm ghi thêm một số revision (v1, v2, v3...) vào Secret, cho phép rollback tức thì về trạng thái tốt trước đó.
+Hồi chưa có trình quản lý gói, bạn tải mã nguồn, tự biên dịch, tự chép file vào từng thư mục. Muốn gỡ thì phải nhớ mình đã chép những gì, và gần như chắc chắn **sót** vài file. Có `apt`, bạn gõ một lệnh: gói tự biết cần chép những gì, nằm ở đâu, và gỡ là gỡ sạch.
+
+Helm là `apt` (hoặc `npm`) của Kubernetes, và mỗi khái niệm đều có chỗ đứng:
+
+- **Chart là gói `.deb` hoặc `package.json`**: bản vẽ ứng dụng cùng danh mục tài nguyên và chỉ dẫn cấu hình, đóng thành một khối.
+- **Repository là kho `apt` hoặc `npmjs.org`**: nơi lưu và phân phối các gói.
+- **Release là phần mềm đã cài và đang chạy.** Cùng một chart Nginx, bạn cài được hai release `web-dev` và `web-prod` ở hai namespace, mỗi cái một `values.yaml`.
+- **Revision là mã commit của lịch sử cấu hình.** Mỗi lần nâng cấp, Helm ghi thêm một số revision (v1, v2, v3...) vào Secret. Nâng cấp hỏng thì quay về revision tốt gần nhất chỉ bằng một lệnh.
+
+Và đó cũng là câu chuyện của Tiller (Helm 2): một "người quản lý kho" chạy trong cluster với quyền gần như tối cao, ai nhờ gì làm nấy. Helm 3 sa thải người này; bạn tự đến kho bằng **chính thẻ ra vào của mình** (kubeconfig + RBAC).
 
 ---
 
@@ -243,18 +260,6 @@ Lệnh `helm list` không còn thấy release nhưng các Pod vẫn hoạt độ
 1. **Nguyên nhân**: Helm lưu metadata release trong Secret có định dạng `sh.helm.release.v1.<name>.v<rev>` và nhãn `owner=helm`. Xóa Secret làm Helm mất toàn bộ dữ liệu theo dõi release.
 2. **Tại sao Pod vẫn chạy**: Kubernetes API server quản lý tài nguyên thực thi (Deployment, Pod) độc lập với trạng thái quản lý của Helm; xóa Secret của Helm không phát lệnh xóa Pod.
 3. **Hệ quả**: Release trở thành "mồ côi" (orphaned), không thể nâng cấp hoặc rollback bằng Helm. Cần tái tạo lại Secret metadata hoặc dọn dẹp tài nguyên trước khi cài đặt lại.
-</details>
-
-### Câu Hỏi 3: Kế Hoạch Chuẩn Hóa Phiên Bản Cho Dự Án Mới Trước Mốc EOL Của Helm 3
-
-Dự án chuẩn bị triển khai lên môi trường sản xuất. Đội ngũ nên lựa chọn Helm 3 hay Helm 4? Phân tích các mốc thời gian EOL và lợi thế kỹ thuật.
-
-<details>
-<summary>Đáp án</summary>
-
-1. **Lộ trình EOL**: Helm 3 kết thúc sửa lỗi (bug fixes) vào **09-09-2026** và dừng hoàn toàn sửa bảo mật (security fixes) vào **10-02-2027**. Helm 4 đã phát hành từ **12-11-2025**.
-2. **Lợi thế kỹ thuật**: Helm 4 mặc định sử dụng **Server-Side Apply (SSA)** cho các bản cài đặt mới, giúp theo dõi quyền sở hữu trường và giải quyết xung đột tối ưu trên API server.
-3. **Kết luận**: Chuẩn hóa ngay trên Helm 4 giúp hệ thống ổn định lâu dài và tránh gánh nặng chuyển đổi khi Helm 3 chạm mốc EOL.
 </details>
 
 ---

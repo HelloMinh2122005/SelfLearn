@@ -11,6 +11,22 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: Chart Của Bạn Chỉ Chạy Được Trên Máy Bạn
+
+Chart nằm trong thư mục thì chỉ phục vụ phát triển. Đồng nghiệp, CI và cluster production cần kéo **đúng cùng một bản** về cài. Cách giải quyết giống hệt image container: đóng gói chart thành archive có phiên bản (`helm package` ra `<name>-<version>.tgz`), đẩy lên registry, môi trường nào cũng kéo cùng một artifact.
+
+Ba lỗi "vặt" làm mất thời gian nhất khi bắt đầu, và đều có trong bài:
+
+| Bạn gõ | Kết quả |
+| :--- | :--- |
+| `helm registry login https://ghcr.io` | ❌ Không cho phép scheme. Chỉ nhận **tên miền** (`ghcr.io`, `localhost:5000`); đây còn là breaking change ở Helm 4 |
+| `helm push x-0.1.0.tgz oci://registry/path/x` | ❌ Tham chiếu đích **không được** chứa tên chart hay tag; `push` tự suy ra từ `Chart.yaml` |
+| Sửa template, đẩy lại **cùng `version`** | ⚠️ Registry từ chối ghi đè, hoặc môi trường kéo nhầm bản cũ từ cache. `version` phải tăng mỗi khi đổi chart |
+
+Bài này cũng so sánh repo HTTP kiểu cũ (`index.yaml`) với registry OCI mà tài liệu Helm khuyến nghị, và giải thích vì sao production nên cài **theo digest** thay vì tag. Mọi lệnh lấy từ tài liệu, **chưa chạy thử** (xem Trạng thái).
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 ### 1.1 Chart Cũng Là Một "Artifact" Có Phiên Bản

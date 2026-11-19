@@ -11,6 +11,23 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: Hai Khoảnh Khắc Làm Người Mới Hoảng
+
+Bạn tạo PVC để chạy database. Trên kind v1.37.0 (17-11-2026), hai chuyện sau đây đã được quan sát thật:
+
+**Khoảnh khắc 1: PVC kẹt `Pending`.** `kubectl get pvc` báo `Pending`, sự kiện ghi `waiting for first consumer to be created before binding`. Hỏng à? **Không.** StorageClass `standard` dùng `WaitForFirstConsumer`: PVC chờ có Pod dùng nó rồi scheduler chọn node, ổ đĩa mới được tạo. Tạo Pod xong là `Bound` ngay.
+
+**Khoảnh khắc 2: xóa PVC xong, ổ đĩa đi đâu?**
+
+| StorageClass | Sau `kubectl delete pvc` |
+| :--- | :--- |
+| `standard` (`reclaimPolicy: Delete`) | PV **biến mất**, dữ liệu mất theo |
+| `local-retain` (`reclaimPolicy: Retain`) | PV chuyển `Released`, dữ liệu **còn**, `claimRef` vẫn trỏ về PVC cũ |
+
+Bài này trả lời hai câu hỏi đó, và vì sao Kubernetes tách "yêu cầu lưu trữ" (PVC) khỏi "ổ đĩa thật" (PV). Bạn sẽ tự tay tái hiện cả hai ở mục 4.
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 ### 1.1 Hai Cấp Độ Vòng Đời Của Dữ Liệu
@@ -117,15 +134,24 @@ Quan sát trên kind v1.37: `standard` (default) dùng `rancher.io/local-path`, 
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)
 
-**Kho lưu trữ đồ cá nhân của một tòa nhà chung cư:**
+**Một tòa chung cư có kho đồ dưới tầng hầm, và chuyện bạn chuyển nhà.**
 
-- **`emptyDir` = cái bàn trong căn hộ**: các thành viên trong căn hộ (container cùng Pod) dùng chung; có người ra vào (container restart) thì đồ trên bàn còn, nhưng **khi dọn khỏi căn hộ (Pod bị xóa) thì bàn bị bỏ đi**.
-- **PV = ngăn kho thật ở tầng hầm**. **PVC = giấy thuê kho** ghi "cần 10 GiB, một người dùng". **StorageClass = loại hình dịch vụ kho** (kho thường, kho lạnh, kho có bảo hiểm) và **chính sách khi hết hợp đồng**.
-- **`Delete` = hết hợp đồng thì công ty vứt hết đồ và phá ngăn kho**. **`Retain` = hết hợp đồng thì khóa ngăn lại và treo biển "Đã trả (Released)"**; quản lý phải ra kiểm đồ và quyết định thủ công.
-- **`Immediate` = thuê ngăn kho trước khi biết mình ở tầng nào**: có thể thuê nhầm kho ở tòa khác. **`WaitForFirstConsumer` = chờ biết mình ở căn hộ nào rồi mới thuê kho gần nhất**.
-- **RWO = chìa khóa kho chỉ phát cho một tòa nhà (node)**; trong tòa đó nhiều căn (Pod) dùng chung được. **RWX = nhiều tòa cùng ra vào**. **RWOP = chỉ một căn hộ duy nhất giữ chìa**.
-- **Finalizer `pvc-protection` = khóa chống phá kho đang có đồ bên trong**: đang dùng thì chưa cho dỡ.
-- **kind `standard` = kho tạm đặt ngay trong phòng khách của bạn**: tiện cho tập dượt, nhưng cháy nhà (mất node) là mất sạch.
+Trong căn hộ có **cái bàn** (`emptyDir`): các thành viên trong nhà (container cùng Pod) dùng chung. Có người ra vào (container restart) thì đồ trên bàn vẫn còn. Nhưng **khi bạn dọn khỏi căn hộ (Pod bị xóa), cái bàn bị bỏ lại**.
+
+Đồ cần sống lâu hơn căn hộ thì phải gửi xuống tầng hầm. Quy trình ở đó như sau:
+
+- Bạn nộp **giấy thuê kho** ghi "cần 10 GiB, một người dùng" (**PVC**). Bạn không quan tâm ngăn nào, chỉ cần đúng yêu cầu.
+- Ban quản lý chọn ra **một ngăn kho thật** (**PV**) và gắn với giấy thuê của bạn, **1:1 và độc quyền**, dù ngăn có lớn hơn bạn cần.
+- **Loại dịch vụ kho** (**StorageClass**: kho thường, kho lạnh, kho có bảo hiểm) quyết định ngăn nào được cấp và **chuyện gì xảy ra khi hết hợp đồng**.
+
+Khoảnh khắc hết hợp đồng chính là `reclaimPolicy`:
+
+- **`Delete`**: công ty vứt hết đồ và phá ngăn kho.
+- **`Retain`**: khóa ngăn lại, treo biển "Đã trả (Released)"; quản lý ra kiểm đồ rồi quyết định thủ công.
+
+Còn chuyện chọn kho **trước hay sau khi biết mình ở căn nào**: `Immediate` là thuê ngăn kho trước khi biết mình ở tầng nào (có thể thuê nhầm tòa khác); `WaitForFirstConsumer` là chờ biết căn hộ rồi mới thuê kho gần nhất. Và `pvc-protection` là khóa chống phá ngăn kho đang có đồ bên trong.
+
+Về access mode: **RWO** là chìa khóa kho phát cho một **tòa nhà** (node), nhiều căn trong tòa dùng chung được; **RWX** là nhiều tòa cùng ra vào; **RWOP** là đúng một căn giữ chìa. Cuối cùng, **StorageClass `standard` của kind** là kho tạm đặt ngay trong phòng khách của bạn: tiện tập dượt, nhưng cháy nhà (mất node) là mất sạch.
 
 ---
 
@@ -345,54 +371,38 @@ kubectl get storageclass                    # thấy managed-csi (default)...
 
 ## 5. Cạm Bẫy Thực Tế & Thực Tiễn Sản Xuất (Production Gotchas & Best Practices)
 
-### 5.1 Cạm Bẫy 1: Hoảng Vì PVC `Pending` Khi Dùng `WaitForFirstConsumer`
+> `Pending` do `WaitForFirstConsumer` đã nằm ở mục 0 và 1.6; ở đây chỉ nêu các cạm bẫy còn lại.
 
-- **Bản chất**: PVC chỉ bind khi có Pod dùng nó (đã quan sát).
-- **Khuyến nghị**: Đọc `kubectl describe pvc`; nếu sự kiện là `WaitForFirstConsumer` thì chỉ cần tạo Pod. Nếu có Pod mà vẫn Pending, mới nghi ngờ provisioner/StorageClass/quota.
-
-### 5.2 Cạm Bẫy 2: `reclaimPolicy: Delete` Với Dữ Liệu Quan Trọng
+### 5.1 `reclaimPolicy: Delete` Với Dữ Liệu Quan Trọng
 
 - **Hiện tượng**: Xóa nhầm PVC (hoặc namespace) làm mất luôn ổ đĩa.
 - **Khuyến nghị**: StorageClass `Retain` hoặc đổi policy PV cho dữ liệu quan trọng; backup/snapshot định kỳ; quy trình xóa có kiểm soát; xem cả `persistentVolumeClaimRetentionPolicy` của StatefulSet ([6_4_7](<./6_4_7 StatefulSets and Stateful Workloads.md>)).
 
-### 5.3 Cạm Bẫy 3: Dùng `standard` Của kind Hoặc `hostPath` Cho Production
+### 5.2 Dùng `standard` Của kind Hoặc `hostPath` Cho Production
 
 - **Bản chất**: Dữ liệu nằm trên đĩa của một node, ghim vào node, không sao lưu.
 - **Khuyến nghị**: Dùng CSI driver của nền tảng thật (Azure Disk/Files, EBS...) và kiểm thử khôi phục.
 
-### 5.4 Cạm Bẫy 4: RWO Không Có Nghĩa "Một Pod"
+### 5.3 RWO Không Có Nghĩa "Một Pod"
 
 - **Bản chất**: RWO = một **node**; nhiều Pod cùng node vẫn ghi cùng lúc. Cần "một Pod" thì dùng RWOP (khi driver hỗ trợ).
 - **Khuyến nghị**: Với ứng dụng không chịu được ghi đồng thời (nhiều database), không giả định RWO tự bảo vệ.
 
-### 5.5 Cạm Bẫy 5: Azure Disk Là RWO Và Có Giới Hạn Mỗi Node
+### 5.4 Azure Disk: RWO, Giới Hạn Mỗi Node, Và StorageClass Tích Hợp
 
-- **Bản chất**: Theo Microsoft Learn, Azure Disk chỉ gắn một node; Azure Disk CSI driver có giới hạn số volume mỗi node tùy SKU VM.
-- **Khuyến nghị**: Cần chia sẻ giữa nhiều node → Azure Files; tính giới hạn disk mỗi node khi lập kế hoạch Pod stateful dày đặc.
+- **Bản chất**: Theo Microsoft Learn, Azure Disk chỉ gắn một node; CSI driver có giới hạn số volume mỗi node tùy SKU VM. AKS reconcile và **ghi đè** mọi thay đổi trên StorageClass tích hợp.
+- **Khuyến nghị**: Cần chia sẻ giữa nhiều node → Azure Files. Cần Retain hay LRS thay vì ZRS → **tạo StorageClass mới**, đừng sửa class tích hợp. Tính giới hạn disk mỗi node khi lập kế hoạch Pod stateful dày đặc.
 
-### 5.6 Cạm Bẫy 6: Sửa StorageClass Tích Hợp Của AKS
+### 5.5 Đổi Zone/Topology Khiến Pod Không Gắn Lại Được Đĩa
 
-- **Bản chất**: AKS reconcile và ghi đè thay đổi trên các StorageClass tích hợp.
-- **Khuyến nghị**: Tạo StorageClass riêng cho nhu cầu khác (ví dụ Retain, LRS thay vì ZRS).
-
-### 5.7 Cạm Bẫy 7: Đổi Zone/Topology Khiến Pod Không Gắn Lại Được Đĩa
-
-- **Bản chất**: Đĩa vùng/zone-bound khó di chuyển; `WaitForFirstConsumer` giúp cấp phát đúng topology ngay từ đầu.
+- **Bản chất**: Đĩa zone-bound khó di chuyển; `WaitForFirstConsumer` giúp cấp phát đúng topology ngay từ đầu.
 - **Khuyến nghị**: Dùng `WaitForFirstConsumer` cho storage có topology; hiểu mô hình redundancy (LRS/ZRS) và hậu quả khi mất zone.
 
 ---
 
 ## 6. Câu Hỏi Củng Cố Kiến Thức (Active Recall Quiz)
 
-### Câu Hỏi 1: Giải Thích PV, PVC, StorageClass Trong 3 Câu (Phỏng vấn)
-
-<details>
-<summary>Đáp án</summary>
-
-PV là phần lưu trữ thật; PVC là yêu cầu của ứng dụng (dung lượng, access mode, class); StorageClass là mẫu để **cấp phát động** PV (provisioner, parameters, reclaimPolicy, binding mode). PVC và PV bind 1:1, độc quyền; Pod chỉ tham chiếu PVC.
-</details>
-
-### Câu Hỏi 2: `Delete` Và `Retain` Khác Nhau Thế Nào? PV `Released` Là Gì?
+### Câu Hỏi 1: `Delete` Và `Retain` Khác Nhau Thế Nào? PV `Released` Là Gì? (Phỏng vấn)
 
 <details>
 <summary>Đáp án</summary>
@@ -400,15 +410,15 @@ PV là phần lưu trữ thật; PVC là yêu cầu của ứng dụng (dung lư
 Khi PVC bị xóa: `Delete` xóa PV và đĩa thật; `Retain` giữ dữ liệu, PV chuyển `Released` (vẫn giữ `claimRef`) và phải thu hồi thủ công. Mặc định của StorageClass là `Delete`.
 </details>
 
-### Câu Hỏi 3: Vì Sao `WaitForFirstConsumer` Quan Trọng Với Storage Có Topology?
+### Câu Hỏi 2: Vì Sao `WaitForFirstConsumer` Quan Trọng Với Storage Có Topology?
 
 <details>
 <summary>Đáp án</summary>
 
-`Immediate` cấp phát đĩa ngay khi PVC được tạo, trước khi biết Pod chạy ở đâu, dễ tạo đĩa ở zone/node mà Pod không chạy được. `WaitForFirstConsumer` chờ scheduler chọn node rồi mới cấp phát, nên đĩa nằm đúng topology.
+`Immediate` cấp phát đĩa ngay khi PVC được tạo, trước khi biết Pod chạy ở đâu, dễ tạo đĩa ở zone/node mà Pod không chạy được. `WaitForFirstConsumer` chờ scheduler chọn node rồi mới cấp phát, nên đĩa nằm đúng topology. PVC `Pending` trong lúc chờ là bình thường.
 </details>
 
-### Câu Hỏi 4: RWO, RWX, RWOP Khác Nhau Ra Sao? Azure Disk Hỗ Trợ Mode Nào?
+### Câu Hỏi 3: RWO, RWX, RWOP Khác Nhau Ra Sao? Azure Disk Hỗ Trợ Mode Nào?
 
 <details>
 <summary>Đáp án</summary>
@@ -416,7 +426,7 @@ Khi PVC bị xóa: `Delete` xóa PV và đĩa thật; `Retain` giữ dữ liệu
 RWO: read-write bởi một node; RWX: read-write nhiều node; RWOP: read-write bởi đúng một Pod (CSI). Theo Microsoft Learn, Azure Disk mount `ReadWriteOnce`; cần nhiều node dùng chung thì dùng Azure Files.
 </details>
 
-### Câu Hỏi 5: Dữ Liệu `emptyDir` Có Mất Khi Container Crash Không?
+### Câu Hỏi 4: Dữ Liệu `emptyDir` Có Mất Khi Container Crash Không?
 
 <details>
 <summary>Đáp án</summary>

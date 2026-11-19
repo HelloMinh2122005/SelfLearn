@@ -4,10 +4,49 @@
 > **Phân nhóm**: 6 Domain 6 - Containers and Kubernetes › 6_4 Kubernetes Networking Configuration and Storage  
 > **Chủ đề**: 6_4_4 Đưa traffic từ ngoài vào cluster: Ingress (đọc hiểu hệ thống cũ) và Gateway API (hướng đi hiện tại), chia traffic theo trọng số, TLS  
 > **Phiên bản áp dụng**: Kubernetes 1.37; Gateway API v1.7.0 (phát hành 29-10-2026); Envoy Gateway v1.10.0 (ví dụ implementation)  
-> **Trạng thái**: Đối chiếu tài liệu chính thức (17-11-2026). ⚠️ **Chưa chạy thử trên cluster**: tôi không cài được Gateway API implementation lên cluster kiểm chứng, nên mọi manifest Gateway/HTTPRoute dưới đây lấy từ tài liệu chính thức và chưa được apply thực tế  
+> **Trạng thái**: Đối chiếu tài liệu chính thức (17-11-2026), viết lại theo hướng "đi từ vấn đề" (18-11-2026). ⚠️ **Chưa chạy thử trên cluster**: manifest Gateway/HTTPRoute lấy từ tài liệu chính thức, chưa được apply thực tế. Các khối "Kỳ vọng" ở mục 4 là suy ra từ tài liệu, **không phải output đã quan sát**.  
 > **Phạm vi**: [Topic README](./README.md#6_4_4-traffic-từ-ngoài-vào-ingress-và-gateway-api) · **Checkpoint**: [CHECKLIST](../../CHECKLIST.md#6_4-kubernetes-networking-configuration-and-storage)  
 > **Lab thực hành liên quan**: [lab-6_4_3-gateway-api-weighted-routing](./README.md#lab-6_4_3-gateway-api-weighted-routing)  
 > **Kiến thức liên quan**: [6_4_2 Services and EndpointSlices](<./6_4_2 Services and EndpointSlices.md>) · [6_4_5 ConfigMaps and Secrets](<./6_4_5 ConfigMaps and Secrets.md>)
+
+---
+
+## 0. Tình Huống Mở Đầu: "Cho 10% Người Dùng Thử Bản Mới"
+
+Bạn có `hello-svc-v1` (đang chạy) và `hello-svc-v2` (bản mới). Sếp nói: *"Đẩy 10% traffic sang v2 thử xem."*
+
+**Cách Ingress (cũ):** cần **hai** object Ingress và annotation **riêng của một controller** (ví dụ ingress-nginx):
+
+```yaml
+# Ingress chính: v1
+metadata: { name: hello }
+spec:
+  rules: [{ host: hello.example.test, http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: hello-svc-v1, port: { number: 80 } } } }] } }]
+---
+# Ingress thứ hai, đánh dấu canary: v2
+metadata:
+  name: hello-canary
+  annotations:
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "10"
+spec:
+  rules: [{ host: hello.example.test, http: { paths: [{ path: /, pathType: Prefix, backend: { service: { name: hello-svc-v2, port: { number: 80 } } } }] } }]
+```
+
+Đổi sang controller khác, hai annotation này **vô nghĩa**.
+
+**Cách Gateway API (mới):** một `HTTPRoute`, trường chuẩn của API:
+
+```yaml
+rules:
+- backendRefs:
+  - { name: hello-svc-v1, port: 80, weight: 90 }
+  - { name: hello-svc-v2, port: 80, weight: 10 }
+```
+
+Đây là toàn bộ lý do Gateway API ra đời: những thứ hay dùng (chia trọng số, khớp header, sửa request) **nằm trong API chuẩn**, chạy giống nhau trên mọi implementation hỗ trợ. Phần còn lại của bài giải thích mô hình đằng sau cái 6 dòng YAML này, rồi cho bạn thử.
+
+> Nguồn annotation canary: [tài liệu ingress-nginx, mục Canary](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/) (kiểm tra 18-11-2026). Trang này nêu canary là một Ingress riêng, thay thế backend cho request khớp rule của nó, tối đa một canary Ingress cho mỗi Ingress rule; ví dụ trên dùng cùng host/path là cách thiết lập thông thường, không phải điều trang nói rõ.
 
 ---
 
@@ -15,37 +54,23 @@
 
 ### 1.1 Vì Sao Cần Lớp Này Khi Đã Có Service?
 
-Service `LoadBalancer` mỗi cái một load balancer và chỉ định tuyến L4. Với HTTP, bạn muốn **một điểm vào duy nhất** rồi chia theo **host, path, header, TLS, trọng số**. Có hai API Kubernetes cho việc này:
+Service `LoadBalancer` cho **mỗi Service một load balancer** và chỉ định tuyến L4 (xem [6_4_2](<./6_4_2 Services and EndpointSlices.md>)). Với web bạn muốn **một cửa vào** rồi chia theo host, path, header, TLS, trọng số. Kubernetes có hai API cho việc đó:
 
 | | **Ingress** | **Gateway API** |
 | :--- | :--- | :--- |
-| Trạng thái | GA từ v1.19, nhưng **đã "frozen"**: không còn phát triển, không có thay đổi, **không có kế hoạch gỡ khỏi Kubernetes** | Họ API mở rộng (CRD) đang phát triển, là **hướng được dự án khuyến nghị** |
-| Phạm vi | Chỉ HTTP(S) | HTTP, gRPC, TLS... (xem 1.4) |
-| Phân vai | Một object `Ingress` cho tất cả | Tách theo vai trò (hạ tầng / vận hành cluster / đội ứng dụng) |
-| Tính năng nâng cao (header match, trọng số...) | Phải dùng **annotation riêng của từng controller**, không portable | Có trong API chuẩn |
-| Cài đặt | Cần **Ingress controller** | Cần cài **CRD** + một **implementation** |
+| Trạng thái | GA từ v1.19 nhưng **"frozen"**: không phát triển thêm, **không có kế hoạch gỡ** | Họ CRD đang phát triển, là **hướng dự án khuyến nghị** |
+| Phạm vi | Chỉ HTTP(S) | HTTP, gRPC, TLS... |
+| Phân vai | Một object cho tất cả | Tách theo vai trò: hạ tầng / vận hành / đội app |
+| Tính năng nâng cao | **Annotation riêng của controller**, không portable | Có trong API chuẩn |
+| Cài đặt | Cần Ingress controller | Cần cài **CRD** + một **implementation** |
 
 Tài liệu Ingress ghi rõ: *"The Kubernetes project recommends using Gateway instead of Ingress"*.
 
-### 1.2 ⚠️ Ingress NGINX Đã Nghỉ Hưu (Retired)
+### 1.2 Ingress Trong 60 Giây (Để Đọc Hệ Thống Cũ)
 
-Trạng thái theo nguồn chính thức của Kubernetes:
-
-- Blog chính thức ngày 11-11-2025: *best-effort maintenance đến tháng 3-2026*; sau đó **không còn bản phát hành, bản sửa lỗi, hay bản vá bảo mật**. Deployment cũ **vẫn chạy**, các artifact (Helm chart, image) vẫn tải được.
-- Tuyên bố của Steering Committee và Security Response Committee (29-01-2026): ở lại với Ingress NGINX sau khi nghỉ hưu *"leaves you and your users vulnerable to attack"*; **không có giải pháp thay thế nào là drop-in**, cần lên kế hoạch và công sức kỹ thuật.
-- Kho `kubernetes/ingress-nginx` trên GitHub được kiểm tra ngày 17-11-2026: **đã archived** (`archived: true`, commit cuối 23-03-2026).
-- Cách kiểm tra cluster có đang dùng: `kubectl get pods --all-namespaces --selector app.kubernetes.io/name=ingress-nginx` (quyền cluster admin).
-
-> **Đừng nhầm hai sản phẩm**: **Ingress NGINX** (do cộng đồng Kubernetes duy trì, đã nghỉ hưu) và **NGINX Ingress** (của F5) là hai controller **khác nhau**, dù cùng dùng NGINX làm data plane. Blog "Before You Migrate" của Kubernetes nêu rõ điều này.
-
-Hệ quả cho người học: **vẫn phải đọc hiểu Ingress** vì rất nhiều hệ thống cũ còn dùng (annotation `nginx.ingress.kubernetes.io/...`), nhưng hệ thống **mới** nên dùng Gateway API, và hệ thống cũ cần kế hoạch di trú. Blog "Before You Migrate" cảnh báo Ingress NGINX có nhiều hành vi "bất ngờ" (ví dụ regex là prefix và không phân biệt hoa thường) nên bản dịch sang Gateway API *có vẻ đúng* vẫn có thể gây sự cố nếu bỏ qua chúng.
-
-### 1.3 Ingress Hoạt Động Thế Nào (Ôn Để Đọc Hệ Thống Cũ)
-
-- Ingress là **cấu hình**: chỉ có tác dụng khi có **Ingress controller** đang chạy. Có thể có nhiều controller; chọn bằng `ingressClassName` (tham chiếu `IngressClass`). Nếu bỏ trống thì cần một IngressClass mặc định.
-- Mỗi rule có `host` tùy chọn, danh sách `paths` với `pathType` bắt buộc: `Exact`, `Prefix`, `ImplementationSpecific`. `Prefix` so khớp theo **từng đoạn** phân tách bởi `/` (`/foo` khớp `/foo/bar` nhưng **không** khớp `/foobar`).
-- TLS: `spec.tls[].secretName` trỏ tới Secret loại `kubernetes.io/tls` ([6_4_5](<./6_4_5 ConfigMaps and Secrets.md>)).
-- Tính năng ngoài chuẩn (rewrite, canary, giới hạn tốc độ...) qua **annotation riêng của controller**, nên manifest không chuyển đổi được giữa controller.
+- Ingress chỉ là **cấu hình**; không có **Ingress controller** chạy thì không có tác dụng. Chọn controller bằng `ingressClassName`.
+- Mỗi rule có `host` tùy chọn và `paths` với `pathType` bắt buộc: `Exact`, `Prefix`, `ImplementationSpecific`. `Prefix` khớp theo **từng đoạn** giữa các dấu `/`: `/foo` khớp `/foo/bar` nhưng **không** khớp `/foobar`.
+- TLS: `spec.tls[].secretName` trỏ tới Secret `kubernetes.io/tls` ([6_4_5](<./6_4_5 ConfigMaps and Secrets.md>)).
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -56,7 +81,7 @@ spec:
   ingressClassName: nginx-example        # tên controller của bạn
   tls:
   - hosts: [hello.example.test]
-    secretName: hello-tls                # Secret type kubernetes.io/tls
+    secretName: hello-tls
   rules:
   - host: hello.example.test
     http:
@@ -70,52 +95,202 @@ spec:
               number: 80
 ```
 
-### 1.4 Gateway API: Mô Hình Tài Nguyên Theo Vai Trò
+### 1.3 Gateway API: Từ Con Số Không Đến Ba Tầng, Ba Chủ Sở Hữu
 
-Gateway API là **add-on gồm các CRD**, không nằm sẵn trong Kubernetes; bạn cài CRD và một **implementation**. Các nguyên tắc thiết kế (theo tài liệu): *role-oriented*, *portable*, *expressive*, *extensible*.
+#### 1.3.1 Vì Sao Gateway API Phải "Cài" Mới Dùng Được
 
-Bốn kind ổn định (stable) theo tài liệu Kubernetes: `GatewayClass`, `Gateway`, `HTTPRoute`, `GRPCRoute`. Tài liệu Gateway API còn ghi `TLSRoute` là GA, thuộc Standard Channel từ **v1.5.0**.
+`Pod`, `Service`, `Ingress` là **resource có sẵn** trong mọi cluster. Gateway API thì **không**: tài liệu Kubernetes gọi nó là *"an add-on containing API kinds"*, các kind được định nghĩa dưới dạng **custom resource**. Để chạy được một route, bạn cần **ba thứ khác nhau**, và thiếu thứ nào cũng không chạy:
 
-| Kind | Ai sở hữu (vai trò) | Mô tả |
+| # | Thành phần | Bản chất | Thiếu thì sao |
+| :-- | :--- | :--- | :--- |
+| 1 | **CRD của Gateway API** | "Từ điển kiểu dữ liệu": dạy API server biết `Gateway`, `HTTPRoute`... là gì | `kubectl apply` báo lỗi kiểu *no matches for kind "HTTPRoute"* |
+| 2 | **Implementation** (controller) | Chương trình chạy trong cluster, **đọc** các object Gateway/HTTPRoute và **cấu hình proxy/load balancer thật** để chuyển traffic. Ví dụ: Envoy Gateway | Object tạo được nhưng nằm đó, không có `ADDRESS`/`Accepted`, không có traffic nào đi qua |
+| 3 | **Object của bạn**: GatewayClass, Gateway, HTTPRoute | Cấu hình cụ thể: "mở cổng nào, route đi đâu" | Không có gì để chạy |
+
+**Ví dụ đời thường:** CRD là *mẫu đơn in sẵn* (không có mẫu thì không điền được đơn). Implementation là *nhân viên văn phòng* đọc đơn và thực hiện (có đơn mà không có nhân viên thì đơn nằm trong ngăn kéo). Object của bạn là *tờ đơn đã điền*.
+
+> Chỉ cài CRD **không** làm cluster biết định tuyến traffic. CRD chỉ là bước 1 trong 3.
+
+**Cài như thế nào?** CRD và implementation đều cài bằng lệnh (`kubectl apply` hoặc `helm install`). Với bài lab, **một lệnh `helm install` của Envoy Gateway cài cả hai** (lệnh đầy đủ ở [4.1](#41-cài-crd-và-một-implementation-ví-dụ-envoy-gateway); cách tự cài riêng CRD và thứ tự các bước ở [1.3.6](#136-thứ-tự-cài-đặt-và-vì-sao-phải-theo-thứ-tự)).
+
+#### 1.3.2 Thuật Ngữ Nền (Đọc Trước Khi Đi Tiếp)
+
+| Thuật ngữ | Nghĩa |
+| :--- | :--- |
+| **CRD** (CustomResourceDefinition) | Object dùng để đăng ký thêm một **kind** mới vào Kubernetes API |
+| **Custom resource** | Một object thuộc kind do CRD định nghĩa (ví dụ một `HTTPRoute` cụ thể) |
+| **Implementation / controller** | Phần mềm hiện thực hóa các kind đó. Gateway API chỉ định nghĩa *API*, không tự chuyển traffic |
+| **Listener** | Một "cửa nghe" của Gateway: cổng + giao thức (+ hostname, TLS) |
+| **Backend** | Nơi traffic đến cuối cùng, thường là một `Service` |
+| **Channel** | Cách Gateway API chia bản phát hành CRD: **Standard** (đã GA/beta) và **Experimental** (có thể thay đổi, kể cả thay đổi phá vỡ tương thích) |
+
+#### 1.3.3 Các Kind Chính: Định Nghĩa Và Ví Dụ Tối Thiểu
+
+Tài liệu Kubernetes liệt kê bốn kind ổn định: `GatewayClass`, `Gateway`, `HTTPRoute`, `GRPCRoute`. Tài liệu Gateway API ghi thêm `TLSRoute` là GA và thuộc **Standard channel từ v1.5.0**. Theo từng kind:
+
+**`GatewayClass`**: *"Defines a set of gateways with common configuration and managed by a controller that implements the class."* Nói đơn giản: nó **chọn implementation nào sẽ xử lý** các Gateway thuộc class này, thông qua `controllerName`. Thường do implementation hoặc nhà cung cấp hạ tầng tạo sẵn.
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: example-class
+spec:
+  controllerName: example.com/gateway-controller   # tên controller của implementation (giá trị minh họa)
+```
+
+**`Gateway`**: *"Defines an instance of traffic handling infrastructure, such as cloud load balancer."* Là **một cổng vào cụ thể**: nghe ở cổng nào, giao thức nào, nhận Route từ đâu. Nó chỉ ra class bằng `gatewayClassName` và khai báo `listeners`.
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: example-gateway
+  namespace: example-namespace
+spec:
+  gatewayClassName: example-class     # trỏ tới GatewayClass ở trên
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    hostname: "www.example.com"
+    allowedRoutes:                    # ai được gắn Route vào listener này
+      namespaces:
+        from: Same                    # chỉ Route cùng namespace (mặc định)
+```
+
+**`HTTPRoute`**: *"Defines HTTP-specific rules for mapping traffic from a Gateway listener to a representation of backend network endpoints."* Là **luật định tuyến**: request khớp điều kiện nào thì đi tới Service nào. Nó gắn vào Gateway bằng `parentRefs`.
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: example-httproute
+spec:
+  parentRefs:                          # gắn vào Gateway nào
+  - name: example-gateway
+  hostnames: ["www.example.com"]
+  rules:
+  - matches:                           # điều kiện khớp
+    - path: { type: PathPrefix, value: /login }
+    backendRefs:                       # đích đến (kèm weight nếu chia traffic)
+    - name: example-svc
+      port: 8080
+```
+
+Ý nghĩa: request tới `www.example.com/login` qua `example-gateway` được chuyển tới Service `example-svc` cổng 8080.
+
+**`GRPCRoute`**: tương tự HTTPRoute nhưng cho **gRPC**. **`TLSRoute`**: định tuyến theo kết nối TLS (ví dụ chế độ `Passthrough`, xem 1.5). Hai kind này không cần cho phần lab, chỉ cần biết chúng tồn tại.
+
+#### 1.3.4 Ba Chủ Sở Hữu (Role-Oriented)
+
+Gateway API tách API theo **ai chịu trách nhiệm**, để đội app không phải đụng vào cấu hình hạ tầng. Tài liệu Kubernetes mô tả ba vai:
+
+- **Infrastructure Provider**: quản lý hạ tầng cho nhiều tenant (ví dụ nhà cung cấp cloud).
+- **Cluster Operator**: quản lý cluster, quan tâm chính sách, truy cập mạng, quyền của ứng dụng.
+- **Application Developer**: quản lý ứng dụng, quan tâm cấu hình cấp ứng dụng và cách ghép Service.
+
+| Kind | Chủ sở hữu | Làm gì |
 | :--- | :--- | :--- |
-| **GatewayClass** | **Infrastructure Provider** (nhà cung cấp hạ tầng / cloud) | Nhóm Gateway dùng chung cấu hình, gắn với một controller qua `controllerName` |
-| **Gateway** | **Cluster Operator** (vận hành cluster) | Một thể hiện hạ tầng xử lý traffic (load balancer đám mây hoặc proxy trong cluster); khai báo **listeners** (cổng, giao thức, hostname, TLS, `allowedRoutes`) |
-| **HTTPRoute / GRPCRoute** | **Application Developer** (đội ứng dụng) | Luật định tuyến từ listener tới backend (thường là Service) |
+| **GatewayClass** | Infrastructure Provider | Nhóm Gateway dùng chung cấu hình, gắn với một controller qua `controllerName` |
+| **Gateway** | Cluster Operator | Một thể hiện hạ tầng nhận traffic; khai báo **listeners** (cổng, giao thức, hostname, TLS, `allowedRoutes`) |
+| **HTTPRoute / GRPCRoute** | Application Developer | Luật định tuyến từ listener tới backend (thường là Service) |
 
-Quan hệ: một Gateway tham chiếu **đúng một** GatewayClass; nhiều Route gắn vào Gateway qua `parentRefs`. Gateway có thể **lọc** Route được phép gắn (`allowedRoutes`), tạo mô hình tin cậy hai chiều. **Mặc định Gateway chỉ nhận Route cùng namespace**; muốn cross-namespace phải cấu hình `allowedRoutes`.
+#### 1.3.5 Các "Sợi Dây" Nối Các Kind Với Nhau
 
-### 1.5 `HTTPRoute` Và Chia Traffic Theo Trọng Số
+```text
+HTTPRoute ──parentRefs──▶ Gateway ──gatewayClassName──▶ GatewayClass ──controllerName──▶ Implementation (controller)
+    │                        ▲
+    │                        └── allowedRoutes: Gateway lọc xem Route nào được gắn
+    └──backendRefs (weight)──▶ Service ──▶ Pod
+```
 
-`backendRefs[].weight` là **tỉ lệ tương đối**, không phải phần trăm: tổng các `weight` trong **một rule** là mẫu số. `weight` tùy chọn, mặc định `1`. Nếu rule chỉ có một backend, nó nhận 100% bất kể weight. Đặt `weight: 0` nghĩa là không nhận traffic (dùng để hoàn tất rollout hoặc rollback nhanh).
+- Một Gateway tham chiếu **đúng một** GatewayClass; nhiều Route có thể gắn vào cùng một Gateway.
+- Quan hệ **hai chiều**: Route *xin* gắn bằng `parentRefs`, Gateway *cho phép hay từ chối* bằng `allowedRoutes`. Tài liệu gọi đây là *"bidirectional trust model"*. **Mặc định chỉ nhận Route cùng namespace**; muốn khác namespace phải cấu hình `allowedRoutes`.
 
-Đây là nền tảng cho canary/blue-green ở 6_6_8. Tài liệu Gateway API mô tả quy trình 3 bước:
+#### 1.3.6 Thứ Tự Cài Đặt Và Vì Sao Phải Theo Thứ Tự
 
-1. **Canary theo header**: rule riêng khớp `traffic: test` đưa traffic kiểm thử tới `v2`; traffic người dùng vẫn 100% `v1`.
-2. **Chia dần theo trọng số**: ví dụ `90/10`, theo dõi tín hiệu (lỗi, độ trễ).
-3. **Hoàn tất**: `v1` weight `0`, `v2` weight `1`; nếu lỗi, đổi trọng số để quay lại `v1` ngay.
+Mỗi bước phụ thuộc bước trước, nên **sai thứ tự là lỗi**:
 
-### 1.6 TLS Termination Tại Gateway
+```mermaid
+flowchart TD
+    A["1. CRD Gateway API<br/>(kiểu dữ liệu)"] --> B["2. Implementation<br/>(controller, ví dụ Envoy Gateway)"]
+    B --> C["3. GatewayClass<br/>(chọn controller)"]
+    C --> D["4. Gateway<br/>(listener :80/:443)"]
+    D --> E["5. Service/Deployment của app"]
+    E --> F["6. HTTPRoute<br/>(luật định tuyến)"]
+```
 
-TLS được cấu hình theo **listener** của Gateway: `protocol: HTTPS`, `tls.mode: Terminate` (mặc định khi bỏ trống), `certificateRefs` trỏ tới Secret chứa chứng chỉ. Kết nối **downstream** (client → Gateway) và **upstream** (Gateway → backend, dùng `BackendTLSPolicy`) được cấu hình **độc lập**. Chế độ `Passthrough` chỉ dành cho listener `protocol: TLS`.
+| Bước | Việc làm | Kiểm tra đã xong chưa | Lý do thứ tự |
+| :-- | :--- | :--- | :--- |
+| **0** | Xem cluster đã có CRD chưa | `kubectl get crd \| grep gateway.networking.k8s.io` | Tránh cài chồng (xem 1.6, 5.3) |
+| **1** | Cài **CRD** | `kubectl get crd` thấy `gateways`, `httproutes`... | Chưa có CRD thì không tạo được các object sau |
+| **2** | Cài **implementation** và đợi sẵn sàng | `kubectl wait ... deployment/... --for=condition=Available` | Không có controller thì không ai xử lý object |
+| **3** | Có **GatewayClass** | `kubectl get gatewayclass` → `ACCEPTED` là `True` | Gateway cần một class tồn tại để biết controller nào quản lý |
+| **4** | Tạo **Gateway** | `kubectl get gateway` → `PROGRAMMED`, có `ADDRESS` | Route cần một Gateway để gắn vào |
+| **5** | Tạo **Deployment + Service** cho app | `kubectl get svc,endpointslice` | Route cần Service đích tồn tại (`ResolvedRefs`) |
+| **6** | Tạo **HTTPRoute** | `kubectl describe httproute` → `Accepted`, `ResolvedRefs` đều `True` | Cuối cùng mới nối mọi thứ lại |
 
-**cert-manager** là công cụ cấp và gia hạn chứng chỉ tự động, tạo Secret mà Gateway tham chiếu (mức khái niệm; xem trang "Annotated Gateway resource" của cert-manager để cấu hình).
+**Bước 1 có hai cách, chọn một:**
 
-### 1.7 Chọn Implementation Và Cảnh Báo Phiên Bản
+- **(a) Để implementation cài giúp.** Quickstart của Envoy Gateway: lệnh `helm install` ở 4.1 *cài cả CRD lẫn Envoy Gateway*. Đây là đường được dùng trong bài.
+- **(b) Tự cài CRD bằng kubectl** (theo trang Getting started của Gateway API; ví dụ v1.7.0, kênh Standard):
 
-Gateway API có **nhiều implementation** (cloud riêng, bare-metal, đa dụng). Danh sách và mức hỗ trợ tính năng nằm ở trang Implementations của Gateway API. *Mỗi implementation có yêu cầu phiên bản Kubernetes và phiên bản Gateway API CRD riêng; cách cài đặt trên kind khác nhau theo từng implementation, cần làm theo trang hướng dẫn chính thức của implementation đã chọn.* Nếu nhà cung cấp Kubernetes đã quản lý CRD Gateway API, **đừng** tự cài chồng lên (Envoy Gateway cũng cảnh báo điều này).
+  ```bash
+  kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.7.0/standard-install.yaml
+  ```
+
+  Kênh Experimental dùng `experimental-install.yaml`, có thể có thay đổi phá vỡ tương thích trong các bản sau. Bài học này chỉ cần kênh Standard. **Đọc nội dung file trước khi apply.**
+
+**Bước 3 (GatewayClass) do ai tạo?** Tùy implementation. Với Envoy Gateway, trang Quickstart hướng dẫn `kubectl apply -f .../quickstart.yaml`, mô tả là cài *GatewayClass, Gateway, HTTPRoute và app ví dụ*; trang không hiển thị nội dung file, nên hãy **đọc file trước khi apply** và dùng `kubectl get gatewayclass` để biết tên class thật rồi điền vào `gatewayClassName` (ví dụ `eg` ở 4.3). Với implementation khác, đọc tài liệu của nó.
+
+> ⚠️ Chưa chạy thử trên cluster. Thứ tự trên suy ra từ tài liệu Gateway API (Getting started), tài liệu Envoy Gateway (Quickstart) và quan hệ phụ thuộc giữa các kind.
+
+### 1.4 `weight`: Tỉ Lệ Tương Đối, Không Phải Phần Trăm
+
+`backendRefs[].weight` là tỉ lệ **trong một rule**; tổng các weight là mẫu số. Mặc định `1`. Rule chỉ có một backend thì nhận 100% bất kể weight. `weight: 0` = không nhận traffic (rollback nhanh).
+
+Quy trình canary 3 bước trong tài liệu Gateway API (nền tảng cho 6_6_8):
+
+1. **Theo header**: rule riêng khớp `traffic: test` đưa traffic thử nghiệm tới v2, người dùng thật vẫn 100% v1.
+2. **Chia dần**: 90/10, theo dõi lỗi và độ trễ.
+3. **Hoàn tất**: v1 `weight: 0`, v2 `weight: 1`; lỗi thì đổi trọng số quay lại.
+
+### 1.5 TLS Termination Tại Gateway
+
+Cấu hình theo **listener**: `protocol: HTTPS`, `tls.mode: Terminate` (mặc định), `certificateRefs` trỏ tới Secret. Kết nối **downstream** (client → Gateway) và **upstream** (Gateway → backend, qua `BackendTLSPolicy`) cấu hình **độc lập**. `Passthrough` chỉ dành cho listener `protocol: TLS`. **cert-manager** có thể cấp và gia hạn chứng chỉ tự động vào Secret đó.
+
+### 1.6 Chọn Implementation
+
+Có nhiều implementation (cloud riêng, bare-metal, đa dụng); xem trang Implementations của Gateway API. Mỗi implementation có yêu cầu phiên bản Kubernetes và CRD riêng; làm theo hướng dẫn chính thức của cái bạn chọn. Nếu nhà cung cấp Kubernetes đã quản lý CRD Gateway API, **đừng cài chồng** (Envoy Gateway cũng cảnh báo).
+
+### 1.7 ⚠️ Ingress NGINX Đã Nghỉ Hưu (Tóm Tắt)
+
+- **Ingress NGINX** (cộng đồng Kubernetes) hết bảo trì từ **tháng 3-2026**: không bản phát hành, bản sửa lỗi, vá bảo mật. Deployment cũ **vẫn chạy**. Repo `kubernetes/ingress-nginx` đã archived (kiểm tra 17-11-2026).
+- Steering Committee và Security Response Committee (29-01-2026): ở lại là *"leaves you and your users vulnerable to attack"*; **không có thay thế drop-in**.
+- Kiểm tra cluster có đang dùng: `kubectl get pods --all-namespaces --selector app.kubernetes.io/name=ingress-nginx`.
+- **Không nhầm** với **NGINX Ingress** của F5: hai controller khác nhau.
+- Di trú: công cụ `ingress2gateway`, nhưng blog "Before You Migrate" cảnh báo các hành vi bất ngờ (ví dụ regex là prefix và không phân biệt hoa thường), nên **vẫn phải kiểm thử hành vi** sau khi chuyển.
 
 ---
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)
 
-**Sân bay quốc tế (Gateway API) so với cổng làng (Ingress):**
+**Một hãng bay muốn mở đường bay mới tại sân bay.**
 
-- **GatewayClass = loại hình nhà ga** do nhà đầu tư xây (nhà ga quốc tế, nhà ga nội địa): quyết định *ai vận hành, quy chuẩn thế nào*.
-- **Gateway = một nhà ga cụ thể đang hoạt động**, do ban quản lý sân bay (Cluster Operator) điều hành: mở cổng nào (listener 80/443), tên miền nào, hãng nào được đỗ (`allowedRoutes`), và đặt **quầy kiểm tra giấy tờ TLS** ở đâu.
-- **HTTPRoute = lịch bay và bảng chỉ dẫn của từng hãng hàng không** (đội ứng dụng): "chuyến đi `/login` tới cổng số 5; 90% khách ra xe buýt A, 10% ra xe buýt B".
-- **Weighted routing = chia luồng khách trên hai xe buýt**: 90/10, rồi 50/50, rồi 0/100 khi xe mới đã ổn. Nếu xe mới hỏng, quay lại 100/0 ngay.
-- **Ingress = chiếc cổng làng với một bảng thông báo chung**: ai cũng ghi lên một tờ giấy, muốn thêm quy định riêng (annotation) thì mỗi người gác cổng (controller) hiểu một kiểu, tờ giấy chuyển sang làng khác là vô dụng.
-- **Ingress NGINX nghỉ hưu = người gác cổng đã nghỉ hưu và đóng sổ**: cổng vẫn mở, người gác vẫn đứng đó, nhưng không còn ai sửa khóa hay vá hàng rào khi bị phá.
+Hãng (đội app) không tự xây nhà ga. Họ làm việc theo thứ tự:
+
+1. **Tập đoàn xây dựng nhà ga** đã chọn sẵn *kiểu* nhà ga: quốc tế hay nội địa, ai vận hành, tiêu chuẩn nào. Đó là **GatewayClass**.
+2. **Ban quản lý sân bay** dựng *một nhà ga cụ thể*: mở cổng 80 và 443, chỉ đón các tên miền nhất định, đặt **quầy soát giấy tờ TLS** ở cửa, và quy định hãng nào được đỗ (`allowedRoutes`). Đó là **Gateway**.
+3. **Hãng bay nộp lịch bay**: "chuyến `/login` ra cổng 5; 90% khách lên xe buýt A, 10% lên xe buýt B." Đó là **HTTPRoute**, và xe buýt là **Service**.
+
+Rồi chuyện gì xảy ra tiếp theo chính là canary:
+
+- Tuần đầu: xe buýt B (bản mới) chỉ chở **10%** khách. Nếu khách than phiền (lỗi, chậm), nhân viên đổi lại thành 100/0 trong một phút.
+- Tuần sau: 50/50, rồi 0/100. Xe buýt A về garage.
+- Muốn thử riêng: nhân viên có thẻ `traffic: test` được xếp vào xe buýt B ngay từ đầu (canary theo header).
+
+**Ingress thì như cổng làng với một bảng thông báo chung.** Ai cũng ghi lên cùng một tờ giấy. Muốn quy định riêng (annotation) thì mỗi người gác cổng hiểu một kiểu; chuyển sang làng khác là vô dụng. Và **Ingress NGINX nghỉ hưu** là người gác cổng đã đóng sổ: cổng vẫn mở, người vẫn đứng đó, nhưng không ai sửa khóa hay vá hàng rào khi bị phá.
 
 ---
 
@@ -154,16 +329,27 @@ flowchart TD
     R -->|"weight 10"| S2
 ```
 
-### 3.4 Ingress So Với Gateway API Cho Cùng Một Bài Toán
+### 3.4 Một Request Đi Qua Từng Tầng (Khái Niệm)
+
+Sơ đồ khái niệm theo mô hình tài liệu; chi tiết (ví dụ proxy là gì, nằm ở đâu) tùy implementation.
 
 ```mermaid
-flowchart LR
-    subgraph ING["Ingress"]
-        I1["Ingress<br/>(host+path+TLS)"] --> I2["Annotation riêng của controller<br/>(canary, rewrite...)"]
-        I2 --> IC["Ingress controller (một loại)"]
-    end
-    subgraph GWAPI["Gateway API"]
-        G1["GatewayClass"] --> G2["Gateway"] --> G3["HTTPRoute (weight, header match, filter)"]
+sequenceDiagram
+    participant C as Client
+    participant GW as Gateway (listener :80)
+    participant R as HTTPRoute rules
+    participant S1 as Service v1
+    participant S2 as Service v2
+    C->>GW: GET / (Host: hello.example.test)
+    GW->>GW: Listener khớp port/hostname? Route có được phép gắn (allowedRoutes)?
+    GW->>R: Chọn rule khớp (matches)
+    R->>R: Chia theo weight (90/10)
+    alt 90%
+        R->>S1: chuyển request
+        S1-->>C: version=1.0.0
+    else 10%
+        R->>S2: chuyển request
+        S2-->>C: version=2.0.0
     end
 ```
 
@@ -177,22 +363,25 @@ flowchart LR
 
 ## 4. Code Mẫu Trực Quan Hoặc Dòng Lệnh Thực Chiến (Runnable Sample Code / CLI)
 
-> ⚠️ **Chưa chạy thử** trên cluster (xem phần Trạng thái). Manifest `GatewayClass`/`Gateway`/`HTTPRoute` bám sát ví dụ trong tài liệu Kubernetes và Gateway API (apiVersion `gateway.networking.k8s.io/v1`).  
-> ⚠️ Chỉ chạy trên cluster học tập. Thực hành chi tiết: [lab-6_4_3-gateway-api-weighted-routing](./README.md#lab-6_4_3-gateway-api-weighted-routing).
+> ⚠️ Chưa chạy thử trên cluster (xem Trạng thái). Chỉ chạy trên cluster học tập. Bản lab đầy đủ: [lab-6_4_3-gateway-api-weighted-routing](./README.md#lab-6_4_3-gateway-api-weighted-routing).
 
 ### 4.1 Cài CRD Và Một Implementation (Ví Dụ: Envoy Gateway)
 
-Có hai cách chính thức: cài riêng CRD Gateway API theo hướng dẫn *Getting started* của Gateway API, hoặc để implementation tự cài. Envoy Gateway v1.10.0 theo trang Quickstart của họ:
+Theo Quickstart của Envoy Gateway v1.10.0 (chart cài cả CRD Gateway API lẫn Envoy Gateway; cần Helm, học ở [6_5](<../6_5 Helm Package Management/README.md>)):
 
 ```bash
-# Quickstart của Envoy Gateway: chart cài cả Gateway API CRD lẫn Envoy Gateway (cần Helm)
 helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.10.0 \
   -n envoy-gateway-system --create-namespace
 kubectl wait --timeout=5m -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available
+
+kubectl get crd | grep gateway.networking.k8s.io   # bước 1 xong: có CRD
+kubectl get gatewayclass                           # bước 3: cần một class ACCEPTED=True để 4.3 dùng
 ```
 
-> Helm sẽ học ở [6_5](<../6_5 Helm Package Management/README.md>). Nếu chọn tự cài CRD: bản phát hành chính thức của Gateway API có tệp `standard-install.yaml` (ví dụ `https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.7.0/standard-install.yaml`); **hãy đọc nội dung trước khi áp dụng** và làm theo trang *Getting started* của Gateway API.  
-> Trên kind không có LoadBalancer: Envoy Gateway hướng dẫn dùng `kubectl port-forward` tới Service do nó tạo (mục "Without LoadBalancer Support" của Quickstart) hoặc cài MetalLB.
+> Nếu `get gatewayclass` chưa có class nào, Quickstart của Envoy Gateway tạo nó qua `kubectl apply -f https://github.com/envoyproxy/gateway/releases/download/v1.10.0/quickstart.yaml -n default` (kèm Gateway/HTTPRoute/app ví dụ tên `eg`; **đọc file trước khi apply**). Thứ tự và lý do: xem [1.3.6](#136-thứ-tự-cài-đặt-và-vì-sao-phải-theo-thứ-tự).
+
+> Muốn tự cài CRD: bản phát hành Gateway API có `standard-install.yaml` (ví dụ `https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.7.0/standard-install.yaml`); **đọc nội dung trước khi apply** và làm theo trang *Getting started*.  
+> Trên kind không có LoadBalancer: Envoy Gateway hướng dẫn `kubectl port-forward` tới Service do nó tạo (mục "Without LoadBalancer Support" của Quickstart) hoặc cài MetalLB.
 
 ### 4.2 Hai Phiên Bản Của Ứng Dụng
 
@@ -224,7 +413,7 @@ spec:
 # hello-svc-v2: lặp lại với version: v2, APP_VERSION "2.0.0", image 2.0.0 nếu đã build bản 2.0.0
 ```
 
-### 4.3 Gateway + HTTPRoute Chia 90/10
+### 4.3 Gateway + HTTPRoute Chia 90/10 (Phần Đáng Chạy Nhất)
 
 ```yaml
 apiVersion: gateway.networking.k8s.io/v1
@@ -232,7 +421,7 @@ kind: Gateway
 metadata:
   name: hello-gw
 spec:
-  gatewayClassName: eg                 # tên GatewayClass do implementation của bạn tạo/yêu cầu tạo
+  gatewayClassName: eg                 # GatewayClass phải TỒN TẠI trước (xem 1.3.6, bước 3); kiểm tra: kubectl get gatewayclass
   listeners:
   - name: http
     protocol: HTTP
@@ -267,7 +456,7 @@ kubectl describe httproute hello-route      # đọc Status.Parents: Accepted / 
 for i in $(seq 1 100); do curl -s "$GATEWAY_URL/"; done | grep -o 'version=[0-9.]*' | sort | uniq -c
 ```
 
-Đổi tỉ lệ: sửa `weight` thành `50/50`, rồi `0/1`, `kubectl apply` lại, đếm lại. Kỳ vọng tỉ lệ **gần** với trọng số, không chính xác tuyệt đối (mẫu nhỏ sẽ lệch).
+**Kỳ vọng (suy ra từ tài liệu, chưa quan sát)**: số lần `version=1.0.0` **gần** 90 và `version=2.0.0` **gần** 10; mẫu nhỏ sẽ lệch. Sau đó thử `weight` `50/50`, rồi `0/1`, `kubectl apply` lại, đếm lại. Nếu số đếm không đổi, kiểm tra `Accepted` / `ResolvedRefs` trước.
 
 ### 4.4 Canary Theo Header (Từ Tài Liệu Gateway API)
 
@@ -307,7 +496,48 @@ listeners:
       name: hello-tls                  # Secret type kubernetes.io/tls (xem 6_4_5)
 ```
 
-### 4.6 Lệnh Chẩn Đoán Hay Dùng
+> Đoạn trên chỉ là phần `listeners` của một object `Gateway` (đặt vào `spec.listeners` của Gateway ở 4.3), không phải file chạy độc lập.
+
+**Luồng mã hóa:** client → Gateway là **HTTPS** (Gateway trình chứng chỉ, giải mã TLS tại listener). Gateway → Pod mặc định là HTTP thường; mã hóa đoạn này là cấu hình riêng (`BackendTLSPolicy`, xem 1.5).
+
+#### Cần Chuẩn Bị Gì Trước Khi Dùng
+
+1. **Có Secret chứa chứng chỉ và private key, tạo TRƯỚC khi apply Gateway.** `certificateRefs` chỉ *trỏ tới* Secret, không tự tạo ra nó. Loại Secret là `kubernetes.io/tls` (xem [6_4_5](<./6_4_5 ConfigMaps and Secrets.md>); trang TLS của Gateway API không nêu tên loại này, nên đây là theo tài liệu Secret của Kubernetes). Tạo bằng:
+
+   ```bash
+   kubectl create secret tls hello-tls --cert=tls.crt --key=tls.key
+   ```
+
+2. **Có cặp `tls.crt` / `tls.key`.** Với lab, tạo chứng chỉ tự ký, **gói ở thư mục tạm, không đặt trong repo** (private key không được commit):
+
+   ```bash
+   d=$(mktemp -d) && cd "$d"
+   openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
+     -keyout tls.key -out tls.crt \
+     -subj "/CN=hello.example.test" \
+     -addext "subjectAltName=DNS:hello.example.test"
+   ```
+
+   Chứng chỉ phải có tên khớp `hostname` của listener (`hello.example.test`). Cert tự ký thì client **không tin mặc định**: `curl` cần `--cacert tls.crt` (hoặc `-k` chỉ cho lab). Môi trường thật dùng CA thật, hoặc **cert-manager** để cấp và gia hạn tự động (xem 1.5).
+
+3. **Secret cùng namespace với Gateway** (cách đơn giản nhất). Trang TLS của Gateway API cho thấy tham chiếu **khác namespace** (đặt `namespace` trong `certificateRefs`) chỉ hợp lệ khi có một **`ReferenceGrant`** trong namespace đích cho phép; thiếu nó thì tham chiếu không hợp lệ.
+
+4. **Gateway có listener HTTPS và cổng 443 đến được.** Trên kind không có LoadBalancer, bạn phải `kubectl port-forward` tới Service của proxy (xem 4.1), trỏ vào **cổng 443** của nó. Thêm một listener `http` cổng 80 (như ở 4.3) nếu vẫn muốn chạy song song.
+
+5. **HTTPRoute gắn vào listener này.** `hostnames` của HTTPRoute cần giao với `hostname` của listener, nếu không route có thể không được chấp nhận (quy tắc này theo hiểu biết về API, **chưa đối chiếu** trong tài liệu; xem `Status.Parents` của HTTPRoute để biết thực tế).
+
+Kiểm tra (ví dụ, giả sử bạn đã port-forward proxy ra `localhost:8443`):
+
+```bash
+curl --cacert tls.crt --resolve hello.example.test:8443:127.0.0.1 https://hello.example.test:8443/
+kubectl describe gateway hello-gw        # Listener https: Programmed/ResolvedRefs = True
+```
+
+Nếu `ResolvedRefs` là `False`, nghi ngờ trước tiên: Secret không tồn tại, sai tên, sai namespace, hoặc thiếu `ReferenceGrant`.
+
+> ⚠️ Phần chuẩn bị TLS chưa chạy thử trên cluster; các lệnh `openssl` và `curl` là lệnh chuẩn nhưng chưa quan sát output trong lab này.
+
+### 4.6 Lệnh Chẩn Đoán
 
 ```bash
 kubectl get gatewayclass                       # CONTROLLER, ACCEPTED
@@ -320,34 +550,24 @@ kubectl describe httproute hello-route         # Parents: Accepted, ResolvedRefs
 
 ## 5. Cạm Bẫy Thực Tế & Thực Tiễn Sản Xuất (Production Gotchas & Best Practices)
 
-### 5.1 Cạm Bẫy 1: Tiếp Tục Dùng Ingress NGINX Cho Hệ Thống Mới Hoặc Không Có Kế Hoạch Di Trú
+### 5.1 Route Có Nhưng Traffic Không Vào
 
-- **Bản chất**: Ingress NGINX đã nghỉ hưu, repo archived, không còn bản vá bảo mật; deployment cũ vẫn chạy nên dễ bị bỏ quên.
-- **Khuyến nghị**: Kiểm tra cluster bằng lệnh `kubectl get pods --all-namespaces --selector app.kubernetes.io/name=ingress-nginx`; lập kế hoạch di trú sang Gateway API hoặc controller Ingress khác còn được bảo trì. Dùng công cụ `ingress2gateway` (kho `kubernetes-sigs/ingress2gateway`) và hướng dẫn *A Welcome Guide for Ingress-NGINX Users* của Gateway API để hỗ trợ chuyển đổi, nhưng **vẫn phải kiểm thử hành vi** (regex, rewrite, default backend...).
+- **Hiện tượng**: `kubectl get httproute` thấy object, nhưng request không tới.
+- **Nguyên nhân thường gặp**: Route khác namespace với Gateway (mặc định `from: Same`); `parentRefs` sai tên; backend không tồn tại.
+- **Làm gì**: đọc `Status.Parents[].Conditions` của HTTPRoute (`Accepted`, `ResolvedRefs`) **trước** khi nghi ngờ proxy.
 
-### 5.2 Cạm Bẫy 2: Nhầm Ingress NGINX Với NGINX Ingress (F5)
+### 5.2 Weight Không Phải Phần Trăm, Và Không Bám Theo Người Dùng
 
-- **Khuyến nghị**: Xác định chính xác controller đang chạy (image, nhãn `app.kubernetes.io/name`) trước khi kết luận rằng mình bị ảnh hưởng hay không.
+- Weight là tỉ lệ tương đối **trong một rule** (xem 1.4); hãy đặt tổng bằng 100 cho dễ đọc, và để cả hai backend trong **một** rule.
+- Chia theo weight là **theo request**, không bảo đảm một người dùng luôn thấy cùng một phiên bản. Canary có trạng thái phiên thì dùng định tuyến theo header/cookie hoặc cơ chế bám phiên riêng của implementation (đối chiếu tài liệu của nó).
 
-### 5.3 Cạm Bẫy 3: Route Không Được Gateway Chấp Nhận
+### 5.3 Cài Chồng CRD Gateway API
 
-- **Hiện tượng**: `kubectl get httproute` có, nhưng traffic không vào.
-- **Bản chất**: Mặc định Gateway chỉ nhận Route cùng namespace (`allowedRoutes.namespaces.from: Same`); `parentRefs` sai tên; backend không tồn tại.
-- **Khuyến nghị**: Đọc `Status.Parents[].Conditions` của HTTPRoute (`Accepted`, `ResolvedRefs`) trước khi nghi ngờ proxy.
+Trước khi cài, chạy `kubectl get crd | grep gateway.networking.k8s.io` và kiểm tra annotation phiên bản. Nếu nhà cung cấp đã quản lý CRD, không cài thêm; tuân theo ma trận tương thích của implementation.
 
-### 5.4 Cạm Bẫy 4: Hiểu `weight` Là Phần Trăm
+### 5.4 Còn Chạy Ingress NGINX Mà Không Có Kế Hoạch Di Trú
 
-- **Bản chất**: `weight` là tỉ lệ tương đối trong **một rule**; backend duy nhất nhận 100% bất kể weight; mặc định weight là `1`.
-- **Khuyến nghị**: Khi chia canary hãy đặt tổng bằng 100 cho dễ đọc; kiểm tra Route nằm đúng **một** rule chứ không rải ở nhiều rule.
-
-### 5.5 Cạm Bẫy 5: Cài Chồng CRD Gateway API Với Bản Do Nhà Cung Cấp Quản Lý
-
-- **Khuyến nghị**: Kiểm tra `kubectl get crd | grep gateway.networking.k8s.io` và annotation phiên bản trước khi cài; tuân thủ ma trận tương thích của implementation.
-
-### 5.6 Cạm Bẫy 6: Trọng Số Là Chia Theo Request Chứ Không Phải Theo Người Dùng
-
-- **Bản chất**: Chia theo weight không tự bảo đảm "một người dùng luôn thấy cùng một phiên bản" (cần cơ chế bám phiên riêng của implementation, nếu có).
-- **Khuyến nghị**: Với canary có trạng thái phiên, đối chiếu tài liệu implementation hoặc dùng định tuyến theo header/cookie.
+Xem 1.7: deployment cũ vẫn chạy nên dễ bị bỏ quên, trong khi không còn vá bảo mật. Kiểm tra bằng lệnh selector ở 1.7, lập kế hoạch di trú (Gateway API hoặc controller Ingress khác còn được bảo trì), và **kiểm thử hành vi** regex, rewrite, default backend sau khi chuyển.
 
 ---
 
@@ -358,31 +578,23 @@ kubectl describe httproute hello-route         # Parents: Accepted, ResolvedRefs
 <details>
 <summary>Đáp án</summary>
 
-Ingress API **chưa** bị gỡ: nó GA nhưng "frozen" (không còn phát triển, dự án không có kế hoạch gỡ). **Ingress NGINX controller** (do cộng đồng Kubernetes duy trì) đã **nghỉ hưu từ tháng 3-2026**, repo archived, không còn bản vá bảo mật. Hệ thống mới nên dùng Gateway API.
+Ingress API **chưa** bị gỡ: GA nhưng "frozen" (không phát triển thêm, không có kế hoạch gỡ). **Ingress NGINX controller** đã **nghỉ hưu từ tháng 3-2026**, repo archived, không còn bản vá bảo mật. Hệ thống mới nên dùng Gateway API.
 </details>
 
-### Câu Hỏi 2: Vẽ Sơ Đồ GatewayClass → Gateway → HTTPRoute → Service Và Nói Ai Sở Hữu Từng Object
+### Câu Hỏi 2: Ai Sở Hữu Từng Object, Và Một HTTPRoute Gắn Vào Gateway Bằng Cách Nào?
 
 <details>
 <summary>Đáp án</summary>
 
-GatewayClass (Infrastructure Provider) ← Gateway (Cluster Operator) ← HTTPRoute (Application Developer) → Service. Gateway tham chiếu đúng một GatewayClass qua `gatewayClassName`; HTTPRoute gắn vào Gateway qua `parentRefs`; Gateway kiểm soát Route nào được gắn bằng `allowedRoutes` (mặc định chỉ cùng namespace).
+GatewayClass (Infrastructure Provider) ← Gateway (Cluster Operator) ← HTTPRoute (Application Developer) → Service. Gateway tham chiếu đúng một GatewayClass qua `gatewayClassName`; HTTPRoute gắn vào Gateway qua `parentRefs`; Gateway kiểm soát bằng `allowedRoutes` (mặc định chỉ cùng namespace).
 </details>
 
-### Câu Hỏi 3: Với `weight: 90` Và `weight: 10`, Nếu Thêm Một Backend Thứ Ba Weight 100 Vào Cùng Rule Thì Tỉ Lệ Mới Là Bao Nhiêu?
+### Câu Hỏi 3: Rule Có `weight` 90 Và 10. Thêm Backend Thứ Ba `weight: 100` Vào Cùng Rule Thì Tỉ Lệ Mới?
 
 <details>
 <summary>Đáp án</summary>
 
-Tổng weight = 200, nên tỉ lệ là 45%, 5%, 50%. `weight` là tỉ lệ tương đối trong một rule, mẫu số là tổng weight.
-</details>
-
-### Câu Hỏi 4: Ingress Không Làm Được Gì Nếu Không Có Annotation Riêng Của Controller, Mà Gateway API Có Sẵn?
-
-<details>
-<summary>Đáp án</summary>
-
-Các thứ như chia traffic theo trọng số, so khớp theo header, filter sửa request chỉ làm được qua annotation riêng của controller với Ingress (không portable); Gateway API có sẵn trong `HTTPRoute` chuẩn (`backendRefs[].weight`, `matches`, `filters`). Tài liệu Gateway API nêu rõ các năng lực "expressive" như header matching và traffic weighting trước đây chỉ có thể làm trong Ingress bằng annotation tùy biến.
+Tổng = 200, nên tỉ lệ là 45%, 5%, 50%. Weight là tỉ lệ tương đối, mẫu số là tổng weight trong rule.
 </details>
 
 ---
@@ -400,6 +612,7 @@ Các thứ như chia traffic theo trọng số, so khớp theo header, filter s�
 - [Ingress NGINX Retirement: What You Need to Know](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) - Blog chính thức về việc nghỉ hưu.
 - [Ingress NGINX: Statement from the Kubernetes Steering and Security Response Committees](https://kubernetes.io/blog/2026/01/29/ingress-nginx-statement/) - Tuyên bố 29-01-2026.
 - [Before You Migrate: Five Surprising Ingress-NGINX Behaviors You Need to Know](https://kubernetes.io/blog/2026/02/27/ingress-nginx-before-you-migrate/) - Hành vi cần chú ý khi di trú.
+- [Ingress-NGINX Annotations: Canary](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/) - Annotation `canary`, `canary-weight` dùng ở mục 0 (controller đã nghỉ hưu, chỉ để đọc hiểu hệ thống cũ).
 - [Envoy Gateway Quickstart](https://gateway.envoyproxy.io/docs/tasks/quickstart/) - Ví dụ cài một implementation.
-- [cert-manager: Annotated Gateway resource](https://cert-manager.io/docs/usage/gateway/) - Cấp chứng chỉ tự động cho Gateway (trang ghi tính năng này ở trạng thái beta từ cert-manager 1.15 tại thời điểm kiểm tra; đối chiếu lại trang trước khi dùng).
+- [cert-manager: Annotated Gateway resource](https://cert-manager.io/docs/usage/gateway/) - Cấp chứng chỉ tự động cho Gateway (trang ghi tính năng này ở trạng thái beta từ cert-manager 1.15 tại thời điểm kiểm tra; đối chiếu lại trước khi dùng).
 - [kubernetes-sigs/ingress2gateway](https://github.com/kubernetes-sigs/ingress2gateway) - Công cụ hỗ trợ chuyển đổi Ingress sang Gateway API (Tier 2: kho GitHub chính thức).

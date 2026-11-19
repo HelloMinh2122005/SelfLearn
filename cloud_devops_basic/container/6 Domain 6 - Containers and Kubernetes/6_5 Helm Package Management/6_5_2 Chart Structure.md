@@ -9,6 +9,20 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: Chạy `helm create`, Rồi Ba Cái Bẫy Chờ Sẵn
+
+`helm create myapp` sinh ra một thư mục với hàng loạt file. Điều khó không phải là nhớ tên file, mà là biết **file nào làm gì và đụng vào đâu thì "cắn"**. Ba chỗ người mới hay vấp nhất: <!-- ev: R2.31 -->
+
+| Bạn nghĩ | Thực tế |
+| :--- | :--- |
+| `appVersion` và `version` là một | `version` là phiên bản **chart** (SemVer 2, bắt buộc); `appVersion` là phiên bản **ứng dụng**, chỉ mang tính mô tả. Nên bọc `appVersion` trong ngoặc kép để YAML không hiểu nhầm thành số thực <!-- ev: R1.19 R1.20 R1.21 R2.21 R2.25 R2.26 --> |
+| `helm uninstall` gỡ sạch mọi thứ, kể cả CRD | CRD trong `crds/` **không bao giờ bị xóa** khi gỡ release, và cũng **không được nâng cấp** khi `upgrade`/`rollback` <!-- ev: R1.31 --> |
+| `**/*.secret` trong `.helmignore` loại hết file `.secret` ở thư mục con | `.helmignore` dùng Go `filepath.Match`, **không hỗ trợ `**`** <!-- ev: R1.33 --> |
+
+Bài này đi qua từng thành phần của chart theo đúng thứ tự Helm xử lý khi `helm install`: kiểm tra values bằng schema, nạp CRD, render template.
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 Trong Kubernetes, **Helm Chart** là gói tài nguyên tiêu chuẩn. Lệnh `helm create NAME` tạo nhanh thư mục chart chứa các tệp và thư mục định sẵn. <!-- ev: R2.31 --> Helm bảo lưu việc dùng các thư mục `charts/`, `crds/`, `templates/` cùng các tên tệp tiêu chuẩn; các tệp khác được giữ nguyên trạng. <!-- ev: R1.17 -->
@@ -72,14 +86,17 @@ Quản lý Custom Resource Definitions qua thư mục bảo lưu `crds/`: <!-- e
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)
 
-Cấu trúc Chart giống như bộ hồ sơ thiết kế thi công công trình:
-- **`Chart.yaml` — Trang bìa định danh**: Ghi tên công trình (`name`), số hiệu bản vẽ (`version` SemVer 2), phiên bản thiết bị (`appVersion`), và loại công trình (`type: application | library`). Ghi chú ngoài lề bị gạch bỏ (`dropped`).
-- **`values.yaml` — Bảng vật liệu mặc định**: Dự toán ban đầu do kiến trúc sư lập cho chủ nhà điều chỉnh.
-- **`values.schema.json` — Thanh tra kiểm định đầu vào**: Áp chuẩn Draft 7 kiểm tra vật tư (`install`, `upgrade`, `lint`, `template`); vật liệu sai chuẩn bị dừng ngay. Ràng buộc của xưởng con (subchart) không thể bị tổng thầu (parent chart) làm lệch.
-- **`templates/` — Khung dầm cột chờ đổ bê tông**: Khuôn đúc sẵn nhận vật liệu từ `.Values` để đổ thành phòng ốc hoàn chỉnh (Pods, Services).
-- **`_helpers.tpl` — Cẩm nang uốn sắt pha vữa**: Công thức định danh dùng chung cho mọi tổ thợ.
-- **`crds/` — Móng cọc khoan nhồi kiên cố**: Đóng cọc và chờ đông kết mới xây tầng trên (`pause until available`). Nền móng không sửa khi sơn sửa nhà (`upgrade`/`rollback` bỏ qua), và bán nhà cũng không nhổ móng (`không bao giờ xóa`).
-- **`.helmignore` — Hàng rào chắn rác**: Ngăn phế liệu và bản vẽ nháp lọt vào kiện hàng đóng gói.
+**Bạn là tổng thầu nhận một bộ hồ sơ thiết kế để xây nhà, và Helm là đội thi công.**
+
+Mở bộ hồ sơ ra, thứ đầu tiên là **trang bìa** (`Chart.yaml`): tên công trình (`name`), số hiệu bản vẽ (`version`, SemVer 2), phiên bản thiết bị (`appVersion`), loại công trình (`type: application | library`). Ghi chú ngoài lề không thuộc mẫu thì bị gạch bỏ.
+
+Bên trong có:
+
+- **Bảng vật liệu mặc định** (`values.yaml`): dự toán do kiến trúc sư lập, chủ nhà có thể điều chỉnh.
+- **Thanh tra kiểm định đầu vào** (`values.schema.json`): trước khi động thổ, vật tư bị kiểm theo chuẩn Draft 7. Vật liệu sai chuẩn thì **dừng ngay**, và tổng thầu (parent chart) cũng không thể làm lệch ràng buộc của xưởng con (subchart).
+- **Khung dầm cột chờ đổ bê tông** (`templates/`): khuôn đúc sẵn nhận vật liệu từ `.Values` để đổ thành phòng ốc hoàn chỉnh (Pods, Services). `_helpers.tpl` là cẩm nang công thức dùng chung cho mọi tổ thợ.
+- **Móng cọc khoan nhồi** (`crds/`): phải đóng cọc và chờ đông kết **trước**, rồi mới xây tầng trên. Sơn sửa nhà (`upgrade`/`rollback`) không động tới móng, và bán nhà (`uninstall`) cũng không nhổ móng.
+- **Hàng rào chắn rác** (`.helmignore`): ngăn bản vẽ nháp lọt vào kiện hàng đóng gói.
 
 ---
 

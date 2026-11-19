@@ -11,6 +11,23 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: Xóa Một Pod, Cái Gì Mất, Cái Gì Còn?
+
+Bạn chạy database 3 bản. Một Pod chết. Với Deployment, Pod mới có **tên ngẫu nhiên và IP mới**, và không có gì bảo đảm nó thấy lại dữ liệu cũ. Với StatefulSet, trên kind v1.37.0 (17-11-2026) đã quan sát thật khi xóa Pod `web-1`:
+
+| | Sau khi `web-1` bị xóa và tạo lại |
+| :--- | :--- |
+| Tên Pod | **Giữ nguyên** `web-1` |
+| Tên DNS `web-1.web.default.svc...` | **Giữ nguyên** |
+| PVC `data-web-1` và dữ liệu | **Giữ nguyên**; Pod mới mount lại đúng ổ của mình |
+| IP, `uid` của Pod | **Đổi** (`10.244.0.19` → `10.244.0.22`) |
+
+Và một chuyện còn "hấp dẫn" hơn: **xóa hẳn StatefulSet thì PVC vẫn còn**, tạo lại StatefulSet cùng tên là Pod nhận lại đúng ổ cũ (kể cả dữ liệu đã lỗi thời). Đó là lý do Kafka, Cassandra, ZooKeeper cần StatefulSet: mỗi thành viên phải là **"một ai đó cố định"** có ổ đĩa riêng. Bạn sẽ tự tay tái hiện ở mục 4.
+
+> Cảnh báo ngay: StatefulSet chỉ cho bạn **danh tính và ổ đĩa ổn định**. Replication, quorum, failover vẫn là việc của ứng dụng hoặc Operator.
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 ### 1.1 Khi Nào Deployment Không Đủ?
@@ -129,14 +146,18 @@ Với Cassandra, Elasticsearch và các hệ thống dữ liệu khác, thực t
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)
 
-**Thư viện công cộng với mỗi thủ thư có số hiệu và tủ hồ sơ riêng:**
+**Hai cách tổ chức đội thủ thư của một thư viện, và một hôm có người ốm.**
 
-- **Deployment = nhân viên thời vụ mặc áo đồng phục giống nhau**: ai đứng quầy cũng được, mất người thì gọi người khác.
-- **StatefulSet = thủ thư biên chế có thẻ nhân viên số #0, #1, #2**, mỗi người có **tủ hồ sơ riêng** (PVC) và **số máy lẻ cố định** (DNS). Thủ thư #1 nghỉ ốm → người thay thế **mang thẻ #1, ngồi đúng bàn #1, mở đúng tủ #1**. (Tên và tủ giữ nguyên; chỉ *chỗ ngồi vật lý* - IP - có thể đổi.)
-- **`OrderedReady` = mở ca theo thứ tự**: #0 phải vào chỗ và sẵn sàng thì #1 mới được vào, rồi mới tới #2; đóng ca thì #2 ra trước.
-- **`partition` = thử quy trình mới trên thủ thư số cuối trước**: chỉ #2 làm theo quy trình mới, thấy ổn mới tới #1, #0.
-- **Xóa StatefulSet = giải tán đội nhưng tủ hồ sơ vẫn còn trong kho**: ai tuyển lại đội cùng tên sẽ nhận lại đúng tủ cũ (kể cả hồ sơ đã lỗi thời). Muốn dọn tủ phải dặn trước (`whenDeleted: Delete`) hoặc dọn tay.
-- **Kafka broker = thủ thư biên chế đặc biệt**: các thủ thư khác và độc giả phải biết *chính xác* "thủ thư #1 giữ cuốn nào". Nếu mỗi lần chuyển ca cái tên và tủ bị đổi, sổ mục lục hỏng. **Operator (Strimzi) = trưởng phòng nhân sự chuyên nghiệp** lo mọi thủ tục chuyển ca, nâng cấp, phân tủ.
+**Cách 1: nhân viên thời vụ (Deployment).** Ai cũng mặc đồng phục giống nhau, ai đứng quầy cũng được. Một người ốm thì gọi người khác vào. Chẳng ai quan tâm người mới ngồi đâu hay có biết tủ hồ sơ của người cũ không, vì **quầy nào cũng như quầy nào**.
+
+**Cách 2: thủ thư biên chế (StatefulSet).** Mỗi người có **thẻ số #0, #1, #2**, một **tủ hồ sơ riêng** (PVC) và **số máy lẻ cố định** (DNS). Thủ thư #1 nghỉ ốm, người thay thế **mang thẻ #1, ngồi đúng bàn #1, mở đúng tủ #1**. Chỉ có *chỗ ngồi vật lý* (IP) có thể khác. Với Kafka, điều này sống còn: các thủ thư khác và độc giả phải biết *chính xác* "thủ thư #1 giữ cuốn nào". Nếu mỗi lần đổi ca, tên và tủ cũng đổi, sổ mục lục hỏng.
+
+Từ đó các quy tắc còn lại tự nhiên có nghĩa:
+
+- **`OrderedReady` là mở ca theo thứ tự**: #0 vào chỗ và sẵn sàng thì #1 mới được vào, rồi mới tới #2; đóng ca thì #2 ra trước.
+- **`partition` là thử quy trình mới trên thủ thư số cuối trước**: chỉ #2 làm theo quy trình mới, thấy ổn mới tới #1, #0.
+- **Xóa StatefulSet là giải tán đội nhưng tủ hồ sơ vẫn nằm trong kho**: ai tuyển lại đội cùng tên sẽ nhận lại đúng tủ cũ, kể cả hồ sơ đã lỗi thời. Muốn dọn tủ phải dặn trước (`whenDeleted: Delete`) hoặc dọn tay.
+- **Operator (Strimzi) là trưởng phòng nhân sự chuyên nghiệp** lo mọi thủ tục chuyển ca, nâng cấp, phân tủ cho những thủ thư đặc biệt như Kafka broker.
 
 ---
 
@@ -363,46 +384,33 @@ Tham khảo chính thức: Strimzi Overview/Deploying, ví dụ ZooKeeper và Ca
 
 ## 5. Cạm Bẫy Thực Tế & Thực Tiễn Sản Xuất (Production Gotchas & Best Practices)
 
-### 5.1 Cạm Bẫy 1: Tin Rằng "StatefulSet = Database Chạy Được Ngay"
+> Chuyện "xóa StatefulSet thì PVC vẫn còn" đã nằm ở mục 0 và 1.5; ở đây chỉ nêu cách phòng.
 
-- **Bản chất**: StatefulSet chỉ cho danh tính + ổ đĩa. Replication, quorum, failover vẫn do ứng dụng/Operator.
-- **Khuyến nghị**: Dùng Operator đã trưởng thành hoặc dịch vụ quản lý; có kế hoạch backup/restore **đã được diễn tập**.
+### 5.1 Tin Rằng "StatefulSet = Database Chạy Được Ngay" (Và Áp Dụng Tài Liệu Kafka Cũ)
 
-### 5.2 Cạm Bẫy 2: Quên Headless Service Hoặc `serviceName` Sai
+- **Bản chất**: StatefulSet chỉ cho danh tính + ổ đĩa. Replication, quorum, failover vẫn do ứng dụng/Operator. Kafka 4.0 trở lên chạy KRaft, không ZooKeeper.
+- **Khuyến nghị**: Dùng Operator đã trưởng thành hoặc dịch vụ quản lý; có kế hoạch backup/restore **đã được diễn tập**. Xác định rõ phiên bản Kafka trước khi làm theo tài liệu (Apache Kafka/Strimzi tương ứng phiên bản).
+
+### 5.2 Quên Headless Service Hoặc `serviceName` Sai
 
 - **Hiện tượng**: Pod chạy nhưng không phân giải được `pod-0.svc...`.
 - **Bản chất**: Bạn tự tạo headless Service; `serviceName` phải khớp; nhãn `selector` phải khớp Pod.
 - **Khuyến nghị**: Kiểm tra `kubectl get svc` + `kubectl get endpointslices` ([6_4_2](<./6_4_2 Services and EndpointSlices.md>)).
 
-### 5.3 Cạm Bẫy 3: Xóa StatefulSet Rồi Tạo Lại Và Bị "Hồi Sinh" Dữ Liệu Cũ
+### 5.3 Xóa Và Tạo Lại StatefulSet: Dữ Liệu Cũ "Hồi Sinh", Tắt Không Có Thứ Tự
 
-- **Bản chất**: PVC không bị xóa; StatefulSet mới cùng tên mount lại PVC cũ (đã chứng minh).
-- **Khuyến nghị**: Dọn PVC chủ động khi muốn bắt đầu sạch (`kubectl get pvc` rồi `kubectl delete pvc data-web-0 data-web-1 data-web-2`, kiểm tra kỹ tên trước khi xóa), hoặc dùng `persistentVolumeClaimRetentionPolicy` **sau khi** cân nhắc backup.
+- **Bản chất**: PVC không bị xóa nên StatefulSet mới cùng tên mount lại PVC cũ (đã chứng minh). Khi xóa StatefulSet cũng **không có bảo đảm** về thứ tự/êm khi tắt Pod.
+- **Khuyến nghị**: Muốn tắt êm, scale về 0, chờ Pod tắt hết rồi mới xóa. Muốn bắt đầu sạch thì dọn PVC chủ động (`kubectl get pvc` rồi `kubectl delete pvc data-web-0 data-web-1 data-web-2`, kiểm tra kỹ tên trước khi xóa), hoặc dùng `persistentVolumeClaimRetentionPolicy` **sau khi** cân nhắc backup.
 
-### 5.4 Cạm Bẫy 4: Rollout Hỏng Làm StatefulSet "Kẹt Mãi"
+### 5.4 Rollout Hỏng Làm StatefulSet "Kẹt Mãi"
 
 - **Bản chất**: Với `OrderedReady`, template không bao giờ Ready khiến rollout đứng; revert template chưa đủ (known issue trong tài liệu).
 - **Khuyến nghị**: Dùng `partition`/canary để lộ lỗi sớm trên Pod ordinal cao; nếu kẹt, revert template **và** xóa các Pod đã chạy cấu hình hỏng. Cần probe đúng ([6_3_5](<../6_3 Kubernetes Architecture and Core Workloads/6_3_5 Liveness Readiness and Startup Probes.md>)).
 
-### 5.5 Cạm Bẫy 5: Scale Về 0 Không Phải Là Xóa Dữ Liệu, Và Xóa StatefulSet Không Tắt Có Thứ Tự
+### 5.5 RWO, Topology Và Drain Node
 
-- **Bản chất**: Xóa StatefulSet không bảo đảm thứ tự/êm khi tắt Pod.
-- **Khuyến nghị**: Muốn tắt êm, scale về 0, chờ Pod tắt hết, rồi mới xóa.
-
-### 5.6 Cạm Bẫy 6: RWO Và Pod Bị Lên Lịch Sang Node Khác
-
-- **Bản chất**: PV `ReadWriteOnce` gắn một node; PV topology/`nodeAffinity` có thể ràng buộc Pod vào zone/node. Pod không thể lên lịch ở nơi PV không truy cập được, Pod kẹt `Pending`.
-- **Khuyến nghị**: Dùng `WaitForFirstConsumer`, trải đều bằng topology spread/anti-affinity (6_7), đủ dung lượng mỗi zone; với Azure Disk lưu ý giới hạn số disk mỗi node ([6_4_6](<./6_4_6 Volumes PersistentVolumes and StorageClasses.md>)).
-
-### 5.7 Cạm Bẫy 7: Bảo Vệ Chống Gián Đoạn Tự Nguyện (Drain, Nâng Cấp Node)
-
-- **Bản chất**: Một cụm có quorum (ZooKeeper/KRaft, Cassandra, Elasticsearch) mất quá nhiều thành viên cùng lúc khi drain node sẽ mất quorum.
-- **Khuyến nghị**: Dùng **PodDisruptionBudget** (tài liệu ZooKeeper của Kubernetes minh họa kèm StatefulSet); xem tài liệu *Disruptions*.
-
-### 5.8 Cạm Bẫy 8: Áp Dụng Tài Liệu Kafka Cũ (Có ZooKeeper) Cho Kafka 4.x
-
-- **Bản chất**: Kafka 4.0 chạy không ZooKeeper, KRaft mặc định.
-- **Khuyến nghị**: Xác định rõ phiên bản Kafka; làm theo tài liệu tương ứng phiên bản của Apache Kafka/Strimzi.
+- **Bản chất**: PV `ReadWriteOnce` gắn một node; PV topology/`nodeAffinity` có thể ràng buộc Pod vào zone/node, nên Pod có thể kẹt `Pending` nếu nơi đó không còn chỗ. Một cụm có quorum (ZooKeeper/KRaft, Cassandra, Elasticsearch) mất quá nhiều thành viên cùng lúc khi drain node sẽ mất quorum.
+- **Khuyến nghị**: Dùng `WaitForFirstConsumer`, trải đều bằng topology spread/anti-affinity (6_7), đủ dung lượng mỗi zone; với Azure Disk lưu ý giới hạn số disk mỗi node ([6_4_6](<./6_4_6 Volumes PersistentVolumes and StorageClasses.md>)). Dùng **PodDisruptionBudget** (tài liệu ZooKeeper của Kubernetes minh họa kèm StatefulSet); xem tài liệu *Disruptions*.
 
 ---
 
@@ -413,7 +421,7 @@ Tham khảo chính thức: Strimzi Overview/Deploying, ví dụ ZooKeeper và Ca
 <details>
 <summary>Đáp án</summary>
 
-Mỗi broker là một thực thể riêng có **ID cố định** và **sở hữu dữ liệu (partition) trên đĩa riêng**; broker và client cần địa chỉ riêng từng broker (`advertised.listeners`), không phải một IP cân tải ẩn danh. Deployment cho Pod tên/IP ngẫu nhiên và volume không riêng từng Pod, nên sau restart broker không giữ được danh tính và dữ liệu. StatefulSet cho tên theo ordinal, DNS ổn định qua headless Service và một PVC riêng mỗi Pod; trong thực tế còn cần Operator như Strimzi để lo cấu hình/nâng cấp.
+Mỗi broker là một thực thể riêng có **ID cố định** và **sở hữu dữ liệu (partition) trên đĩa riêng**; broker và client cần địa chỉ riêng từng broker (`advertised.listeners`), không phải một IP cân tải ẩn danh. Deployment cho Pod tên/IP ngẫu nhiên và volume không riêng từng Pod, nên sau restart broker không giữ được danh tính và dữ liệu. StatefulSet cho tên theo ordinal, DNS ổn định qua headless Service và một PVC riêng mỗi Pod; trong thực tế còn cần Operator như Strimzi để lo cấu hình/nâng cấp. (Kafka 4.0 trở lên chạy KRaft, không cần ZooKeeper.)
 </details>
 
 ### Câu Hỏi 2: Xóa Một Pod StatefulSet, Xóa Cả StatefulSet, Và Scale Down: PVC Chuyện Gì Xảy Ra Theo Mặc Định?
@@ -438,14 +446,6 @@ Chỉ Pod có ordinal ≥ 2 (tức `web-2`) được cập nhật; `web-0`, `web
 <summary>Đáp án</summary>
 
 Giữ nguyên: tên `web-1`, tên DNS `web-1.web.<ns>.svc...`, PVC `data-web-1` và dữ liệu. Đổi: **IP** và `uid` của Pod.
-</details>
-
-### Câu Hỏi 5: Kafka 4.x Có Cần ZooKeeper Không?
-
-<details>
-<summary>Đáp án</summary>
-
-Không. Kafka 4.0 là bản đầu tiên chạy hoàn toàn không cần ZooKeeper, mặc định chạy ở chế độ KRaft (theo thông báo chính thức của Apache Kafka). ZooKeeper chỉ còn liên quan tới Kafka cũ hoặc hệ thống khác.
 </details>
 
 ---

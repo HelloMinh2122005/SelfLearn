@@ -11,6 +11,19 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: Migration Database Phải Chạy Trước Code Mới
+
+Bản mới của ứng dụng cần thêm một cột vào database. Nếu Pod mới khởi động trước khi migration chạy, nó sẽ lỗi. Nếu migration chạy tách riêng bằng tay, sớm muộn có người quên. Câu trả lời của Helm là **hook**: một Job migration gắn annotation `helm.sh/hook: pre-upgrade`, chạy **sau khi render template, trước khi cập nhật bất kỳ resource nào**.
+
+Điểm mấu chốt nằm ở chữ "chặn":
+
+- Với Job hoặc Pod, Helm **chờ hook chạy xong thành công**. Hook **thất bại thì release thất bại**, upgrade dừng, và Pod của ứng dụng cũ **vẫn chạy** (chưa bị cập nhật). Vì ứng dụng cũ còn phục vụ trong lúc migration chạy, migration phải **tương thích ngược** (expand/contract) và **idempotent**.
+- Nhưng có một cái bẫy: tài nguyên do hook tạo **không thuộc release**. `helm uninstall` **không dọn** chúng. Muốn dọn phải dùng `helm.sh/hook-delete-policy` hoặc TTL cho Job.
+
+Bài này còn có `helm test` (smoke test sau deploy). Lưu ý: toàn bộ nội dung dưới đây lấy từ tài liệu Helm và Argo CD, **chưa chạy thử trên cluster**; những chỗ là suy luận được đánh dấu rõ.
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 ### 1.1 Hook Là Gì?

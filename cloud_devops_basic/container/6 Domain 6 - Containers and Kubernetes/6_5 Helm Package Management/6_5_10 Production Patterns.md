@@ -11,6 +11,24 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: "Upgrade Xong Mà Config Không Đổi"
+
+Chart chạy được chưa có nghĩa là chart **dùng được trên production**. Ví dụ kinh điển: bạn sửa `values.yaml`, `helm upgrade` báo thành công, nhưng ứng dụng vẫn chạy cấu hình cũ. Lý do đã được chứng minh ở [6_4_5](<../6_4 Kubernetes Networking Configuration and Storage/6_4_5 ConfigMaps and Secrets.md>): Pod nhận cấu hình qua biến môi trường **không tự cập nhật** khi ConfigMap đổi. Và Helm chỉ cập nhật Deployment khi **Pod template của nó đổi**, còn ConfigMap đổi một mình thì Deployment không đổi.
+
+Cách chữa là một dòng annotation, **`checksum/config`**: băm nội dung ConfigMap vào Pod template, để config đổi thì hash đổi, Pod template đổi, Deployment tự rollout.
+
+Bài này gom thêm các "dòng nhỏ chặn sự cố lớn" cùng kiểu, mỗi mẫu giải quyết một lỗi có thật:
+
+- Ghim image theo **digest** thay vì tag có thể bị đẩy đè.
+- **Selector bất biến** (đừng đưa `version` vào `spec.selector`).
+- `required` để chặn thiếu giá trị ngay lúc render.
+- Không để **Secret thật** trong `values.yaml` hay lịch sử release.
+- `resource-policy: keep` và vì sao đừng lạm dụng.
+
+Toàn bộ mẫu lấy từ tài liệu Helm, **chưa chạy thử**; hãy `helm lint` và `helm template` trước khi dùng.
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 Bài này gom các mẫu "viết chart cho sản xuất" mà các bài trước chưa gọi tên. Mỗi mẫu giải quyết một lỗi hay gặp.

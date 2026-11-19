@@ -10,6 +10,16 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: Cùng Một Commit, Hai Lần Build, Hai Kết Quả
+
+Chart của bạn kèm một subchart (ví dụ Redis) khai báo `version: "~1.2.3"`. CI chạy `helm dependency update` ở mỗi lần build. Tuần trước build ra subchart `1.2.3`; hôm nay, **cùng commit**, build ra `1.2.7` và hành vi khác đi. Vì sao? Vì `update` luôn tải **bản mới nhất thỏa ràng buộc** (`~1.2.3` ≡ `>= 1.2.3, < 1.3.0`). Chốt phiên bản thì phải commit `Chart.lock` và để CI dùng `helm dependency build`, lệnh dựng lại `charts/` **đúng như lock**, không đàm phán lại phiên bản.
+
+Đó mới là câu chuyện thứ nhất. Câu chuyện thứ hai là quy mô: công ty có hàng chục microservice, và mỗi service lặp lại cùng Deployment, nhãn chuẩn, probe, security context. Sửa tiêu chuẩn một lần phải sửa mấy chục chart. **Library chart** (`type: library`) ra đời để gom phần chung đó vào một chỗ; nó không cài được (`Error: library charts are not installable`) nhưng mọi chart ứng dụng có thể gọi các named template của nó.
+
+Cái giá phải trả là một lớp gián tiếp: một thay đổi phá vỡ trong library lan ra mọi service nếu nâng version bừa. Bài này dạy cả cách dùng lẫn cách không tự bắn vào chân. Toàn bộ lệnh và manifest lấy từ tài liệu Helm, **chưa chạy thử** (xem Trạng thái).
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 ### 1.1 Chart Có Thể Phụ Thuộc Chart Khác

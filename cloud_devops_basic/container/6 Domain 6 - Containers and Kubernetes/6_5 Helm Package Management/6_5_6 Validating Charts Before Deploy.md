@@ -10,6 +10,24 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: Pipeline Xanh Nhưng Deploy Thật Thì Đỏ
+
+CI của bạn chạy `helm template` và báo thành công. Rồi `helm upgrade` thật bị API server từ chối. Vì sao? Vì `helm template` render **hoàn toàn ngoại tuyến**: nó tự giả lập các giá trị nội cụm và bỏ qua mọi kiểm tra hợp lệ phía server. Chart chứa Custom Resource của CRD chưa cài trên cluster, hay gọi API đã bị xóa, `helm template` vẫn "xanh". <!-- ev: R1.86 R1.88 R2.98 -->
+
+Giải pháp là **nhiều lớp kiểm tra**, mỗi lớp bắt một loại lỗi khác nhau, càng sớm càng rẻ:
+
+| Lớp | Công cụ | Bắt được gì | Cần cluster? |
+| :--- | :--- | :--- | :--- |
+| 1 | `helm lint` (`--strict`) | Chart sai cấu trúc, vi phạm quy ước <!-- ev: R1.81 R1.82 R1.83 --> | Không |
+| 2 | `values.schema.json` | Values sai kiểu dữ liệu, ngay lúc `install`/`template` <!-- ev: R1.25 R1.85 --> | Không |
+| 3 | `helm template` + `kubeconform` | Manifest sai theo OpenAPI tĩnh (không đánh giá được ràng buộc động của controller) <!-- ev: R1.91 R1.92 --> | Không |
+| 4 | `helm upgrade --dry-run=server` | Bị API server từ chối thật, nhưng không lưu thay đổi <!-- ev: R1.88 R2.101 --> | **Có** |
+| 5 | `helm diff` (plugin) | Thay đổi nào sắp xảy ra so với release đang chạy <!-- ev: R1.94 R2.107 --> | **Có** |
+
+Bài này đi qua từng lớp và chỉ ra chỗ mỗi lớp **không** thấy được, để bạn không bao giờ coi "xanh ở lớp 3" là "an toàn".
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 Chiến lược **Shift-Left Validation** trong CI/CD phát hiện lỗi cấu hình và cú pháp ngay từ máy trạm hoặc pipeline trước khi áp dụng vào cụm Kubernetes. <!-- ev: R1.81 R1.85 R2.101 -->

@@ -9,6 +9,25 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: `replicaCount` Có Ở Bốn Nơi, Ai Thắng?
+
+Bạn có `replicaCount: 1` trong `values.yaml` của chart, `replicaCount: 5` trong `values-prod.yaml`, rồi chạy:
+
+```bash
+helm upgrade --install web ./web -f values.yaml -f values-prod.yaml --set replicaCount=3
+```
+
+Giá trị cuối cùng là **3**. Theo quy tắc của Helm: `--set` thắng mọi file, và giữa các file `-f` thì **file bên phải thắng**. <!-- ev: R1.51 R1.52 R2.56 --> (Đây là suy ra từ quy tắc trong tài liệu, chưa chạy thử trên cluster.)
+
+Hai điều làm nhiều người ngạc nhiên hơn, và là lý do bài này đáng đọc:
+
+- **List bị thay thế nguyên khối, không merge.** Khai báo một danh sách trong `values-prod.yaml` làm mất **toàn bộ** phần tử của danh sách đó trong `values.yaml`, vì Helm chỉ deep merge **map**. Muốn ghi đè từng mục, hãy dùng map có key thay cho list. <!-- ev: R1.54 R1.55 -->
+- **`--set config.port=8080` biến thành số nguyên**, không phải chuỗi. Cần chuỗi thì dùng `--set-string`. <!-- ev: R2.58 R2.59 -->
+
+Phần còn lại của bài là bản đồ đầy đủ: 4 nguồn values, họ cờ `--set-*`, cách xóa khóa mặc định bằng `null`, values trong subchart, và `helm get values` để biết release đang chạy với cấu hình nào.
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 Trong kiến trúc Helm chart ([6_5_2 Chart Structure](<./6_5_2 Chart Structure.md>)), template engine nhận cấu hình từ nhiều nguồn và được giải thuật hợp nhất bảng (table coalesce) xử lý theo thứ tự ưu tiên trước khi render manifest Kubernetes.

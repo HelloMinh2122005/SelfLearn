@@ -10,6 +10,20 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: Pipeline Deploy Đột Nhiên Fail Mãi Mãi
+
+Bạn deploy bằng CI: `helm upgrade --install ...`. Một đêm runner bị kill giữa chừng (hoặc job hết timeout). Sáng hôm sau mọi lần deploy đều thất bại với đúng một thông báo: <!-- ev: R1.73 R1.74 R2.90 R2.91 -->
+
+```text
+another operation (install/upgrade/rollback) is in progress
+```
+
+Code không lỗi, cluster không lỗi. Nguyên nhân: lần upgrade bị cắt ngang để lại Secret của release ở trạng thái `pending-upgrade`, và Helm coi đó là **khóa bi quan**: thấy trạng thái gần nhất đang pending thì từ chối mọi thao tác sau. <!-- ev: R1.73 R1.74 R2.90 R2.91 -->
+
+Đây là lý do bài này không chỉ liệt kê lệnh. Bạn cần hiểu **máy trạng thái của release** (`deployed`, `superseded`, `failed`, `pending-*`...), vì mỗi lần `install`, `upgrade`, `rollback` đều tạo một revision mới, và trạng thái của revision gần nhất quyết định bạn được làm gì tiếp. <!-- ev: R1.76 R2.78 --> Cách giải cứu nằm ở mục 4.3.
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 Quản trị vòng đời Release (Release Lifecycle) kiểm soát toàn bộ chu kỳ ứng dụng trên Kubernetes từ cài đặt, nâng cấp, kiểm tra, khôi phục đến gỡ bỏ tài nguyên. <!-- ev: R1.76 R2.69 R2.71 R2.73 R2.77 -->

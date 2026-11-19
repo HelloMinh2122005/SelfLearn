@@ -137,10 +137,30 @@ flowchart LR
   2. Chạy với `ALLOCATE_MB_ON_START=150` và các giá trị `-XX:MaxRAMPercentage` khác nhau (qua `JAVA_TOOL_OPTIONS`); so sánh: lỗi `OutOfMemoryError` của JVM (exit code 1) với bị kernel OOM kill (137).
   3. `java -XX:+PrintFlagsFinal -version | grep MaxHeapSize` trong container với các mức `--memory` khác nhau.
   4. So sánh `podman stop` với image dùng shell form và exec form (dùng lại `Dockerfile.naive` của lab 6_2_1): thời gian dừng, exit code 137 vs 143; thử `--init`.
+- **Lưu ý khi chạy bước 1** (quan sát ở [capstone 6_1_3](<./capstones/6_1_3 Capstone - Control Groups v2 for Containers.md>), 18-11-2026): trên máy có swap, `--memory 256m` đơn lẻ có thể **không** làm container bị OOM kill (Podman đặt thêm trần swap); thêm `--memory-swap 256m` để tái hiện exit 137. Cũng nhớ `ALLOCATE_MB_ON_START` lớn hơn heap tối đa của JVM sẽ ra `OutOfMemoryError` (exit 1), không phải kernel kill.
 - **Checkpoint**:
   - [ ] Phân biệt được "JVM hết heap" và "container bị OOM kill" chỉ từ exit code và log.
   - [ ] Giải thích được vì sao shell form làm `stop` mất ~10 giây.
 
+
+---
+
+## 🏁 Capstones
+
+> Mỗi lesson có **một capstone** gồm nhiều bài tập thực hành, có bảng phủ kiến thức (mục lesson → bài tập), tiêu chí hoàn thành, đáp án tham chiếu và câu hỏi bảo vệ. Chi tiết và những phát hiện vượt ra ngoài lesson: [capstones/README.md](<./capstones/README.md>). Lệnh đã chạy thử ngày 18-11-2026 (Fedora 43, Podman 5.8.9 rootless); phần chưa chạy được ghi rõ trong từng file.
+
+| Lesson | Capstone | Bài |
+| :--- | :--- | :-: |
+| 6_1_1 | [Containers vs Virtual Machines](<./capstones/6_1_1 Capstone - Containers vs Virtual Machines.md>) | 4 |
+| 6_1_2 | [Linux Namespaces for Containers](<./capstones/6_1_2 Capstone - Linux Namespaces for Containers.md>) | 6 |
+| 6_1_3 | [Control Groups v2 for Containers](<./capstones/6_1_3 Capstone - Control Groups v2 for Containers.md>) | 6 |
+| 6_1_4 | [Images Layers and Overlay Filesystem](<./capstones/6_1_4 Capstone - Images Layers and Overlay Filesystem.md>) | 6 |
+| 6_1_5 | [Open Container Initiative Specifications](<./capstones/6_1_5 Capstone - Open Container Initiative Specifications.md>) | 5 |
+| 6_1_6 | [Container Runtimes and Ecosystem](<./capstones/6_1_6 Capstone - Container Runtimes and Ecosystem.md>) | 6 |
+| 6_1_7 | [Container Security Fundamentals](<./capstones/6_1_7 Capstone - Container Security Fundamentals.md>) | 6 |
+| 6_1_8 | [Container Lifecycle PID 1 and Signals](<./capstones/6_1_8 Capstone - Container Lifecycle PID 1 and Signals.md>) | 7 |
+| 6_1_9 | [Container Networking Basics](<./capstones/6_1_9 Capstone - Container Networking Basics.md>) | 7 |
+| 6_1_10 | [Container Data Storage](<./capstones/6_1_10 Capstone - Container Data Storage.md>) | 7 |
 
 ---
 

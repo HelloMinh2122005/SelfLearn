@@ -9,6 +9,20 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: Ba Lỗi Template Mà Ai Cũng Gặp Một Lần
+
+Bạn viết template Deployment, chạy `helm template`, và YAML ra... sai. Gần như chắc chắn bạn rơi vào một trong ba cái bẫy sau (đều có phân tích ở mục 5):
+
+**Bẫy 1: thụt lề.** `{{ toYaml .Values.resources | indent 8 }}` làm dòng đầu thụt sai chỗ và hỏng YAML, vì `indent` không chèn xuống dòng trước dòng đầu. Sửa bằng `{{- toYaml . | nindent 8 }}`. <!-- ev: R2.42 R2.44 -->
+
+**Bẫy 2: mất root scope.** Trong khối `with .Values.service`, gọi `{{ .Release.Name }}` bị rỗng hoặc lỗi nil pointer, vì `with` đã đổi dấu chấm `.` sang `.Values.service`. Cách lấy lại gốc: `$.Release.Name`. <!-- ev: R1.40 R1.45 R1.46 R2.39 -->
+
+**Bẫy 3: khoảng trắng.** Mỗi `if` hay `end` để lại dòng trống và thụt lề thừa. `{{-` và `-}}` xén chúng đi, nhưng phải có dấu cách sau gạch nối: `{{- 3 }}` in `3`, còn `{{-3 }}` in `-3`. <!-- ev: R1.47 R2.38 -->
+
+Cả ba đều là chuyện **dấu chấm `.` đang trỏ vào đâu** và **khoảng trắng nào còn sót lại**. Hiểu hai điều đó là hiểu 80% template Helm. Ngôn ngữ này là Go template cộng thư viện hàm Sprig. <!-- ev: R1.34 -->
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
 Trong Helm, template language biến đổi các file định nghĩa tham số hóa thành manifest Kubernetes chuẩn (như Pods tại [6_3_3 Pods](<../6_3 Kubernetes Architecture and Core Workloads/6_3_3 Pods.md>)) trước khi gửi tới API Server.

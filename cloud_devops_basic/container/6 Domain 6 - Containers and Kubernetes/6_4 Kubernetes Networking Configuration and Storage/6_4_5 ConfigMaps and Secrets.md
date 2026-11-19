@@ -11,11 +11,115 @@
 
 ---
 
+## 0. Tình Huống Mở Đầu: "Tôi Đã Sửa ConfigMap Rồi Mà App Không Đổi!"
+
+> Chưa biết ConfigMap và Secret là gì? Đọc **[1.1](#11-configmap-và-secret-là-gì-vì-sao-cần-chúng)** trước, rồi quay lại đây.
+
+Bạn có Pod đọc `GREETING` từ ConfigMap, đang trả `xin chao`. Bạn sửa ConfigMap thành `chao ban` và chờ. Kết quả thực nghiệm trên kind v1.37.0 (17-11-2026):
+
+| Cách Pod nhận cấu hình | Sau khi sửa ConfigMap |
+| :--- | :--- |
+| Biến môi trường (`env`) | Vẫn `xin chao`. Chỉ đổi sau khi tạo lại Pod |
+| File trong volume | Đổi sau khoảng **86 giây** |
+| File mount bằng `subPath` | **Không bao giờ đổi** (vẫn `mode=blue` khi volume thường đã `mode=green`) |
+
+Đây là câu hỏi phỏng vấn kinh điển và là nguyên nhân của rất nhiều sự cố "đổi rồi mà không ăn". Nửa còn lại của bài là chuyện **Secret**: nó **không an toàn** như tên gọi. Một lệnh `base64 -d` là ra mật khẩu, và `kubectl apply` còn tự chép plaintext vào annotation. Hai thứ này bạn sẽ tự tay tái hiện ở mục 4 (khoảng 15 phút).
+
+---
+
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
-### 1.1 Vì Sao Tách Cấu Hình Khỏi Image?
+### 1.1 ConfigMap Và Secret Là Gì? Vì Sao Cần Chúng?
 
-Một image nên chạy được ở dev, staging, prod; thứ khác nhau giữa các môi trường (URL DB, mức log, tính năng bật/tắt, mật khẩu) phải nằm **ngoài** image. Kubernetes cung cấp hai đối tượng:
+#### 1.1.1 Bài Toán: Cùng Một Image, Nhiều Môi Trường
+
+Một image nên **build một lần** rồi chạy được ở dev, staging, prod. Nhưng mỗi môi trường cần giá trị khác nhau: địa chỉ database, mức log, bật/tắt tính năng, mật khẩu. Nếu bạn viết thẳng các giá trị đó vào image thì:
+
+- Muốn đổi một giá trị phải **build lại image**, và phải có một image riêng cho mỗi môi trường.
+- Mật khẩu nằm **trong image**, nên ai pull được image đều đọc được.
+
+Giải pháp: để cấu hình **nằm ngoài image**, ở một object riêng trong Kubernetes. Pod đọc nó lúc chạy. Tài liệu Kubernetes mô tả mục đích là *"decouple environment-specific configuration from your container images, so that your applications are easily portable"*. Ví dụ trong chính tài liệu: biến `DATABASE_HOST` là `localhost` khi chạy trên máy bạn, và là tên một Service khi chạy trên cloud, còn image thì giữ nguyên.
+
+Kubernetes có **hai object** cho việc này: `ConfigMap` (cấu hình thường) và `Secret` (dữ liệu nhạy cảm).
+
+#### 1.1.2 ConfigMap Là Gì
+
+> *"A ConfigMap is an API object used to store non-confidential data in key-value pairs."* (tài liệu Kubernetes)
+
+Hiểu đơn giản: **một cuốn sổ ghi các cặp `khóa: giá trị`, có đặt tên, lưu trong cluster**. Pod lấy giá trị từ cuốn sổ đó thay vì từ image.
+
+Điểm khác với hầu hết object khác: ConfigMap **không có `spec`**, dữ liệu nằm ở trường `data` (chuỗi UTF-8) hoặc `binaryData` (nhị phân dạng base64).
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hello-config          # tên cuốn sổ (phải là DNS subdomain name hợp lệ)
+data:
+  GREETING: "xin chao"        # khóa đơn giản: một giá trị
+  app.properties: |           # khóa kiểu "file": nhiều dòng
+    mode=blue
+    log=info
+```
+
+Hai kiểu khóa thường gặp: **giá trị đơn** (như `GREETING`) và **nội dung cả một file** (như `app.properties`).
+
+Tạo và xem bằng lệnh (không cần viết YAML):
+
+```bash
+kubectl create configmap hello-config --from-literal=GREETING="xin chao"
+kubectl get configmap hello-config -o yaml        # thấy data: GREETING: xin chao
+```
+
+Giới hạn theo tài liệu: tên là DNS subdomain name, khóa gồm chữ-số và `-`, `_`, `.`, tổng dữ liệu **không quá 1 MiB**. ConfigMap *"is not designed to hold large chunks of data"*.
+
+#### 1.1.3 Secret Là Gì
+
+> *"A Secret is an object that contains a small amount of sensitive data such as a password, a token, or a key."* (tài liệu Kubernetes)
+
+Hình dạng **giống ConfigMap** (cũng là các cặp khóa-giá trị, cũng đặt tên), nhưng dành cho dữ liệu nhạy cảm: mật khẩu, token, khóa TLS. Tài liệu nói: *"Secrets are similar to ConfigMaps but are specifically intended to hold confidential data."* Lợi ích: Secret được tạo **độc lập với Pod**, nên mật khẩu không phải nằm trong định nghĩa Pod hay trong image.
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hello-secret
+type: Opaque                   # loại mặc định: dữ liệu tùy ý (các loại khác ở 1.7)
+stringData:                    # tiện cho người viết: ghi chữ thường, API tự base64 khi lưu
+  API_TOKEN: "s3cr3t-token"
+```
+
+Lưu ý khi đọc ra: dữ liệu Secret nằm ở trường `data` dưới dạng **base64**, không phải chữ thường. Tạo bằng lệnh:
+
+```bash
+kubectl create secret generic hello-secret --from-literal=API_TOKEN='s3cr3t-token'
+kubectl get secret hello-secret -o yaml           # data: API_TOKEN: czNjcjN0LXRva2Vu (base64)
+```
+
+> ⚠️ **Tên "Secret" dễ gây hiểu lầm.** Theo tài liệu Kubernetes, Secret mặc định được lưu **không mã hóa** trong etcd, và ai có quyền API hoặc tạo được Pod trong namespace đều đọc được. Nó an toàn hơn việc nhét mật khẩu vào image, nhưng không phải két sắt. Chi tiết ở 1.7.
+
+#### 1.1.4 Pod Dùng Chúng Thế Nào (Bản Tối Giản)
+
+Bạn chỉ cần biết hai cách phổ biến nhất. Cách 1: biến môi trường.
+
+```yaml
+containers:
+- name: app
+  image: <image-của-bạn>
+  env:
+  - name: GREETING                          # tên biến trong container
+    valueFrom:
+      configMapKeyRef: { name: hello-config, key: GREETING }
+  - name: API_TOKEN
+    valueFrom:
+      secretKeyRef: { name: hello-secret, key: API_TOKEN }
+```
+
+Cách 2: mount thành **file** trong thư mục của container (xem ví dụ đầy đủ ở 4.1). Cả bốn cách dùng ConfigMap và chuyện "sửa cấu hình thì Pod thấy gì" nằm ở 1.2 và 1.3.
+
+> Các khối YAML trong 1.1.2–1.1.4 là bản rút gọn để học khái niệm, **chưa chạy riêng lẻ**. Ví dụ đầy đủ đã chạy thật ở mục 4.
+
+#### 1.1.5 So Sánh Nhanh
 
 | | **ConfigMap** | **Secret** |
 | :--- | :--- | :--- |
@@ -118,16 +222,16 @@ Warning  Failed  kubelet  Error: configmap "nope" not found
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)
 
-**Nhà hàng có sổ công thức và két sắt:**
+**Một chuỗi nhà hàng, và buổi sáng thay thực đơn.**
 
-- **Image = bếp trưởng và kỹ thuật nấu** (không đổi giữa các chi nhánh). **ConfigMap = tờ thực đơn hôm nay** dán trên tường: độ mặn, giờ mở cửa, món đặc biệt.
-- **Cấp cấu hình bằng biến môi trường = dặn miệng nhân viên lúc vào ca**: sửa thực đơn giữa ca thì nhân viên đang làm **không biết**; phải cho ca mới vào (restart Pod) mới nhận chỉ thị mới.
-- **Cấp bằng volume = tờ thực đơn dán trên tường bếp**: đổi tờ giấy mới thì mọi người nhìn thấy, nhưng **cần vài chục giây để thợ dán kịp thay** (kubelet sync), và **người đã chép tờ cũ vào sổ tay riêng (`subPath`) sẽ không thấy gì**. Hơn nữa, đầu bếp phải **chịu khó nhìn lại tờ giấy** (app reload).
-- **Thay tờ thực đơn bằng cách đổi cả tấm bảng trong một lượt (symlink `..data`)** = không bao giờ có cảnh một nửa tờ cũ, một nửa tờ mới.
-- **`immutable` = thực đơn in ép plastic**: không sửa được, muốn đổi phải in tờ mới và treo lên.
-- **Secret = két sắt có mật mã**, nhưng mặc định két **không khóa** (không encryption at rest): ai có chìa phòng (quyền API/etcd) hoặc ai được phép mở cửa bếp (tạo Pod) đều lấy được. **base64 giống bọc giấy báo lên tiền**, nhìn qua thì khó đọc nhưng bóc ra ngay (`base64 -d`).
-- **Secret mount bằng tmpfs = để tiền trên bàn rồi cất vào két khi hết ca** (chỉ trong RAM, không ghi xuống ổ đĩa node).
-- **`apply` làm lộ plaintext qua annotation = photocopy tờ giấy mật mã và để trong ngăn kéo bên cạnh**.
+Bếp trưởng và kỹ thuật nấu (image) giống nhau ở mọi chi nhánh. Cái khác nhau là **thực đơn hôm nay** (ConfigMap): độ mặn, giờ mở cửa, món đặc biệt. Sáng nay quản lý quyết định đổi thực đơn. Chuyện gì xảy ra ở mỗi chi nhánh?
+
+- **Chi nhánh A (env):** quản lý dặn miệng nhân viên lúc vào ca. Giữa ca đổi thực đơn thì nhân viên đang đứng bếp **không hề biết**. Phải cho ca mới vào (restart Pod) mới nhận chỉ thị mới.
+- **Chi nhánh B (volume):** thực đơn dán trên tường bếp. Có người đến dán tờ mới, nhưng **mất vài chục giây** (kubelet sync). Và đầu bếp phải **chịu khó ngẩng lên đọc lại** (app reload). Người thợ dán còn khéo léo: anh ta đổi **cả tấm bảng trong một lượt** (symlink `..data`), nên không bao giờ có cảnh một nửa tờ cũ, một nửa tờ mới.
+- **Chi nhánh C (`subPath`):** đầu bếp đã **chép tờ cũ vào sổ tay riêng**. Tường có đổi bao nhiêu lần, sổ tay vẫn là bản cũ.
+- **`immutable` = thực đơn ép plastic:** không sửa được; muốn đổi phải in tờ mới và treo lên.
+
+**Còn Secret là két sắt công thức bí mật**, nhưng mặc định két **không khóa** (không encryption at rest). Ai có chìa phòng (quyền API/etcd), hoặc ai được phép mở cửa bếp (tạo Pod trong namespace), đều lấy được. **base64 giống bọc giấy báo lên tiền**: nhìn qua khó đọc, bóc ra ngay (`base64 -d`). Mount Secret bằng tmpfs là để tiền trên bàn trong ca rồi cất đi khi hết ca (chỉ trong RAM). Và `kubectl apply` làm lộ plaintext qua annotation chẳng khác gì **photocopy tờ mật mã rồi để trong ngăn kéo bên cạnh**.
 
 ---
 
@@ -352,35 +456,27 @@ kubectl create secret docker-registry regcred \
 
 ## 5. Cạm Bẫy Thực Tế & Thực Tiễn Sản Xuất (Production Gotchas & Best Practices)
 
-### 5.1 Cạm Bẫy 1: Sửa ConfigMap Rồi Ngạc Nhiên Vì Ứng Dụng Không Đổi
+> Hành vi cập nhật (env/volume/`subPath`) đã nằm ở 1.3 và bảng mở đầu; ở đây chỉ nêu cách phòng.
 
-- **Bản chất**: env không cập nhật; volume cập nhật chậm; `subPath` không cập nhật; ứng dụng cũng có thể cache cấu hình trong bộ nhớ.
-- **Khuyến nghị**: Mặc định coi "đổi cấu hình = rollout". Dùng checksum annotation (Helm) hoặc tên ConfigMap theo hash + `immutable: true`.
+### 5.1 Coi "Đổi Cấu Hình" Là "Rollout"
 
-### 5.2 Cạm Bẫy 2: Dùng `subPath` Để "Chỉ Mount Một File"
+- **Bản chất**: env không cập nhật, volume cập nhật chậm, `subPath` không cập nhật, ứng dụng còn có thể cache cấu hình trong bộ nhớ.
+- **Khuyến nghị**: Dùng checksum annotation (Helm) hoặc tên ConfigMap theo hash + `immutable: true`. Cần mount file thì mount **cả thư mục** (`/etc/config/`), không dùng `subPath`; nếu bắt buộc dùng thì chấp nhận phải rollout để đổi.
 
-- **Hiện tượng**: Mount `app.properties` bằng `subPath` vào thư mục có sẵn file khác, sau đó không bao giờ nhận được bản mới.
-- **Khuyến nghị**: Mount cả thư mục riêng (`/etc/config/`) và trỏ ứng dụng vào đó; nếu bắt buộc dùng `subPath`, chấp nhận cần rollout để đổi.
-
-### 5.3 Cạm Bẫy 3: Tin Rằng Secret "An Toàn" Vì Đã Là Secret
+### 5.2 Tin Rằng Secret "An Toàn" Vì Đã Là Secret
 
 - **Bản chất**: Mặc định không mã hóa trong etcd; base64 là encoding; ai tạo Pod trong namespace đọc được Secret của namespace.
-- **Khuyến nghị**: Bật encryption at rest; RBAC chặt (đặc biệt `get/list/watch` Secret và quyền tạo Pod); tách namespace theo mức nhạy cảm; xem xét nhà cung cấp secret bên ngoài; tuyệt đối không commit Secret plaintext hoặc base64 vào Git.
+- **Khuyến nghị**: Bật encryption at rest; RBAC chặt (đặc biệt `get/list/watch` Secret và quyền tạo Pod); tách namespace theo mức nhạy cảm; cân nhắc nhà cung cấp secret bên ngoài; không commit Secret plaintext hoặc base64 vào Git.
 
-### 5.4 Cạm Bẫy 4: Plaintext Lưu Trong `last-applied-configuration`
+### 5.3 Plaintext Rò Qua `last-applied-configuration`
 
 - **Bản chất**: `kubectl apply` ghi manifest gốc vào annotation (đã quan sát với `stringData`).
-- **Khuyến nghị**: Không dùng `apply` cho manifest chứa secret plaintext; tạo bằng `kubectl create secret` hoặc dùng công cụ quản lý secret.
+- **Khuyến nghị**: Tạo bằng `kubectl create secret ...` hoặc công cụ quản lý secret; không `apply` manifest chứa secret plaintext.
 
-### 5.5 Cạm Bẫy 5: Truyền Secret Qua Biến Môi Trường
+### 5.4 Truyền Secret Qua Biến Môi Trường
 
-- **Bản chất**: Biến môi trường dễ lọt vào log, `kubectl describe`, dump lỗi, tiến trình con. Mounted-volume (tmpfs) kiểm soát tốt hơn về quyền file.
-- **Khuyến nghị**: Ưu tiên mount Secret thành file chỉ đọc khi ứng dụng hỗ trợ; đặt `defaultMode` chặt.
-
-### 5.6 Cạm Bẫy 6: ConfigMap Quá Lớn Hoặc Chứa Dữ Liệu Không Phải Cấu Hình
-
-- **Bản chất**: Giới hạn 1 MiB; ConfigMap/Secret lớn tăng tải etcd và API server.
-- **Khuyến nghị**: Dữ liệu lớn/blob đưa vào kho lưu trữ riêng; ConfigMap/Secret đúng mục đích.
+- **Bản chất**: Biến môi trường dễ lọt vào log, `kubectl describe`, dump lỗi, tiến trình con. Volume (tmpfs) kiểm soát tốt hơn về quyền file.
+- **Khuyến nghị**: Ưu tiên mount Secret thành file chỉ đọc khi ứng dụng hỗ trợ; đặt `defaultMode` chặt. Giữ ConfigMap/Secret đúng mục đích (giới hạn 1 MiB; dữ liệu lớn đưa vào kho lưu trữ riêng).
 
 ---
 
@@ -399,18 +495,10 @@ kubectl create secret docker-registry regcred \
 <details>
 <summary>Đáp án</summary>
 
-Mặc định Secret chỉ là base64 và **không mã hóa** trong etcd; ai có quyền API/etcd, hoặc ai tạo được Pod trong namespace, đều đọc được. Cần: bật encryption at rest, RBAC đặc quyền tối thiểu, hạn chế phạm vi truy cập theo container/namespace, cân nhắc kho secret ngoài (External Secrets, Secrets Store CSI, Vault), không để plaintext trong Git và trong annotation `last-applied-configuration`.
+Mặc định Secret chỉ là base64 và **không mã hóa** trong etcd; ai có quyền API/etcd, hoặc tạo được Pod trong namespace, đều đọc được. Cần: encryption at rest, RBAC đặc quyền tối thiểu, hạn chế phạm vi truy cập theo container/namespace, cân nhắc kho secret ngoài (External Secrets, Secrets Store CSI, Vault), không để plaintext trong Git và trong annotation `last-applied-configuration`.
 </details>
 
-### Câu Hỏi 3: Sửa ConfigMap Một Biến Môi Trường Của Pod Đang Chạy, Giá Trị Có Đổi Không? File Trong Volume Thì Sao? `subPath` Thì Sao?
-
-<details>
-<summary>Đáp án</summary>
-
-Env: không, cần tạo lại Pod. Volume: có, sau một khoảng trễ (đã đo ~86 giây một lần), cập nhật nguyên tử qua symlink `..data`. `subPath`: không bao giờ nhận cập nhật.
-</details>
-
-### Câu Hỏi 4: Pod Kẹt `CreateContainerConfigError`. Nguyên Nhân Thường Gặp Và Cách Chẩn Đoán?
+### Câu Hỏi 3: Pod Kẹt `CreateContainerConfigError`. Nguyên Nhân Thường Gặp Và Cách Chẩn Đoán?
 
 <details>
 <summary>Đáp án</summary>
