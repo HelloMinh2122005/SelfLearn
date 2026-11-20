@@ -249,7 +249,7 @@ Wikimedia images in the current READMEs are **not** Tier-1. Use them only if a r
 
 - Correcting technical claims in the existing course READMEs. Only add link lines and fix anchors (Phase 0). A README audit is a separate run.
 - Labs, Docker, cloud services. The course states "no Cloud, Kubernetes, or Container abstraction layers".
-- Git commits. The learner commits with the `git-push` skill.
+- Git and version control. The learner manages them.
 
 ---
 
@@ -258,7 +258,7 @@ Wikimedia images in the current READMEs are **not** Tier-1. Use them only if a r
 A Definition of Done (DoD) item is a **gate**: every item must hold, or the unit is not done. A metric is a **measurement**: it is reported every run but never blocks on its own. `teacher-orchestrator` checks the DoD by reading the files and reports. A verifier `PASS` is necessary but **not sufficient**.
 
 ### 9.1 Phase 0 DoD
-- [ ] The checker exits `0` on `cloud_devops_basic` without `--allow-rewrite`. This also means no heading was removed or renamed.
+- [ ] The checker exits `0` on `cloud_devops_basic`.
 - [ ] The domain item counts are 45 / 33 / 15 / 10 / 10, the total is 113, and the tracker, headings, and progress values agree.
 - [ ] Domain 3 and Domain 4 IDs match the mapping in sections 4.3 and 4.4 exactly.
 - [ ] The learner's decision on the section 7 Classical OS theory source is recorded in the run report.

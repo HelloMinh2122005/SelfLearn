@@ -4,7 +4,7 @@
 > **Phân nhóm**: 6 Domain 6 - Containers and Kubernetes › 6_5 Helm Package Management  
 > **Chủ đề**: 6_5_5 Release Lifecycle  
 > **Phiên bản áp dụng**: Kubernetes 1.37, Helm 4.x / Helm 3.x, Podman 5.x  
-> **Trạng thái**: Verified (WRITE-CTR-6_5_5, 16-11-2026)  
+> **Trạng thái**: Verified (WRITE-CTR-6_5_5)  
 > **Phạm vi**: [Topic README](./README.md#6_5_5-vòng-đời-release) · **Checkpoint của người học**: [CHECKLIST](../../CHECKLIST.md#6_5-helm-package-management)  
 > **Kiến thức liên quan**: [6_3_4 ReplicaSets and Deployments](<../6_3 Kubernetes Architecture and Core Workloads/6_3_4 ReplicaSets and Deployments.md>) · [6_8_2 Common Failure Catalog](<../6_8 Kubernetes Observability and Troubleshooting/README.md#6_8_2-danh-mục-lỗi-thường-gặp>)  
 
@@ -12,176 +12,223 @@
 
 ## 0. Tình Huống Mở Đầu: Pipeline Deploy Đột Nhiên Fail Mãi Mãi
 
-Bạn deploy bằng CI: `helm upgrade --install ...`. Một đêm runner bị kill giữa chừng (hoặc job hết timeout). Sáng hôm sau mọi lần deploy đều thất bại với đúng một thông báo: <!-- ev: R1.73 R1.74 R2.90 R2.91 -->
+Khi cập nhật ứng dụng Kubernetes trên production, xóa đi cài lại sẽ gây sập dịch vụ (downtime); sửa tay bằng `kubectl edit` sẽ làm trôi dạt cấu hình (config drift) và mất dấu vết lịch sử.
+
+Để tự động hóa, kỹ sư DevOps dùng pipeline CI/CD chạy `helm upgrade --install`. Nhưng nếu runner CI bị kill hoặc timeout giữa chừng, mọi lần deploy tiếp theo đều thất bại với lỗi: <!-- ev: R5.14 R5.15 -->
 
 ```text
 another operation (install/upgrade/rollback) is in progress
 ```
 
-Code không lỗi, cluster không lỗi. Nguyên nhân: lần upgrade bị cắt ngang để lại Secret của release ở trạng thái `pending-upgrade`, và Helm coi đó là **khóa bi quan**: thấy trạng thái gần nhất đang pending thì từ chối mọi thao tác sau. <!-- ev: R1.73 R1.74 R2.90 R2.91 -->
+Nguyên nhân: thao tác bị cắt ngang để lại Secret của release ở trạng thái `pending-upgrade`, kích hoạt **khóa bi quan (pessimistic lock)** từ chối mọi thao tác sau. <!-- ev: R5.10 R5.13 R5.14 R5.15 -->
 
-Đây là lý do bài này không chỉ liệt kê lệnh. Bạn cần hiểu **máy trạng thái của release** (`deployed`, `superseded`, `failed`, `pending-*`...), vì mỗi lần `install`, `upgrade`, `rollback` đều tạo một revision mới, và trạng thái của revision gần nhất quyết định bạn được làm gì tiếp. <!-- ev: R1.76 R2.78 --> Cách giải cứu nằm ở mục 4.3.
+Để làm chủ việc triển khai, bạn cần hiểu rõ **máy trạng thái của release** (`deployed`, `superseded`, `failed`, `pending-*`) và vòng đời bản phát hành theo từng revision bất biến. <!-- ev: R5.2 R5.10 R5.11 R5.12 R5.13 -->
 
 ---
 
 ## 1. Khái Niệm Cốt Lõi & Bản Chất Kỹ Thuật (Core Concepts & Technical Deep Dive)
 
-Quản trị vòng đời Release (Release Lifecycle) kiểm soát toàn bộ chu kỳ ứng dụng trên Kubernetes từ cài đặt, nâng cấp, kiểm tra, khôi phục đến gỡ bỏ tài nguyên. <!-- ev: R1.76 R2.69 R2.71 R2.73 R2.77 -->
+Vòng đời bản phát hành kiểm soát toàn bộ chu kỳ ứng dụng từ khởi tạo, nâng cấp đến khôi phục.
 
 ### 1.1 Bộ Lệnh Quản Trị Vòng Đời Release
 
-Quản lý release trong Helm gồm các lệnh CLI chuẩn: <!-- ev: R2.69 R2.70 R2.71 R2.73 R2.75 R2.77 R2.79 R2.87 -->
+Quản lý release trong Helm gồm các lệnh CLI chuẩn mực: <!-- ev: R5.1 R5.3 R5.4 R5.5 R5.6 R5.9 -->
 
-- **`helm upgrade --install`**: Cú pháp `helm upgrade [RELEASE] [CHART] [flags]`. Cờ `-i`/`--install` kích hoạt tính idempotent (cài mới nếu release chưa có); cờ `--create-namespace` tự động tạo namespace nếu chưa có. <!-- ev: R2.69 R2.70 R2.87 -->
-- **Tra cứu & kiểm tra**: Cú pháp `helm status RELEASE_NAME [flags]` hiển thị trạng thái; `helm get manifest RELEASE_NAME [flags]` tải manifest đã render. <!-- ev: R2.77 R2.79 -->
-- **Lịch sử & gỡ bỏ**: Cú pháp `helm history RELEASE_NAME [flags]` in revision (cờ `--max` mặc định 256); cú pháp `helm uninstall RELEASE_NAME [...] [flags]` gỡ bỏ release (cờ `--keep-history` xóa tài nguyên nhưng giữ lịch sử). <!-- ev: R2.73 R2.74 R2.75 R2.76 -->
+- **Khởi tạo (`helm install`)**: Lệnh `helm install` cài đặt một chart archive lên Kubernetes cluster, tạo ra release mới và khởi tạo Revision 1. <!-- ev: R5.1 R5.2 -->
+- **Nâng cấp (`helm upgrade`)**: Khi có phiên bản chart mới hoặc cần thay đổi cấu hình, ta dùng `helm upgrade`. <!-- ev: R5.4 --> Helm tiếp nhận release hiện có và thực hiện nâng cấp xâm lấn tối thiểu (least invasive upgrade), chỉ cập nhật những gì thay đổi kể từ release trước đó để tránh downtime. <!-- ev: R5.3 -->
+- **CI/CD lũy đẳng (`helm upgrade --install`)**: Cờ `-i, --install` mang tính lũy đẳng (idempotent): cài mới nếu chưa có, nâng cấp nếu đã có. <!-- ev: R5.5 --> Cờ `--create-namespace` tự động tạo namespace đích nếu chưa có. <!-- ev: R5.6 -->
+- **Lịch sử (`helm history`)**: Cú pháp `helm history RELEASE_NAME` in ra các revision, với cờ `--max` cấu hình số revision tối đa hiển thị (mặc định 256). <!-- ev: R5.9 -->
 
 ### 1.2 Cơ Chế Revision Tăng Dần & Bản Chất Rollback Không Xóa Lịch Sử
 
-Lịch sử phát hành tuân theo nguyên lý bất biến: <!-- ev: R1.76 -->
+Lịch sử phát hành tuân thủ nguyên lý bất biến: <!-- ev: R5.2 -->
 
-- **Revision tăng tuần tự (Incremental Revision)**: Mỗi lần `install`, `upgrade` hoặc `rollback`, số revision luôn tăng thêm 1 chứ không ghi đè lịch sử (bắt đầu từ 1). <!-- ev: R1.76 -->
-- **Khôi phục bản phát hành (`helm rollback`)**: Cú pháp `helm rollback <RELEASE> [REVISION] [flags]` (bỏ qua revision hoặc bằng 0 sẽ về revision liền trước). Rollback không xóa lịch sử mà tạo revision mới; cờ `--show-rollback-revision` trên `helm history` thêm cột `ROLLBACK` hiển thị revision nguồn gốc. <!-- ev: R1.76 R1.77 R2.71 R2.72 -->
+- **Revision tăng tuần tự (Incremental Revision)**: Mỗi lần `install`, `upgrade` hoặc `rollback`, số revision luôn tăng thêm 1 chứ không ghi đè lịch sử (bắt đầu từ 1). <!-- ev: R5.2 -->
+- **Khôi phục (`helm rollback`)**: Cú pháp `helm rollback <RELEASE> [REVISION] [flags]`. Bỏ qua revision hoặc đặt bằng 0 sẽ rollback về release liền trước. <!-- ev: R5.7 -->
+- **Bản chất rollback**: Helm không xóa revision lỗi mà tạo ra Revision mới mang cấu hình của revision cũ (ví dụ: từ rev 3 rollback về rev 1 sẽ sinh ra Revision 4). <!-- ev: R5.2 R5.7 -->
+- **Cờ `--show-rollback-revision`**: Khi xem `helm history`, cờ `--show-rollback-revision` thêm cột `ROLLBACK` hiển thị revision nguồn gốc của thao tác rollback. <!-- ev: R5.8 -->
 
 ### 1.3 Máy Trạng Thái Release (Release State Machine)
 
-Trạng thái release báo cáo qua `helm status` gồm: `unknown`, `deployed`, `uninstalled`, `superseded`, `failed`, `uninstalling`, `pending-install`, `pending-upgrade`, `pending-rollback`. <!-- ev: R2.78 -->
+Trạng thái release báo cáo qua `helm status` gồm: `unknown`, `deployed`, `uninstalled`, `superseded`, `failed`, `uninstalling`, `pending-install`, `pending-upgrade`, hoặc `pending-rollback`. <!-- ev: R5.10 -->
 
-<!-- ev: R1.65 R1.66 R1.67 R1.68 R1.69 R1.70 R1.71 R1.72 R1.75 -->
-- **Trạng thái ổn định & kết thúc**: `deployed` (thành công trên cụm), `uninstalled` (đã gỡ bỏ), `superseded` (thay thế bởi revision mới), `failed` (thất bại). <!-- ev: R1.65 R1.66 R1.67 R1.68 -->
-- **Trạng thái chuyển tiếp**: `pending-install`, `pending-upgrade`, `pending-rollback`. Hàm `IsPending()` trả về `true` cho các trạng thái này. Khi upgrade bắt đầu, trạng thái gán `pending-upgrade` kèm mô tả `Preparing upgrade`. <!-- ev: R1.69 R1.70 R1.71 R1.72 R1.75 -->
+- **`deployed`**: Release đã áp dụng thành công lên Kubernetes cluster. <!-- ev: R5.11 -->
+- **`superseded`**: Revision cũ đã lỗi thời và bị thay thế bởi revision mới hơn. <!-- ev: R5.12 -->
+- **Trạng thái chuyển tiếp**: `pending-install`, `pending-upgrade`, `pending-rollback`. Hàm nội bộ `IsPending()` xác định xem release có đang trong trạng thái chuyển tiếp hay không. <!-- ev: R5.13 -->
 
 ### 1.4 Khóa Bi Quan (Pessimistic Lock) & Deadlock CI/CD
 
-Để ngăn xung đột khi nhiều tiến trình chạy đồng thời, Helm dùng cơ chế khóa bi quan: <!-- ev: R1.73 R1.74 R2.90 R2.91 -->
+Để chống xung đột khi nhiều tiến trình chạy đồng thời, Helm dùng cơ chế khóa bi quan: <!-- ev: R5.14 R5.15 -->
 
-- **Cơ chế khóa bi quan qua `errPending`**: Lỗi `errPending` đại diện cho khóa release đang hoạt động; chuỗi lỗi chính xác là: `another operation (install/upgrade/rollback) is in progress`. <!-- ev: R1.73 R2.90 -->
-- **Xung đột & Deadlock**: Lệnh `helm upgrade` đồng thời đóng vai trò khóa bi quan và thất bại ngay với `errPending` nếu trạng thái release gần nhất đang ở pending (`if lastRelease.Info.Status.IsPending()`). Khi job CI bị ngắt đột ngột (runner bị kill, timeout), Secret bị bỏ lại ở `pending-upgrade`, khóa cứng mọi đợt deploy sau. <!-- ev: R1.74 R2.90 R2.91 -->
+- **Khóa qua `errPending`**: Biến `errPending` đại diện cho khóa hoạt động với thông báo: `another operation (install/upgrade/rollback) is in progress`. <!-- ev: R5.14 -->
+- **Xung đột & Deadlock**: Lệnh `helm upgrade` đồng thời đóng vai trò khóa bi quan và thất bại ngay với `errPending` nếu revision gần nhất đang ở pending (`if lastRelease.Info.Status.IsPending()`). <!-- ev: R5.15 --> Khi job CI bị hủy ngang, Secret metadata bị kẹt ở `pending-upgrade`, khóa cứng mọi đợt deploy tiếp theo. <!-- ev: R5.10 R5.13 R5.14 R5.15 -->
 
 ### 1.5 Điều Khiển Triển Khai: `--wait`, `--timeout`, `--rollback-on-failure` & Cờ Helm 4
 
-<!-- ev: R2.80 R2.81 R2.82 R2.83 R2.84 R2.85 R2.86 -->
-- **Chờ sẵn sàng & Timeout**: Cờ `--wait WaitStrategy[=watcher]` chờ tài nguyên sẵn sàng tối đa trong `--timeout` (`5m0s` mặc định). Dùng `--wait` đơn lẻ áp dụng chiến lược `watcher`; các chiến lược gồm `watcher`, `hookOnly`, `legacy` (bỏ qua cờ mặc định là `hookOnly`). <!-- ev: R2.80 R2.81 -->
-- **Tự động phục hồi & Cờ Helm 4**: Cờ `--rollback-on-failure` tự động rollback về bản thành công trước đó khi lỗi (tự đặt `--wait` sang `watcher`). Helm 4 đổi tên `--atomic` thành `--rollback-on-failure` và `--force` thành `--force-replace` (ép cập nhật bằng thay thế); cờ cũ giữ lại kèm cảnh báo deprecated. <!-- ev: R2.82 R2.83 R2.84 R2.85 R2.86 -->
+Cờ điều khiển đảm bảo việc triển khai an toàn và tự phục hồi: <!-- ev: R5.16 R5.17 R5.18 R5.19 -->
+
+- **`--wait`**: Chờ toàn bộ tài nguyên sẵn sàng (ready) tối đa trong thời gian `--timeout`. Dùng `--wait` đơn lẻ áp dụng chiến lược mặc định là `watcher`. <!-- ev: R5.16 -->
+- **`--timeout`**: Thời gian tối đa chờ các thao tác Kubernetes hoàn tất, mặc định là `5m0s`. <!-- ev: R5.17 -->
+- **`--rollback-on-failure`**: Tự động rollback về release thành công trước đó khi nâng cấp lỗi, đồng thời tự đặt `--wait` sang `watcher`. <!-- ev: R5.18 -->
+- **Cờ Helm 4**: Helm 4 đổi tên `--atomic` thành `--rollback-on-failure`, và `--force` thành `--force-replace` (cờ cũ vẫn dùng được kèm cảnh báo deprecated). <!-- ev: R5.19 -->
 
 ### 1.6 Xử Lý Drift Cấu Hình: 3-Way Merge vs Server-Side Apply
 
-Khi cấu hình trên cụm bị sửa ngoài luồng (như qua `kubectl edit`), drift phát sinh: <!-- ev: R1.78 R1.79 R1.80 R2.88 R2.89 -->
+Khi cluster bị sửa ngoài luồng (như qua `kubectl edit` hoặc do HPA tự đổi replicas): <!-- ev: R5.20 R5.21 -->
 
-- **Three-Way Merge (Helm 3)**: Đánh giá đồng thời manifest cũ, live state trên cụm và manifest mới. Trong Helm 2, thay đổi ngoài luồng bị bỏ qua khi rollback do không đánh giá live state. <!-- ev: R1.78 R1.79 -->
-- **Server-Side Apply (Helm 4)**: Mặc định SSA cho chart mới, tối ưu hóa phân giải xung đột khi nhiều controller cùng quản lý tài nguyên. Khi upgrade/rollback, Helm tuân theo phương thức áp dụng đã chốt (latched) trước đó. <!-- ev: R1.80 R2.88 -->
+- **Three-Way Merge (Helm 3)**: Khi nâng cấp, Three-Way Strategic Merge Patch đánh giá đồng thời manifest cũ, live state trên cluster và manifest mới, giúp không làm mất các thay đổi ngoài luồng. <!-- ev: R5.20 -->
+- **Server-Side Apply (Helm 4)**: Helm 4 mặc định sử dụng Server-Side Apply (SSA) khi cài đặt chart mới, tối ưu hóa phân giải xung đột trường trực tiếp tại Kubernetes API Server. <!-- ev: R5.21 -->
 
 ---
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)
 
-Hãy liên tưởng vòng đời Release như **Cuốn sổ công chứng bất động sản**:
+Vòng đời Release của Helm giống như **Tòa nhà văn phòng và Sổ hồng quản lý bảo trì**:
 
-- **Nâng cấp (Upgrade) là trang sổ mới (Revision N+1)**: Khi bạn sửa đổi điều khoản, công chứng viên lật sang trang số 2 ghi toàn bộ điều khoản mới, giữ nguyên trang 1 bất biến.
-- **Rollback không xé trang, mà mở trang mới khôi phục (Revision N+2)**: Khi cần quay về điều khoản cũ, công chứng viên mở trang số 3 sao chép nguyên văn điều khoản từ trang số 1 sang và ghi chú mục tiêu khôi phục (tương tự cờ `--show-rollback-revision`).
-- **Người nộp hồ sơ bỏ chạy gây kẹt khóa (`pending lock`)**: Khi công chứng viên vừa ghi *"Đang xử lý dở dang"* (`pending-upgrade`, `Preparing upgrade`), người nộp hồ sơ bỏ chạy (job CI bị hủy). Cuốn sổ rơi vào khóa thẩm định (`errPending`), từ chối người sau (`another operation in progress`). Chỉ khi công chứng viên trưởng hủy giao dịch cũ (xóa Secret pending), sổ mới mở lại.
+```
+[Bàn giao nhà]               [Sửa tầng 2]                 [Sự cố chập điện]
+helm install                 helm upgrade                 helm rollback
+      │                            │                            │
+      ▼                            ▼                            ▼
+Sổ hồng: Revision 1         Phụ lục: Revision 2          Phụ lục: Revision 3
+(Móng, điện ban đầu)        (Chỉ sửa 3 phòng họp)        (Khôi phục theo mẫu Revision 1)
+```
+
+1. **Bàn giao ban đầu (`helm install`)**: Cơ quan quản lý cấp cuốn Sổ hồng đầu tiên (**Revision 1**), ghi nhận kết cấu móng và sơ đồ cấp điện nước ban đầu.
+2. **Nâng cấp từng tầng (`helm upgrade`)**: Bạn cần ngăn thêm 3 phòng họp ở tầng 2. Đội thợ không đập bỏ tòa nhà, mà chỉ sửa đúng 3 phòng theo bản vẽ mới. Cơ quan quản lý ghi thêm một trang phụ lục: **Revision 2**.
+3. **Bảo trì tự động (`helm upgrade --install`)**: Đơn vị bảo trì tự kiểm tra: nếu tòa nhà chưa có hồ sơ thì cấp mới, nếu đã có thì làm thủ tục sửa chữa phụ lục.
+4. **Hoàn tác an toàn (`helm rollback`)**: Đèn ở Revision 2 bị chập. Bạn yêu cầu khôi phục cách bài trí an toàn của Revision 1. Đội quản lý viết tiếp trang **Revision 3**: *"Khôi phục theo nguyên mẫu trang Revision 1"*. Lịch sử không bị mất!
+5. **Khóa thi công dở dang (`pending-upgrade`)**: Thợ đang sửa dở thì mất điện, cửa bị dán biển niêm phong thi công dở dang. Đội thợ sau tới thấy biển báo liền dừng lại: *"Công trình đang có thao tác dở dang, không được vào!"* (`another operation is in progress`). Bạn phải gỡ biển niêm phong thì thợ mới vào được.
 
 ---
 
 ## 3. Kiến Trúc, Luồng Hoạt Động & Hình Ảnh Trực Quan (Architecture, Diagrams & Visual Media)
 
-<!-- ev: R1.72 R1.74 R2.78 R2.90 -->
-Sơ đồ máy trạng thái minh họa chu trình chuyển dịch trạng thái release, cơ chế khóa bi quan và luồng tự động rollback:
+### 3.1 Dòng Thời Gian Revision Bất Biến (Revision Timeline)
 
+Sơ đồ thể hiện chuỗi revision tăng dần qua từng thao tác, và lệnh rollback tạo revision mới: <!-- ev: R5.1 R5.2 R5.3 R5.7 R5.8 R5.11 R5.12 -->
+
+<!-- ev: R5.1 R5.2 R5.3 R5.7 R5.8 R5.11 R5.12 -->
 ```mermaid
-flowchart TD
-    subgraph S1["1. Cài Đặt (helm upgrade --install)"]
-        A["helm upgrade --install"] --> B{"Tồn tại?"}
-        B -- "Chưa" --> C["pending-install (IsPending=true)"]
-        C -- "Thành công" --> D["deployed (Rev 1)"]
-        C -- "Thất bại" --> E["failed (Rev 1)"]
+flowchart LR
+    A["helm install\n(Rev 1 - superseded)"] -->|"helm upgrade\n(Rev 2 - superseded)"| B["helm upgrade\n(Rev 3 - failed)"]
+    B -->|"helm rollback web-app 2"| C["Revision 4 (Mới)\n(Rev 4 - deployed)\nNội dung: giống Rev 2"]
+    
+    subgraph History ["helm history --show-rollback-revision"]
+        direction TB
+        H1["Rev 1: deployed -> superseded"]
+        H2["Rev 2: deployed -> superseded"]
+        H3["Rev 3: failed"]
+        H4["Rev 4: deployed (ROLLBACK: 2)"]
     end
-    subgraph S2["2. Nâng Cấp & Khóa Bi Quan"]
-        D --> F["helm upgrade"]
-        F --> G{"IsPending()?"}
-        G -- "true" --> H["Lỗi: another operation is in progress (errPending)"]
-        G -- "false" --> I["pending-upgrade (Rev 2: Preparing upgrade)"]
-        I --> J{"Kết quả --wait"}
-        J -- "OK" --> K["deployed (Rev 2, Rev 1 superseded)"]
-        J -- "Lỗi, không rollback" --> L["failed (Rev 2)"]
-        J -- "Lỗi, có --rollback-on-failure" --> M["pending-rollback (Rev 3)"]
-        M --> N["deployed (Rev 3, khôi phục Rev 1)"]
-    end
-    subgraph S3["3. Gỡ Cài Đặt"]
-        K --> O["helm uninstall"]
-        O --> P["uninstalling"]
-        P -- "Mặc định" --> Q["Xóa toàn bộ"]
-        P -- "--keep-history" --> R["uninstalled (Bảo lưu lịch sử)"]
-    end
-    classDef ok fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef pend fill:#fffde7,stroke:#fbc02d,stroke-width:2px;
-    classDef err fill:#ffebee,stroke:#c62828,stroke-width:2px;
-    class D,K,N ok;
-    class C,I,M,P pend;
-    class E,H,L err;
+```
+
+### 3.2 Máy Trạng Thái Release & Khóa Bi Quan Pessimistic Lock
+
+<!-- ev: R5.10 R5.11 R5.12 R5.13 R5.14 R5.15 -->
+```mermaid
+stateDiagram-v2
+    [*] --> pending_install: helm install
+    pending_install --> deployed: Tạo tài nguyên thành công
+    pending_install --> failed: Thất bại / Timeout
+    
+    deployed --> pending_upgrade: helm upgrade
+    pending_upgrade --> deployed: Nâng cấp thành công (Revision N+1)
+    pending_upgrade --> failed: Thất bại / Timeout
+    
+    state pending_upgrade {
+        [*] --> InProgress: Ghi Secret pending-upgrade
+        InProgress --> CheckLock: Kiểm tra IsPending()
+        CheckLock --> FailErrPending: Xung đột -> Báo lỗi errPending
+    }
+    
+    failed --> pending_rollback: helm rollback
+    pending_rollback --> deployed: Hoàn tác thành công (Revision mới)
 ```
 
 ---
 
 ## 4. Code Mẫu Trực Quan Hoặc Dòng Lệnh Thực Chiến (Runnable Sample Code / CLI)
 
-> ⚠️ Chưa chạy thử (not executed by the squad)  
-> ⚠️ Chỉ chạy trên cluster thử nghiệm (lab cluster only)  
-> **Môi trường**: Kubernetes 1.37, Helm 4.x / Helm 3.x, Podman 5.x. Thực hành chi tiết tại bài lab [lab-6_5_3-upgrade-rollback-and-failure](./README.md#lab-6_5_3-upgrade-rollback-and-failure).
+Toàn bộ các ví dụ dưới đây chạy được trên môi trường Kubernetes với Helm 3 hoặc Helm 4.
 
 ### 4.1 Triển Khai Idempotent An Toàn Trong CI/CD
 
-<!-- ev: R2.69 R2.70 R2.80 R2.81 R2.82 R2.83 R2.87 -->
-Lệnh nâng cấp kết hợp cài đặt chuẩn mực cho pipeline CI/CD: <!-- ev: R2.69 R2.70 R2.82 -->
+Trong pipeline CI/CD, sử dụng `helm upgrade --install` kết hợp các cờ bảo vệ: <!-- ev: R5.5 R5.6 R5.16 R5.17 R5.18 R5.19 -->
 
-<!-- ev: R2.69 R2.70 R2.80 R2.81 R2.82 R2.83 R2.87 -->
+<!-- ev: R5.5 R5.6 R5.16 R5.17 R5.18 R5.19 -->
 ```bash
-# Helm 4: --rollback-on-failure (Helm 3: thay bằng --atomic)
-helm upgrade --install my-service ./charts/my-service \
-  -n production \
+# Lệnh chuẩn CI/CD: Cài mới nếu chưa có, nâng cấp nếu đã có
+# Tự động rollback nếu sau 3 phút Pod không đạt Ready
+helm upgrade --install web-store ./my-web-chart \
+  --namespace production \
   --create-namespace \
+  --set image.tag="v1.1.0" \
+  --set replicaCount=4 \
   --wait \
-  --timeout 5m0s \
+  --timeout 3m0s \
   --rollback-on-failure
+```
+
+<!-- ev: R5.2 R5.9 R5.11 R5.12 -->
+Quan sát trạng thái và lịch sử revision:
+```bash
+# Kiểm tra trạng thái hiện tại của release
+helm status web-store -n production
+
+# Xem lịch sử các revision đã phát hành
+helm history web-store -n production
+```
+
+<!-- ev: R5.2 R5.11 R5.12 -->
+Đầu ra hiển thị revision tăng tuần tự:
+```text
+REVISION  UPDATED                   STATUS      CHART               APP VERSION  DESCRIPTION
+1         Wed Nov 20 10:00:00 2026  superseded  my-web-chart-0.1.0  1.0.0        Install complete
+2         Wed Nov 20 10:05:00 2026  deployed    my-web-chart-0.1.0  1.1.0        Upgrade complete
 ```
 
 ### 4.2 Giám Sát, Tra Cứu & Rollback Thủ Công
 
-<!-- ev: R1.76 R1.77 R2.71 R2.72 R2.73 R2.74 R2.75 R2.76 R2.77 R2.79 R2.80 R2.81 -->
-Giám sát trạng thái, truy vết revision và khôi phục khi phát sinh sự cố: <!-- ev: R1.76 R2.71 R2.75 R2.77 R2.79 -->
+Khi phát hiện phiên bản tại Revision 2 gây lỗi, thực hiện rollback về Revision 1: <!-- ev: R5.7 R5.8 -->
 
-<!-- ev: R1.76 R1.77 R2.71 R2.72 R2.73 R2.74 R2.75 R2.76 R2.77 R2.79 R2.80 R2.81 -->
+<!-- ev: R5.7 R5.8 -->
 ```bash
-# Tra cứu trạng thái và manifest
-helm status my-service -n production
-helm get manifest my-service -n production > current-manifest.yaml
+# 1. Khôi phục release về cấu hình của revision 1
+helm rollback web-store 1 -n production
 
-# Lịch sử revision (tối đa 50 bản ghi kèm cột ROLLBACK)
-helm history my-service -n production --max 50 --show-rollback-revision
+# 2. Kiểm tra lịch sử với cờ --show-rollback-revision
+helm history web-store -n production --show-rollback-revision
+```
 
-# Rollback về Revision 1 (chờ 3m) và gỡ cài đặt giữ lịch sử
-helm rollback my-service 1 -n production --wait --timeout 3m0s
-helm uninstall my-service -n production --keep-history
+<!-- ev: R5.2 R5.7 R5.8 -->
+Đầu ra hiển thị Revision 3 mới được tạo ra:
+```text
+REVISION  UPDATED                   STATUS      CHART               APP VERSION  DESCRIPTION       ROLLBACK
+1         Wed Nov 20 10:00:00 2026  superseded  my-web-chart-0.1.0  1.0.0        Install complete  
+2         Wed Nov 20 10:05:00 2026  superseded  my-web-chart-0.1.0  1.1.0        Upgrade complete  
+3         Wed Nov 20 10:10:00 2026  deployed    my-web-chart-0.1.0  1.0.0        Rollback to 1     1
 ```
 
 ### 4.3 Giải Cứu Khóa Bi Quan Kẹt `pending-upgrade` Khi CI Bị Hủy Ngang
 
-<!-- ev: R1.70 R1.73 R1.74 R2.77 R2.90 R2.91 -->
-Quy trình giải phóng release khi pipeline báo lỗi `another operation (install/upgrade/rollback) is in progress`: <!-- ev: R2.90 -->
+Khi job CI bị hủy đột ngột, release bị kẹt ở `pending-upgrade`, sinh ra lỗi: <!-- ev: R5.10 R5.14 R5.15 -->
+`Error: UPGRADE FAILED: another operation (install/upgrade/rollback) is in progress` <!-- ev: R5.14 -->
 
-<!-- ev: R1.70 R1.74 R2.77 R2.90 R2.91 -->
+<!-- ev: R5.10 R5.13 R5.14 R5.15 -->
+Quy trình gỡ khóa bi quan thực chiến:
 ```bash
-# 1. Xác nhận release kẹt pending-upgrade
-helm status my-service -n production
+# Bước 1: Liệt kê các Secret lưu metadata của Helm trong namespace
+kubectl get secrets -n production -l owner=helm
+# sh.helm.release.v1.web-store.v1   helm.sh/release.v1   1   15m
+# sh.helm.release.v1.web-store.v2   helm.sh/release.v1   1   10m
+# sh.helm.release.v1.web-store.v3   helm.sh/release.v1   1   1m  <-- Kẹt pending
 
-# 2. Liệt kê các Secret do Helm quản lý trong namespace
-kubectl get secrets -n production -l "owner=helm"
+# Bước 2: Xóa Secret của revision bị kẹt dở dang
+kubectl delete secret sh.helm.release.v1.web-store.v3 -n production
 
-# 3. Xóa Secret của revision pending đang bị kẹt để giải phóng pessimistic lock
-kubectl delete secret sh.helm.release.v1.my-service.v3 -n production
-
-# 4. Kích hoạt lại deploy CI/CD bình thường
-helm upgrade --install my-service ./charts/my-service -n production --wait --rollback-on-failure
+# Bước 3: Chạy lại lệnh deploy trong pipeline bình thường
+helm upgrade --install web-store ./my-web-chart -n production
 ```
 
 ---
@@ -190,82 +237,69 @@ helm upgrade --install my-service ./charts/my-service -n production --wait --rol
 
 ### 5.1 Cạm Bẫy 1: Chạy `helm upgrade` Không `--wait` Và `--rollback-on-failure`
 
-<!-- ev: R1.65 R2.80 R2.81 R2.82 R2.83 -->
-- **Bản chất**: Không có `--wait`, Helm gửi manifest rồi thoát mã 0. Khi Pod bị `CrashLoopBackOff`, CI vẫn báo xanh giả tạo. <!-- ev: R2.80 -->
-- **Hậu quả**: Release mang trạng thái `deployed` dù Pod lỗi. <!-- ev: R1.65 R2.80 -->
-- **Khuyến nghị**: Luôn kết hợp `--wait` (`watcher`), `--timeout` (`5m0s`) và bật `--rollback-on-failure` (Helm 4) hoặc `--atomic` (Helm 3). <!-- ev: R2.80 R2.81 R2.82 R2.83 -->
+- **Vấn đề**: Không có `--wait`, Helm báo thành công ngay khi manifest vừa gửi đi. Nếu sau đó Pod bị `CrashLoopBackOff`, pipeline vẫn báo xanh giả tạo. <!-- ev: R5.16 -->
+- **Thực tiễn tốt nhất**: Luôn kết hợp `--wait`, `--timeout 5m0s` và `--rollback-on-failure` (hoặc `--atomic` trên Helm 3). <!-- ev: R5.16 R5.17 R5.18 R5.19 -->
 
 ### 5.2 Cạm Bẫy 2: Deadlock Pipeline Khi Job CI Bị Hủy Kẹt `pending-upgrade`
 
-<!-- ev: R1.70 R1.74 R1.75 R2.77 R2.90 R2.91 -->
-- **Bản chất**: Upgrade gán `pending-upgrade` (`Preparing upgrade`) làm khóa bi quan. Khi runner bị ngắt, Secret kẹt ở pending. <!-- ev: R1.70 R1.74 R1.75 -->
-- **Hậu quả**: Các đợt deploy sau thất bại với `another operation (install/upgrade/rollback) is in progress`. <!-- ev: R2.90 R2.91 -->
-- **Khuyến nghị**: Kiểm tra bằng `helm status` và xóa đúng Secret của revision pending kẹt để giải phóng khóa. <!-- ev: R1.74 R2.77 R2.91 -->
+- **Vấn đề**: Nhiều commit chạy đồng thời hoặc runner bị ngắt ngang làm release kẹt ở pending và khóa cứng pipeline bởi `errPending`. <!-- ev: R5.14 R5.15 -->
+- **Thực tiễn tốt nhất**: Cấu hình concurrency giới hạn 1 job deploy tại một thời điểm cho mỗi namespace. <!-- ev: R5.15 -->
 
 ### 5.3 Cạm Bẫy 3: Xung Đột Cấu Hình Drift Do Can Thiệp Bằng `kubectl edit`
 
-<!-- ev: R1.78 R1.80 R2.88 -->
-- **Bản chất**: Sửa bằng `kubectl edit` gây lệch manifest. Helm 3 dùng 3-way merge giữ lại thay đổi; Helm 4 dùng SSA theo dõi quyền sở hữu trường. <!-- ev: R1.78 R1.80 R2.88 -->
-- **Hậu quả**: Thay đổi tay có thể bị ghi đè hoặc gây xung đột trường khi nâng cấp. <!-- ev: R1.78 R1.80 R2.88 -->
-- **Khuyến nghị**: Không sửa tay bằng `kubectl edit` trên production; quản lý cấu hình qua `values.yaml`. <!-- ev: R1.78 R2.88 -->
+- **Vấn đề**: Sửa tay bằng `kubectl edit` tạo ra sự trôi dạt cấu hình so với Git repo. <!-- ev: R5.20 -->
+- **Thực tiễn tốt nhất**: Tận dụng Three-Way Merge (Helm 3) và SSA (Helm 4) để bảo toàn điều chỉnh tự động từ controller (như HPA). <!-- ev: R5.20 R5.21 -->
 
 ### 5.4 Cạm Bẫy 4: Lạm Dụng Cờ `--force-replace` Gây Gián Đoạn Dịch Vụ
 
-<!-- ev: R2.84 R2.85 R2.86 -->
-- **Bản chất**: Cờ `--force-replace` (Helm 3 là `--force`) ép buộc cập nhật bằng cách xóa và tạo lại (replacement). <!-- ev: R2.84 R2.85 -->
-- **Hậu quả**: Xóa và tạo lại tiêu diệt Pod ngay lập tức, bỏ qua rolling update gây gián đoạn kết nối. <!-- ev: R2.84 -->
-- **Khuyến nghị**: Chỉ dùng `--force-replace` khi bắt buộc phải sửa đổi các trường bất biến trong Kubernetes. <!-- ev: R2.84 R2.85 -->
+- **Vấn đề**: Cờ `--force-replace` (trước đây là `--force`) ép xóa đi tạo lại tài nguyên thay vì rolling update, có nguy cơ gây đứt kết nối. <!-- ev: R5.19 -->
+- **Thực tiễn tốt nhất**: Chỉ dùng khi cần sửa các trường bất biến (immutable) của Kubernetes. <!-- ev: R5.19 R5.20 -->
 
 ---
 
 ## 6. Câu Hỏi Củng Cố Kiến Thức (Active Recall Quiz)
 
 ### Câu Hỏi 1: Giải Thích Lỗi Khóa Bi Quan Khi Release Kẹt Pending (Phỏng vấn)
-
-Pipeline CI/CD deploy thất bại liên tục với lỗi `another operation (install/upgrade/rollback) is in progress`. Phân tích cơ chế và cách xử lý?
+Khi pipeline deploy báo lỗi `another operation (install/upgrade/rollback) is in progress`, bản chất lỗi là gì và xử lý thế nào?
 
 <details>
-<summary>Đáp án</summary>
+<summary>👉 Xem đáp án & giải thích kỹ thuật</summary>
 
-1. **Cơ chế**: `helm upgrade` tạo revision mới gán `pending-upgrade` (`Preparing upgrade`). Trạng thái `pending-*` kích hoạt khóa bi quan qua `IsPending()`, từ chối thao tác đồng thời bằng `errPending`. Khi runner CI bị hủy ngang (kill, timeout), Helm chưa kịp cập nhật trạng thái kết thúc, bỏ lại Secret ở `pending-upgrade`.
-2. **Xử lý**: Kiểm tra qua `helm status <release> -n <namespace>`. Xóa đúng Secret của revision pending kẹt (`sh.helm.release.v1.<name>.v<rev>`) bằng `kubectl delete secret`, sau đó chạy lại pipeline.
+Thao tác trước đó bị hủy ngang khiến Secret metadata của revision gần nhất bị kẹt ở trạng thái `pending-*` <!-- ev: R5.10 R5.13 -->. Helm coi đây là khóa bi quan và hàm `IsPending()` sẽ chặn mọi thao tác tiếp theo bằng `errPending` <!-- ev: R5.14 R5.15 -->. Cách giải cứu: xóa Secret của revision bị kẹt (`kubectl delete secret sh.helm.release.v1.<NAME>.v<REV> -n <NAMESPACE>`), sau đó deploy lại.
 </details>
+
+---
 
 ### Câu Hỏi 2: Bản Chất Thao Tác Rollback Và Quản Lý Số Revision
-
-Hệ thống ở Revision 2, nâng cấp lên Revision 3 bị lỗi. Kỹ sư chạy `helm rollback my-service 2`. Số Revision mới là bao nhiêu? Giải thích bản chất lưu trữ và cách kiểm tra revision nguồn gốc?
+Khi ứng dụng đang ở Revision 4 và bạn chạy `helm rollback <RELEASE> 2`, số revision mới nhất sẽ là bao nhiêu? Cờ nào giúp tra nguồn gốc?
 
 <details>
-<summary>Đáp án</summary>
+<summary>👉 Xem đáp án & giải thích kỹ thuật</summary>
 
-1. **Số Revision mới**: Là **Revision 4** (không lùi về 2).
-2. **Bản chất**: Helm tuân thủ nguyên tắc append-only. Rollback tạo Revision 4 với cấu hình sao chép từ Revision 2.
-3. **Kiểm tra**: Dùng lệnh `helm history my-service --show-rollback-revision`, cột `ROLLBACK` hiển thị `2`.
+Số revision mới nhất sẽ là **Revision 5** <!-- ev: R5.2 -->. Rollback không xóa lịch sử và không lùi số thứ tự, mà tạo Revision mới mang cấu hình của revision mục tiêu <!-- ev: R5.2 R5.7 -->. Cờ `--show-rollback-revision` khi dùng với `helm history` sẽ thêm cột `ROLLBACK` hiển thị số revision nguồn gốc (ở đây là số `2`) <!-- ev: R5.8 -->.
 </details>
 
-### Câu Hỏi 3: Khác Biệt Giữa Three-Way Merge (Helm 3) Và SSA (Helm 4) Khi Drift
+---
 
-Khi tài nguyên bị sửa trực tiếp bằng `kubectl edit`, giải thuật cập nhật của Helm 3 và Helm 4 xử lý drift khác nhau ra sao?
+### Câu Hỏi 3: Khác Biệt Giữa Three-Way Merge (Helm 3) Và SSA (Helm 4) Khi Drift
+Tại sao Three-Way Merge của Helm 3 và SSA của Helm 4 lại quan trọng khi cluster xuất hiện cấu hình trôi dạt (config drift)?
 
 <details>
-<summary>Đáp án</summary>
+<summary>👉 Xem đáp án & giải thích kỹ thuật</summary>
 
-1. **Helm 3 (Three-way merge)**: Tạo patch client từ 3 nguồn: manifest cũ, live state, manifest mới; bảo tồn sửa đổi thủ công nếu không xung đột.
-2. **Helm 4 (Server-Side Apply)**: Mặc định SSA cho cài đặt mới; API server theo dõi sở hữu qua `managedFields`, phát hiện và phân xử xung đột rõ ràng.
+Three-Way Merge trong Helm 3 so sánh 3 nguồn: manifest cũ, live state trên cluster và manifest mới, giúp không ghi đè mất các trường do controller (như HPA) tự điều chỉnh <!-- ev: R5.20 -->. Trong khi đó, Helm 4 mặc định sử dụng Server-Side Apply (SSA), quản lý quyền sở hữu trường trực tiếp tại Kubernetes API Server, giúp giải quyết xung đột cấu hình minh bạch hơn <!-- ev: R5.21 -->.
 </details>
 
 ---
 
 ## 7. 📚 Nguồn Tài Liệu Chính Thống (Tier-1 Official References)
 
-- [Helm Docs: Upgrading and Recovering](https://helm.sh/docs/intro/using_helm/#helm-upgrade-and-helm-rollback-upgrading-a-release-and-recovering-on-failure) — Tăng revision tuần tự, rollback và cờ `--show-rollback-revision`.
-- [Helm CLI: helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) — Cú pháp và cờ `--install`, `--wait`, `--timeout`, `--rollback-on-failure`, `--create-namespace`, `--force-replace`.
-- [Helm CLI: helm rollback](https://helm.sh/docs/helm/helm_rollback/) — Cú pháp `helm rollback` và hành vi mặc định khi bỏ qua revision.
-- [Helm CLI: helm status](https://helm.sh/docs/helm/helm_status/) — Cú pháp lệnh `helm status` và danh mục trạng thái release.
-- [Helm CLI: helm history](https://helm.sh/docs/helm/helm_history/) — Cú pháp `helm history` và cờ `--max`.
-- [Helm CLI: helm get manifest](https://helm.sh/docs/helm/helm_get_manifest/) — Tải manifest Kubernetes đã render.
-- [Helm CLI: helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) — Cú pháp `helm uninstall` và cờ `--keep-history`.
-- [Helm 4 Overview](https://helm.sh/docs/overview/) — Server-Side Apply mặc định và cờ đổi tên.
-- [Helm 3 FAQ: 3-way Strategic Merge](https://helm.sh/docs/faq/changes_since_helm2/#improved-upgrade-strategy-3-way-strategic-merge-patches) — Three-way strategic merge patch trong Helm 3.
-- [Helm Source: status.go](https://raw.githubusercontent.com/helm/helm/main/pkg/release/common/status.go) — Hằng số trạng thái release và hàm `IsPending()`.
-- [Helm Source: upgrade.go](https://raw.githubusercontent.com/helm/helm/main/pkg/action/upgrade.go) — Khóa bi quan và lỗi `errPending`.
+- [Helm CLI: helm install](https://helm.sh/docs/helm/helm_install/) - Tài liệu chính thức về cú pháp và cách khởi tạo chart archive của lệnh `helm install`.
+- [Helm CLI: helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) - Tài liệu chính thức về nâng cấp bản phát hành, các cờ `--install`, `--wait`, `--timeout`, `--rollback-on-failure`.
+- [Helm CLI: helm rollback](https://helm.sh/docs/helm/helm_rollback/) - Tài liệu chính thức về hoàn tác bản phát hành về revision trước đó.
+- [Helm CLI: helm history](https://helm.sh/docs/helm/helm_history/) - Tài liệu chính thức về tra cứu lịch sử revision và cờ `--show-rollback-revision`.
+- [Helm CLI: helm status](https://helm.sh/docs/helm/helm_status/) - Tài liệu chính thức về hiển thị trạng thái release và danh sách các trạng thái hợp lệ.
+- [Using Helm: Upgrading a Release and Recovering on Failure](https://helm.sh/docs/intro/using_helm/#helm-upgrade-and-helm-rollback-upgrading-a-release-and-recovering-on-failure) - Hướng dẫn chính thức về cơ chế revision tăng dần và chiến lược phục hồi sự cố.
+- [Helm 4 Overview: Server-Side Apply & CLI Flags Renamed](https://helm.sh/docs/overview/) - Tài liệu chính thức của Helm 4 về việc đổi tên cờ `--atomic`, `--force` và mặc định Server-Side Apply (SSA).
+- [Changes Since Helm 2: 3-way Strategic Merge Patches](https://helm.sh/docs/faq/changes_since_helm2/#improved-upgrade-strategy-3-way-strategic-merge-patches) - Giải thích chi tiết về Three-Way Strategic Merge Patch trong Helm 3 khi xử lý config drift.
+- [Helm GitHub Source: Action SDK & Release Status](https://raw.githubusercontent.com/helm/helm/main/pkg/release/common/status.go) - Mã nguồn định nghĩa trạng thái release, phương thức `IsPending()` và khóa bi quan `errPending`.

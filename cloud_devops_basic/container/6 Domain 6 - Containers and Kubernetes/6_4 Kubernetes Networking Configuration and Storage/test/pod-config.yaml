@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hello-configmap
+data:
+  GREETING: 'hello minh v1'
+
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: hello-secret
+# type: Opaque # Opaque is the default value, telling k8s no need additional check on this
+#              # Other type like tls -> check on tls.crt & tls.key
+# stringData:
+#   API_TOKEN="12345secret"

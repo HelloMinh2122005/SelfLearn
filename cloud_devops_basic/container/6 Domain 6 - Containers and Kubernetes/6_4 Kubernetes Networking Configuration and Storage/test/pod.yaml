@@ -28,13 +28,42 @@ spec:
       containers:
         - name: hello-app
           image: hashicorp/http-echo
-          args: ["-text=hello v1", "-listen=:5678"]
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+          # Option A, POD level:
+          # Map each key-value in hello-secret to become env variable POD level
+          envFrom:
+            - secretRef: { name: hello-secret }
+
+          # Option B, Container level
+          # Create a volume for container, to store that variable
+          volumeMounts:
+            - name: secret-volume
+              mountPath: /etc/secrets
+              readOnly: true
+
+          env:
+            - name: GREETING
+              valueFrom:
+                configMapKeyRef: { name: hello-configmap, key: GREETING }
+          args: ["-text=$(GREETING)", "-listen=:5678"]
           ports:
             - containerPort: 5678
               name: http
           readinessProbe:
             httpGet: { path: /, port: http }
-
+      
+      # Create a container volumes
+      volumes:
+        - name: secret-volume
+          secret: { secretName: hello-secret }
 ---
 
 apiVersion: v1
@@ -61,6 +90,8 @@ metadata:
 spec:
   controllerName: gateway.envoyproxy.io/gatewayclass-controller
 
+---
+
 # Gateways
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
@@ -72,6 +103,8 @@ spec:
     - name: http # Create a gate, accept inbound in port 80
       protocol: HTTP
       port: 80
+
+---
 
 # HTTPRoutes
 apiVersion: gateway.networking.k8s.io/v1
@@ -93,5 +126,5 @@ spec:
         weight: 1 # Weight for traffic
       matches:    # Request needs to match this
         - path:
-          type: PathPrefix # Longest prefix match
-          value: / # All path allow
+            type: PathPrefix # Longest prefix match
+            value: / # All path allow

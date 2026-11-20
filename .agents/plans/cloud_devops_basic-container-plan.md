@@ -12,8 +12,9 @@
 cloud_devops_basic/container/
 ├── README.md                                   # track roadmap (partial edits only)
 ├── CHECKLIST.md                                # LEARNER self-assessment, the squad never ticks it (see 1.1)
-├── .evidence/research/TASK-CTR-<run>-R<n>.md   # Claim Ledgers (written by researchers)
-├── .evidence/WRITE-CTR-<id>.md                 # evidence index per lesson (written by writers)
+├── .evidence/verify/WRITE-CTR-<id>-V<k>.md     # Verify Ledgers (one per verifier chunk; -RC<n> for re-checks)
+├── .evidence/research/TASK-CTR-<run>-R<n>.md   # Older research-first Claim Ledgers (before 20-11-2026)
+├── .evidence/WRITE-CTR-<id>.md                 # evidence index per lesson (written by authors)
 ├── shared/hello-svc/ , shared/scripts/          # sample app and helper scripts used by all labs
 └── 6 Domain 6 - Containers and Kubernetes/
     └── 6_3 Kubernetes Architecture and Core Workloads/
@@ -30,7 +31,7 @@ Totals: **76 lesson files** in 8 topics (6_1 to 6_8) and **33 lab folders** (6_1
 1. **The topic `README.md` already exists** (scope bullets + lab definitions). The squad does not write a new module README. At module close it **adds** a `## 📂 Bài Học Chi Tiết (Lessons)` section (template 6.3) right before `## 🧪 Labs`.
 2. **`container/CHECKLIST.md` belongs to the learner.** Its items mean "I can do this without notes". The squad **never** ticks it and never edits its counters. Progress is recorded in the lesson header, the topic README lessons table, and the `Trạng thái` column of `container/README.md`.
 3. The checker (`check_curriculum.py`) does not recognize the counter format of `container/CHECKLIST.md`, so it does not validate those counters. That is expected, and it is one more reason not to edit that file.
-4. **Topic README bullets were not verified.** When a source contradicts a bullet, the lesson teaches what the source says. The writer may then correct **that one bullet** in the topic README with a partial edit, and the change is listed in the run report. This is allowed for this track only.
+4. **Topic README bullets were not verified.** When a source contradicts a bullet, the lesson teaches what the source says. The author may then correct **that one bullet** in the topic README with a partial edit, and the change is listed in the run report. This is allowed for this track only.
 
 ---
 
@@ -45,23 +46,24 @@ Totals: **76 lesson files** in 8 topics (6_1 to 6_8) and **33 lab folders** (6_1
 Recommended order (interview priority first, then the foundations):
 `6_3` → `6_5:1-6` → `6_5:7-11` → `6_6:1-6` → `6_6:7-11` → `6_8` → `6_4` → `6_7:1-5` → `6_7:6-10` → `6_1:1-5` → `6_1:6-10` → `6_2:1-6` → `6_2:7-11`, then `LAB` runs in the same topic order.
 
-IDs: research `TASK-CTR-<lesson id>` (one per lesson, claim prefix `R<P>`; lab research `TASK-CTR-LAB-<lab id>`, prefix `L<N>`), writing `WRITE-CTR-<lesson id>`, topic README edit `WRITE-CTR-<module>-README`, labs `LAB-CTR-<lab id>`.
+IDs: writing `WRITE-CTR-<lesson id>` (claim prefix `C<P>`; older lessons used research `TASK-CTR-<lesson id>` with prefix `R<P>`), topic README edit `WRITE-CTR-<module>-README`, labs `LAB-CTR-<lab id>`.
 
 ---
 
 ## 3. Per-Run Procedure (lesson runs)
 
 1. **Scope**: Read the topic README section of each lesson (the `### 6_M_P` heading and its bullets), section 4 of this plan, and the section 5 claims for the topic.
-2. **Research (parallel, one `researcher` per lesson)**: each contract covers one lesson, both
+2. **Author (parallel, one `author` per lesson)**: each contract covers one lesson, both
    - its mechanisms (object model, controllers and lifecycles, request flows, for example how a Deployment rollout progresses, the Pod termination sequence, how Helm stores a release, how a GitLab job reaches the cluster through the agent), and
    - its exact commands, flags, YAML fields and `apiVersion`s, default values, limits, version and feature-state currency (Kubernetes minor version and `alpha`/`beta`/`stable`; Helm 4 vs Helm 3; GitLab version and tier), runnable examples from Tier-1 pages, and the section 5 claims that belong to that lesson.
-   - 12–25 claims, hard maximum 25. `LEDGER_FILE: cloud_devops_basic/container/.evidence/research/TASK-CTR-<lesson id>.md`, `ID_PREFIX: R<P>`.
-   - Acceptance criteria are phrased as claims to prove.
-3. **G1 + G2**: Each researcher's summary shows a clean `evidence.py quotes` line (no `MISSING`). Every lesson has enough `VERIFIED` claims to fill sections 1, 3 and 4 of the template. Re-research anything `CONFLICT` or `NOT_FOUND`. Never fill a gap from memory.
-4. **Write (parallel)**: one **fresh** `writer` per lesson (`WRITE-` task) with ledger paths and claim IDs. It plans the size, writes the file once, tags every fact with `<!-- ev: R<P>.<m> -->` as it writes, stays under the 24 KB hard limit (there is no soft target), saves an evidence index to `cloud_devops_basic/container/.evidence/`, and runs `check_curriculum.py --only` and `evidence.py lesson` at most 3 times (offline, fix batch, `--online` once before reporting).
-5. **G5 Verify**: `verifier` (`Model: "pro"`), at most 3 lesson paths per call. On `FAIL` or `INCOMPLETE`, the writer fixes and a new verifier runs in re-check mode.
-6. **README bullet corrections** (section 1.1 rule 4), if any, go through G4 and G5 like a lesson edit.
-7. **Close** (only in the run that finishes the topic): one writer
+   - 12–25 claim ids, hard maximum 25, `CLAIM_PREFIX: C<P>`.
+   - Acceptance criteria are phrased as questions the lesson must answer. The pedagogical blueprint is in the contract.
+   - **Write first** (rule 05, from 20-11-2026): the author does no research. It plans the size, writes the file once from its own knowledge, tags every fact with `<!-- ev: C<P>.<m> -->`, stays under the 24 KB hard limit, sets `Trạng thái: Bản nháp, chờ kiểm chứng`, and runs `check_curriculum.py --only`, `evidence.py lesson` (draft mode) and `evidence.py claims --chunk 10` at most 2 times.
+3. **G1 (teacher, on the author report)**: mechanical exit `0`, 0 untagged lines, 12–25 claim ids, verifier chunks listed. Anything missing goes back to the same author.
+4. **G2 Verify (parallel)**: one new `verifier` (`Model: "pro"`) per chunk of ≤ 10 claim ids, all at once; one per lesson has `SWEEP: yes`. Ledgers go to `cloud_devops_basic/container/.evidence/verify/`.
+5. **G3 + G4 Local fix**: FAIL / NOT_FOUND ids go back to the same author, which changes only those lines; one new verifier re-checks only the changed ids. At most 2 rounds. Then the author's close step (G5).
+6. **README bullet corrections** (section 1.1 rule 4), if any, are tagged and go through G2 to G5 like a lesson edit.
+7. **Close** (only in the run that finishes the topic): one `author` (small job)
    - adds the lessons section (template 6.3) to the topic README,
    - sets the topic README header `Trạng thái` to `Bài học: <n>/<n> Verified (<dd-mm-yyyy>); Lab: <state>`,
    - updates the topic's `Trạng thái` cell in the table of `cloud_devops_basic/container/README.md`,
@@ -70,7 +72,7 @@ IDs: research `TASK-CTR-<lesson id>` (one per lesson, claim prefix `R<P>`; lab r
 ### 3.1 Per-Run Procedure (`LAB` runs)
 1. For each lab defined in the topic README (`### lab-6_M_N-...`), build `labs/lab-6_M_N-<slug>/` with the `lab-builder` skill layout: `README.md`, `setup/`, `solution/`, `scripts/verify.sh`, `scripts/cleanup.sh`. Use `cloud_devops_basic/container/6 Domain 6 - Containers and Kubernetes/6_2 Container Image Engineering/labs/lab-6_2_1-java-multistage-image/` as the reference for style and depth.
 2. Reuse `shared/hello-svc` and `shared/scripts/` (image `selflearn.invalid/hello-svc:1.0.0` / `2.0.0`, cluster `kind` named `lab`). Do not add a second sample app unless the lab definition requires one.
-3. Every command, flag, YAML field and Helm/GitLab keyword in a lab passes G1 to G5 like a lesson claim.
+3. Every command, flag, YAML field and Helm/GitLab keyword in a lab carries a claim tag and passes G1 to G5 like a lesson claim.
 4. The squad does **not** run the labs. The lab README header says `> **Trạng thái kiểm chứng**: Chưa chạy thử (squad không thực thi)`, and expected outputs are marked illustrative. `verify.sh` must only read state (`kubectl get`, `helm status`, `curl`) and print `[PASS]`/`[FAIL]` lines. `cleanup.sh` must only delete what the lab created.
 5. Replace the lab's row status `Định nghĩa` with `Đã tạo, chưa chạy thử` and turn the lab name into a relative link to its `README.md`.
 6. The existing labs 6_2_1 and 6_2_2 are done. Do not rebuild them.
@@ -103,7 +105,7 @@ Folder prefix: `cloud_devops_basic/container/6 Domain 6 - Containers and Kuberne
 
 ---
 
-## 5. Claims to Verify (Hand to the Lesson's Researcher, Do Not Teach as Written)
+## 5. Claims to Verify (Hand to the Lesson's Author, Do Not Teach as Written)
 
 Statements in the topic READMEs that are version-dependent, were taken from search snippets, or are easy to get wrong. They are **leads, not findings**.
 
@@ -210,7 +212,7 @@ Statements in the topic READMEs that are version-dependent, were taken from sear
 - Rebuilding labs 6_2_1 and 6_2_2, or running any lab.
 - Cloud-provider-specific Kubernetes (EKS/AKS/GKE) beyond one comparison sentence in `6_3_1`.
 - Kafka, Cassandra, ZooKeeper administration. `6_4_7` and `6_7_9` explain only why they run as StatefulSets or Operators.
-- Git commits. The learner commits with the `git-push` skill.
+- Git and version control. The learner manages them.
 
 ---
 
@@ -227,11 +229,12 @@ A DoD item is a gate. A metric is reported but never blocks on its own. A verifi
 - [ ] Section 5 has at least 2 production gotchas.
 - [ ] Section 6 has 2 to 3 scenario questions with answers in `<details>`. At least one is phrased like an interview question.
 - [ ] Section 7 has at least 2 links to specific Tier-1 pages and no `generic homepage citation` warning.
-- [ ] The ledger is saved under `cloud_devops_basic/container/.evidence/research/`, and the evidence index at `cloud_devops_basic/container/.evidence/WRITE-CTR-<id>.md`.
-- [ ] `evidence.py lesson <file> --ledger <ledger files>` exits `0`: size ≤ 24 KB, every tag resolves to a VERIFIED row.
+- [ ] The verify ledgers are saved under `cloud_devops_basic/container/.evidence/verify/`, and the evidence index at `cloud_devops_basic/container/.evidence/WRITE-CTR-<id>.md`.
+- [ ] `evidence.py lesson <file> --ledger <V1 … Vk RC…>` exits `0`: size ≤ 24 KB, every tag resolves to a VERIFIED row.
+- [ ] Header `Trạng thái` is `Đã kiểm chứng (verifier PASS, <date>)`, not `Bản nháp`.
 - [ ] The checker exits `0` with `--online --only "<file>"` (run once before reporting, and by the verifier).
 - [ ] The verifier returns `PASS` on the final version. Any later edit needs a new verifier run.
-- [ ] 0 `FAIL` claims. 0 `UNVERIFIED` claims in "Numbers and limits" and "Commands and flags". `UNVERIFIED` ≤ 10% of claims, each labelled inline.
+- [ ] Every claim id in the final lesson is `VERIFIED`. `NOT_FOUND` facts were removed, not kept with a label.
 - [ ] Every feature mentioned that is not `stable` / GA states its feature state and the version.
 - [ ] Every section 5 claim for this lesson is resolved, and the resolution is in the run report.
 
@@ -257,8 +260,8 @@ A DoD item is a gate. A metric is reported but never blocks on its own. A verifi
 | Lesson progress (run and track-wide, out of 76) | 100% of the run at close |
 | First-pass PASS rate | ≥ 70% |
 | Average verify loops per lesson | ≤ 2 |
-| Research re-dispatches | report only |
-| UNVERIFIED ratio per lesson and per run | ≤ 10% |
+| Author send-backs at G1 | report only |
+| First-pass FAIL + NOT_FOUND rate at G2 (write-first drafts) | ≤ 30% of claims; above that, review rule 04 point 12 |
 | Section 5 claims resolved (run / track-wide out of 31) | all claims of the run |
 | README bullets corrected | report only |
 | Checker result | exit 0, 0 errors |

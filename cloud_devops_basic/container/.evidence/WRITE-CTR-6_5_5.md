@@ -1,0 +1,27 @@
+# Evidence Index: WRITE-CTR-6_5_5
+
+- **Lesson**: 6_5_5 Release Lifecycle
+- **Target File**: `6 Domain 6 - Containers and Kubernetes/6_5 Helm Package Management/6_5_5 Release Lifecycle.md`
+- **Research Ledger**: `cloud_devops_basic/container/.evidence/research/TASK-CTR-6_5_5-REWRITE.md`
+- **Claim IDs Used**:
+  - `R5.1`: `helm install` installs chart archive to Kubernetes
+  - `R5.2`: Incremental revision incremented by 1, first revision is always 1
+  - `R5.3`: `helm upgrade` performs least invasive upgrade
+  - `R5.4`: `helm upgrade` used when new chart version or configuration changes
+  - `R5.5`: `helm upgrade -i, --install` installs chart if release doesn't already exist
+  - `R5.6`: `--create-namespace` creates release namespace if `--install` is set
+  - `R5.7`: `helm rollback` rolls back to previous release
+  - `R5.8`: `--show-rollback-revision` adds ROLLBACK column to `helm history`
+  - `R5.9`: `helm history` prints historical revisions, `--max` configures maximum (default 256)
+  - `R5.10`: Release states reported by `helm status`
+  - `R5.11`: StatusDeployed indicates release pushed to Kubernetes
+  - `R5.12`: StatusSuperseded indicates outdated release replaced by newer one
+  - `R5.13`: IsPending determines if status is an active transition
+  - `R5.14`: errPending indicates another instance of Helm is operating on release
+  - `R5.15`: Concurrent upgrade operations act as pessimistic lock failing with errPending
+  - `R5.16`: `--wait` flag waits until resources ready up to `--timeout`
+  - `R5.17`: `--timeout` duration to wait for Kubernetes operations (default 5m0s)
+  - `R5.18`: `--rollback-on-failure` rolls back upgrade to previous success release upon failure
+  - `R5.19`: Helm 4 renames `--atomic` and `--force` with deprecation warnings
+  - `R5.20`: Helm 3 uses three-way strategic merge patch
+  - `R5.21`: Helm 4 defaults to server-side apply (SSA)

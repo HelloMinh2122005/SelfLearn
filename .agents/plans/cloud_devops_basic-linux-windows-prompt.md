@@ -25,7 +25,7 @@ Also read before you start: `AGENTS.md`, `.agents/rules/01` through `05`, the co
 
 ## Pre-flight (before step 1)
 
-Have one short `writer` task run `python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py cloud_devops_basic` (offline). If it reports `heading removed or renamed` errors for `CHECKLIST.md`, `linux/README.md`, or `windows/README.md`, these come from the 14-11-2026 course expansion that I have not committed yet. **Stop and ask me to commit** before you continue. Do not work around it with `--allow-rewrite`.
+Have one short `writer` task run `python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py cloud_devops_basic` (offline). If it reports any `ERROR`, stop and show it to me.
 
 ## What to do for this RUN
 
@@ -56,7 +56,7 @@ Have one short `writer` task run `python3 .agents/skills/curriculum-verify/scrip
 - Do not "fix" technical claims in the existing course READMEs. That is out of scope (plan section 8). Report README statements the sources contradict in the final report instead.
 - Respect the overlap rules in plan 4.3 / 4.4: the SSH protocol, firewalls, and network commands are taught in Domains 2 and 5. Link to them; do not re-teach them.
 - A claim sourced only from a cite-only source (*Windows Internals*, *Understanding the Linux Kernel*, other paywalled books) stays `UNVERIFIED` and is labelled as such in the lesson.
-- Do not commit or push. I will do that myself with the `git-push` skill.
+- Do not run any `git` command. I manage version control myself.
 - If a run cannot finish (budget, quota, blocked research), stop and report exactly which lessons are done, PASS, pending, or failed, so the next conversation can resume with the same `RUN`.
 
 ## Final report format (end of every run)

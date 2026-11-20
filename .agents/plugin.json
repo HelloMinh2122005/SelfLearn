@@ -1,7 +1,7 @@
 {
   "name": "selflearn-squad",
-  "version": "1.4.0",
-  "description": "Autonomous Self-Learning squad for Google Antigravity, featuring Teacher-Orchestrator, one Researcher and one Curriculum Writer per lesson (run in parallel), and an independent Verifier.",
+  "version": "1.6.0",
+  "description": "Autonomous Self-Learning squad for Google Antigravity, featuring Teacher-Orchestrator, one Curriculum Author per lesson (writes the draft at once, no research up front, run in parallel), and parallel independent Verifiers that check every claim on official pages after writing.",
   "author": {
     "name": "HelloMinh2122005",
     "email": "phandinhminh48@gmail.com"
@@ -9,11 +9,11 @@
   "keywords": [
     "selflearn",
     "teacher",
-    "researcher",
-    "writer",
+    "author",
     "orchestrator",
-    "parallel-research",
     "curriculum-writer",
-    "multi-agent"
+    "multi-agent",
+    "write-first",
+    "parallel-verification"
   ]
 }

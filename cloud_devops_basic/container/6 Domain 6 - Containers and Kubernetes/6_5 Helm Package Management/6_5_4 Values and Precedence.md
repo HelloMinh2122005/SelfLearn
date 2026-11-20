@@ -90,6 +90,18 @@ Helm lưu trữ cấu hình release trong Kubernetes Secret và cung cấp lện
 - **Cờ `--revision`**: Truy xuất cấu hình values của một revision lịch sử cụ thể <!-- ev: R2.66 -->.
 - **Cờ `-o` / `--output`**: Định dạng xuất kết quả gồm `table`, `json`, hoặc `yaml` (mặc định là `table`) <!-- ev: R2.67 -->.
 
+> **Note: làm sao biết tên release và revision để dùng với `helm get values`?** Lệnh này cần **tên release** (`helm get values <RELEASE_NAME>`), và `--revision` cần một **số revision** có thật. Hai lệnh hỗ trợ tra cứu:
+> - `helm list` (alias `helm ls`): liệt kê release trong namespace hiện tại để lấy tên release. Thêm `-n <namespace>` để chọn namespace khác, hoặc `--all-namespaces` (viết tắt `-A`) để liệt kê trên mọi namespace.
+> - `helm history <RELEASE_NAME>`: liệt kê các revision của một release để biết số nào dùng cho `--revision`.
+>
+> Nếu release nằm ở namespace khác namespace hiện tại thì `helm get values` cũng phải kèm `-n <namespace>`, nếu không Helm sẽ tìm trong namespace hiện tại và không thấy release.
+>
+> ```bash
+> helm list --all-namespaces            # 1. Tìm tên release và namespace của nó
+> helm history payment-prod -n prod     # 2. Xem các revision của release
+> helm get values payment-prod -n prod --revision 1   # 3. Xem values do người dùng cung cấp ở revision 1
+> ```
+
 ---
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)

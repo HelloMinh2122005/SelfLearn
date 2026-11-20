@@ -15,12 +15,12 @@
 | [6_2 Container Image Engineering](#6_2-container-image-engineering) | 11 | 2 | 13 | `0 / 13` | `0%` |
 | [6_3 Kubernetes Architecture and Core Workloads](#6_3-kubernetes-architecture-and-core-workloads) | 8 | 4 | 12 | `0 / 12` | `0%` |
 | [6_4 Kubernetes Networking Configuration and Storage](#6_4-kubernetes-networking-configuration-and-storage) | 7 | 4 | 11 | `0 / 11` | `0%` |
-| [6_5 Helm Package Management](#6_5-helm-package-management) | 11 | 5 | 16 | `0 / 16` | `0%` |
+| [6_5 Helm Package Management](#6_5-helm-package-management) | 11 | 5 | 16 | `1 / 16` | `6%` |
 | [6_6 GitLab CI-CD and Release Strategies](#6_6-gitlab-ci-cd-and-release-strategies) | 11 | 6 | 17 | `0 / 17` | `0%` |
 | [6_7 Kubernetes Security Scheduling and Scaling](#6_7-kubernetes-security-scheduling-and-scaling) | 10 | 5 | 15 | `0 / 15` | `0%` |
 | [6_8 Kubernetes Observability and Troubleshooting](#6_8-kubernetes-observability-and-troubleshooting) | 8 | 5 | 13 | `0 / 13` | `0%` |
 | [6_9 Capstone - End-to-End Release Pipeline](#6_9-capstone---end-to-end-release-pipeline) | 7 | 5 | 12 | `0 / 12` | `0%` |
-| **Tổng** | **83** | **38** | **121** | `0 / 121` | `0%` |
+| **Tổng** | **83** | **38** | **121** | `1 / 121` | `1%` |
 
 > Ghi chú: lab 6_2_1 và 6_2_2 đã được chạy thử khi soạn bài (Fedora 43, Podman 5.8.9). Bạn vẫn cần tự làm lại mới được tick.
 
@@ -130,7 +130,7 @@ README: [6_5 Helm Package Management](<./6 Domain 6 - Containers and Kubernetes/
 - [ ] **6_5_4** Nói đúng thứ tự ưu tiên values và cách tổ chức values theo môi trường.
 - [ ] **6_5_5** Dùng `upgrade --install`, `--wait`, `--rollback-on-failure` (Helm 3: `--atomic`), `rollback`, `history`; gỡ release kẹt `pending-*`.
 - [ ] **6_5_6** Kiểm tra chart trước khi deploy bằng `lint`, `template`, `--dry-run=server`, schema.
-- [ ] **6_5_7** Dùng dependency, subchart, library chart cho nhiều microservice.
+- [x] **6_5_7** Dùng dependency, subchart, library chart cho nhiều microservice.
 - [ ] **6_5_8** Viết hook `pre-upgrade` và `helm test`, hiểu `hook-delete-policy`.
 - [ ] **6_5_9** Package và push chart lên registry OCI, cài từ `oci://`.
 - [ ] **6_5_10** Áp dụng checksum annotation, image theo digest, nhãn chuẩn, không để secret trong values.

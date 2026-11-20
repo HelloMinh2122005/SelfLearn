@@ -1,0 +1,28 @@
+# Evidence Index: WRITE-HELM-6_5_7
+
+- **Lesson**: 6_5_7 Dependency, Subchart and Library Chart
+- **Target File**: `cloud_devops_basic/container/6 Domain 6 - Containers and Kubernetes/6_5 Helm Package Management/6_5_7 Dependencies Subcharts and Library Charts.md`
+- **Verification Ledgers**:
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-HELM-6_5_7-V1.md`
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-HELM-6_5_7-V2.md`
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-HELM-6_5_7-RC1.md`
+- **Claim IDs Used**:
+  - `C7.1`: In Helm 3 and 4, dependencies are declared under `dependencies` in `Chart.yaml` replacing `requirements.yaml`
+  - `C7.2`: `name` field specifies dependency chart name and must match `name` in subchart's `Chart.yaml`
+  - `C7.3`: `version` field accepts SemVer constraint (tilde `~` for patches in minor, caret `^` for updates in major)
+  - `C7.4`: `repository` specifies repository URL, alias (`@repo`), local file path (`file://`), or OCI registry (`oci://`)
+  - `C7.5`: `condition` specifies comma-separated YAML paths resolving to boolean in top parent values to toggle subchart
+  - `C7.6`: `tags` specifies labels to toggle groups of subcharts via top-level `tags` dictionary in parent values
+  - `C7.7`: `condition` overrides `tags` and only the first valid condition path is evaluated
+  - `C7.8`: `alias` defines an alternative name for dependency allowing multiple instances
+  - `C7.9`: `import-values` imports child values into parent values (from child `exports` or direct mapping)
+  - `C7.10`: `helm dependency update` downloads latest versions matching SemVer constraints to `charts/` and creates/refreshes `Chart.lock`
+  - `C7.11`: `helm dependency build` rebuilds `charts/` strictly from `Chart.lock` without renegotiating versions
+  - `C7.12`: `helm dependency list` lists declared dependencies with NAME, VERSION constraint, REPOSITORY, and STATUS
+  - `C7.13`: `Chart.lock` stores resolved version, repo, and SHA-256 digest of dependencies declaration to recreate exact state
+  - `C7.14`: Subcharts are stand-alone and cannot access parent values; parent overrides subchart values via key matching subchart name or alias
+  - `C7.15`: `global` key in `values.yaml` provides values accessible across parent and all subcharts via `.Values.global.<key>`
+  - `C7.16`: Setting `type: library` in `Chart.yaml` defines a library chart providing shared named templates to DRY charts
+  - `C7.17`: Library charts cannot be installed standalone (`helm install` returns error that library charts are not installable)
+  - `C7.18`: Library chart templates do not render manifests on their own and only output when invoked via `include` or `template`
+  - `C7.19`: `helm package --dependency-update` (`-u`) runs dependency update before packaging chart archive

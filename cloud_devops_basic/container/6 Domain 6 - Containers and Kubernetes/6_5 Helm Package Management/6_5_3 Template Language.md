@@ -68,13 +68,21 @@ Helm tự động cung cấp các đối tượng ngữ cảnh toàn cục khi b
 ### 1.4 Named Templates & Các Hàm Tái Sử Dụng
 
 - **Khai báo bằng `define`**: Hành động `define` tạo named template partial bên trong tệp template mà không trực tiếp sinh output <!-- ev: R1.48 R2.52 -->.
+  - **Dùng để**: viết một đoạn dùng chung (như nhãn `labels`, tên ứng dụng) **một lần** trong `_helpers.tpl`, giống khai báo một hàm trong Java. Bản thân `define` không in ra gì; đoạn đó chỉ được in khi nơi khác gọi nó.
 - **Nhúng bằng `include`**: Hàm `include` được ưu tiên hơn directive `template` vì kết quả của nó có thể pipe tiếp sang các hàm định dạng văn bản YAML <!-- ev: R1.49 R2.53 -->.
+  - **Dùng để**: gọi lại đoạn đã `define`, ví dụ `{{- include "mychart.labels" . | nindent 4 }}`. Dấu `.` ở cuối là dữ liệu bạn đưa cho đoạn đó (ở đây là cả root context, để đoạn đó đọc được `.Chart`, `.Release`...).
 - **Hàm `toYaml` & `toYamlPretty`**: Hàm `toYaml` mã hóa đối tượng thành chuỗi YAML có thụt lề <!-- ev: R2.42 -->; `toYamlPretty` bổ sung thêm thụt lề cho phần tử danh sách <!-- ev: R2.43 -->.
+  - **Dùng để**: dán nguyên một khối dữ liệu nhiều tầng từ `values.yaml` vào manifest mà không phải viết từng trường. Ví dụ `values.yaml` có `resources: {limits: {cpu: 500m}}` thì `toYaml .Values.resources` cho ra đoạn YAML `limits:` kèm `cpu: 500m` thụt vào bên dưới. Trong bài này chỉ cần dùng `toYaml`; `toYamlPretty` cùng mục đích nhưng khác ở cách thụt lề phần tử danh sách.
 - **Hàm `nindent`**: Hàm `nindent` thụt lề văn bản giống `indent` nhưng tự động chèn thêm ký tự xuống dòng (`\n`) vào đầu chuỗi <!-- ev: R2.44 -->.
+  - **Dùng để**: căn lề đúng cột cho văn bản nhiều dòng do `toYaml` hoặc `include` sinh ra, vì YAML sai thụt lề là hỏng. `nindent 4` nghĩa là "xuống dòng rồi thụt 4 ô". Luôn ghép theo mẫu `{{- toYaml . | nindent 12 }}`.
 - **Hàm `default`**: Cú pháp `default DEFAULT_VALUE GIVEN_VALUE` cung cấp giá trị mặc định dự phòng khi giá trị đưa vào bị bỏ trống hoặc rỗng <!-- ev: R1.36 R2.47 -->.
+  - **Dùng để**: đặt giá trị dự phòng khi người dùng không khai. Ví dụ `replicas: {{ default 1 .Values.replicaCount }}`: không khai `replicaCount` thì dùng 1. Lưu ý giá trị mặc định đứng **trước**; viết bằng pipe thì là `.Values.replicaCount | default 1`. Theo quy tắc "false" ở mục 1.3, số `0` và `false` cũng bị coi là rỗng nên cũng bị thay bằng giá trị mặc định.
 - **Hàm `required`**: Cú pháp `required "thông báo" .Bar` ngắt render và trả về thông báo tùy biến nếu giá trị bị thiếu hoặc rỗng <!-- ev: R1.50 R2.48 -->.
+  - **Dùng để**: bắt buộc người dùng khai một giá trị quan trọng; thiếu thì dừng ngay với thông báo rõ ràng thay vì sinh ra manifest dở dang. Ví dụ `required "A valid image.tag is required!" .Values.image.tag`. Chọn `required` khi thiếu giá trị mà đoán bừa thì nguy hiểm (như `image.tag`), còn `default` khi đoán được một giá trị an toàn.
 - **Hàm `tpl`**: Lượng giá một chuỗi văn bản như một template bên trong template, như cú pháp `tpl .Values.template .` <!-- ev: R2.49 -->.
+  - **Dùng để**: cho phép chính giá trị trong `values.yaml` chứa `{{ ... }}`. Bình thường `values.yaml` chỉ là dữ liệu và không được render. Ví dụ minh họa (chưa chạy thử): `values.yaml` có `host: "{{ .Release.Name }}.example.com"`, template viết `{{ tpl .Values.host . }}` thì với release tên `shop` sẽ ra `shop.example.com`.
 - **Hàm `lookup`**: Cú pháp `lookup apiVersion, kind, namespace, name -> resource or resource list` truy vấn tài nguyên đang chạy trên cụm Kubernetes <!-- ev: R1.37 R2.50 -->. Nếu không tìm thấy, trả về giá trị rỗng <!-- ev: R1.38 -->. Cần cờ `--dry-run=server` để liên hệ API Server <!-- ev: R2.51 -->.
+  - **Dùng để**: hỏi cluster "tài nguyên này đã tồn tại chưa, nội dung ra sao?" ngay lúc render. Ví dụ thực tế thường gặp (kinh nghiệm cộng đồng, chưa có evidence trong bài): kiểm tra một Secret đã có chưa, nếu có thì giữ lại mật khẩu cũ thay vì sinh mật khẩu ngẫu nhiên mới ở mỗi lần `upgrade`. Vì phải liên hệ API Server nên khi render offline hàm này trả về rỗng (xem mục 5.3).
 
 ---
 

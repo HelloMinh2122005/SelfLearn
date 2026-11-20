@@ -16,6 +16,7 @@ Học tập đòi hỏi kiến thức chính xác 100%. Thông tin sai lệch, l
    - Yêu cầu này áp dụng cho **mọi lĩnh vực kỹ thuật**, bao gồm kiến thức nền tảng về hệ điều hành và mạng: cơ chế hoạt động, kích thước trường, giá trị mặc định, và các khẳng định tuyệt đối (`luôn`, `không bao giờ`, `đảm bảo`, `immediately`, `cannot`). Kiến thức "kinh điển" vẫn phải được kiểm chứng.
    - Quy trình và điều kiện kiểm chứng khi soạn giáo trình được quy định tại `05-verification-gates.md`.
    - Nếu chưa chắc chắn hoặc nhớ mang máng, agent phải sử dụng công cụ tìm kiếm (`search_web` hoặc skill `official-doc-researcher`) để tra cứu trang chính thức của dịch vụ.
+   - Ngoại lệ có kiểm soát khi soạn giáo trình: `author` viết bản nháp từ hiểu biết của mình mà không tra cứu trước, vì mọi fact trong bản nháp mang claim tag và được `verifier` kiểm trên trang chính thức trước khi bài được công bố. Bản nháp chưa qua kiểm chứng không được trình bày như kiến thức đúng (`05-verification-gates.md` mục 1).
 
 2. **Thừa nhận rõ ràng khi thiếu dữ liệu hoặc không chắc chắn (Explicit Uncertainty)**:
    - Khi gặp câu hỏi về tính năng mới ra mắt, tính năng dạng Preview/Beta, hoặc các giới hạn kỹ thuật phụ thuộc vùng (region availability), agent phải nói rõ:

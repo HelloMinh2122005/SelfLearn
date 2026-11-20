@@ -9,23 +9,37 @@ lessons into their context.
       print only its title, size, cache path, and the lines matching TERM.
       Never prints the whole page. Safe for parallel agents (one file per URL).
 
-  evidence.py quotes LEDGER.md ... [--ids R1.3,R2.7] [--lesson 6_3_1]
+  evidence.py quotes LEDGER.md ... [--ids C5.3,C5.7] [--lesson 6_3_1]
       For every ledger row, fetch the URL and check that the verbatim quote is
       on the page. Prints FOUND / PARTIAL / MISSING / FETCH_ERROR and a short
-      context window around the match.
+      context window around the match. NOT_FOUND rows have no quote and are
+      skipped.
 
-  evidence.py lesson LESSON.md --ledger LEDGER.md ... [--quotes] [--max-kb N]
+  evidence.py claims LESSON.md [--ids C5.1,C5.2] [--chunk N]
+      Print every claim tag of a lesson with the sentence (or the block below
+      a tag-only line) it covers, so a verifier reads its claims without
+      reading the whole lesson. --chunk N also prints the claim ids split into
+      groups of N, one group per parallel verifier.
+
+  evidence.py lesson LESSON.md [--ledger LEDGER.md ...] [--quotes] [--max-kb N]
       Mechanical lesson DoD: the 7 section headings in order, header fields,
       Mermaid, quiz <details>, Tier-1 links in section 7, size budget, and the
-      evidence tags `<!-- ev: R1.3 R2.7 -->`. Every tag must exist in a ledger
-      row whose status is VERIFIED. With --quotes, also checks the quotes of
-      every tagged claim. Lists factual lines that carry no tag.
+      evidence tags `<!-- ev: C5.3 C5.7 -->`. Every tag must exist in a ledger
+      row whose status is VERIFIED. Without --ledger (draft mode, used by the
+      author before verification) the tags are only counted. With --quotes,
+      also checks the quotes of every tagged claim. Lists factual lines that
+      carry no tag. With --base COPY (an edit to an existing lesson; COPY is the
+      lesson saved before the edit) at most --max-deleted old lines may change,
+      only the added lines must carry tags, and the size limit is a warning.
 
 Ledger format: a markdown table whose header contains the columns
 ID | Lesson | Atomic claim | URL | Quote | Applies to | Status
 (Vietnamese headers "Trích dẫn", "Áp dụng", "Trạng thái" are accepted).
+Extra columns (for example "Correct statement") are ignored.
 A literal pipe inside a cell is written as \| (standard markdown escape) and
 is matched against the page as a plain "|". Never replace it with "/".
+When several ledgers hold the same id, the ledger given last wins, so a
+re-check ledger passed after the first verification ledgers overrides them.
 
 Exit code: 0 = no errors, 1 = errors found, 2 = bad usage.
 """
@@ -54,9 +68,11 @@ CACHE_DIR = (
 CACHE_TTL = 7 * 24 * 3600
 SECTION_TITLES = [f"## {n}." for n in range(1, 8)]
 TAG = re.compile(r"<!--\s*ev:\s*([^>]*?)\s*-->")
-# Claim ids: R<lesson number>.<n> for lesson research, L<lab number>.<n> for lab research
+# Claim ids: C<lesson number>.<n> for write-first lessons (from 20-11-2026),
+# R<lesson number>.<n> for older research-first lessons, L<lab number>.<n> for labs
 # (legacy ledgers use R1/R2 per topic). Distinct prefixes keep ids unique per topic.
-TAG_ID = re.compile(r"\b([RL]\d+\.\d+)\b")
+TAG_ID = re.compile(r"\b([RLC]\d+\.\d+)\b")
+DRAFT_MAX_CLAIMS = 25
 CELL_SPLIT = re.compile(r"(?<!\\)\|")
 URL = re.compile(r"https?://[^\s|)>\]`\"']+")
 FENCE = re.compile(r"^\s*(```|~~~)")
@@ -236,6 +252,9 @@ def check_quotes(rows):
             pages[url] = result
     results = []
     for r in rows:
+        if r["status"] == "NOT_FOUND":
+            results.append((r, "SKIP", "status NOT_FOUND, no quote to check"))
+            continue
         if not r["url"]:
             results.append((r, "NO_URL", ""))
             continue
@@ -272,16 +291,106 @@ def visible(lines):
         yield number, line, fenced
 
 
-def check_lesson(path, ledger_rows, max_kb, with_quotes):
+def _id_key(cid):
+    letter, rest = cid[0], cid[1:]
+    a, b = rest.split(".")
+    return (letter, int(a), int(b))
+
+
+def lesson_claims(lines):
+    """Return {claim_id: [(line_number, text), ...]} for every ev tag.
+
+    A tag after text covers that line. A line holding only a tag covers the
+    block below it: a fenced code block up to its closing fence, otherwise the
+    lines up to the next blank line (a list or a table).
+    """
+    rows = list(visible(lines))
+    claims = {}
+    for i, (n, line, _) in enumerate(rows):
+        ids = [c for tag in TAG.findall(line) for c in TAG_ID.findall(tag)]
+        if not ids:
+            continue
+        text = TAG.sub("", line).strip()
+        if text:
+            body = [(n, text)]
+        else:
+            body, j = [], i + 1
+            while j < len(rows) and not rows[j][1].strip():
+                j += 1
+            in_fence = j < len(rows) and FENCE.match(rows[j][1]) is not None
+            while j < len(rows):
+                m, l, _ = rows[j]
+                if not in_fence and not l.strip():
+                    break
+                body.append((m, TAG.sub("", l).rstrip()))
+                j += 1
+                if in_fence and len(body) > 1 and FENCE.match(l):
+                    break
+        for cid in ids:
+            claims.setdefault(cid, []).extend(body)
+    return claims
+
+
+def print_claims(path, ids, chunk):
+    lines = pathlib.Path(path).read_text(encoding="utf-8").splitlines()
+    claims = lesson_claims(lines)
+    chosen = sorted((c for c in claims if not ids or c in ids), key=_id_key)
+    print(f"Lesson: {path}\n  {len(claims)} claim ids, showing {len(chosen)}")
+    for cid in chosen:
+        body = claims[cid]
+        print(f"\n{cid}")
+        for n, text in body[:15]:
+            print(f"  L{n:<5} {text[:300]}")
+        if len(body) > 15:
+            print(f"    … {len(body) - 15} more lines")
+    missing = sorted(ids - set(claims)) if ids else []
+    if missing:
+        print(f"\nERROR ids not tagged in the lesson: {', '.join(missing)}")
+    if chunk:
+        every = sorted(claims, key=_id_key)
+        print(f"\nChunks of {chunk} (one verifier each):")
+        for k in range(0, len(every), chunk):
+            print(f"  V{k // chunk + 1}: {','.join(every[k:k + chunk])}")
+    return 1 if missing else 0
+
+
+def base_changes(path, base_path):
+    """Compare the lesson with a copy of it made before the patch.
+    Returns (added line numbers in the lesson, number of old lines removed or changed)."""
+    import difflib
+    old = pathlib.Path(base_path).read_text(encoding="utf-8").splitlines()
+    new = pathlib.Path(path).read_text(encoding="utf-8").splitlines()
+    added, deleted = set(), 0
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, old, new, autojunk=False).get_opcodes():
+        if tag in ("replace", "insert"):
+            added.update(range(j1 + 1, j2 + 1))
+        if tag in ("replace", "delete"):
+            deleted += i2 - i1
+    return added, deleted
+
+
+def check_lesson(path, ledger_rows, max_kb, with_quotes, draft=False, base=None, max_deleted=3):
     errors, warnings = [], []
     text = pathlib.Path(path).read_text(encoding="utf-8")
     lines = text.splitlines()
     size_kb = len(text.encode("utf-8")) / 1024
+    added = None
+    patch = base is not None
+    if patch:
+        added, deleted = base_changes(path, base)
+        if deleted > max_deleted:
+            errors.append(f"patch mode: {deleted} lines of the base copy were removed or rewritten "
+                          f"(limit {max_deleted}). A patch inserts; it does not rewrite. "
+                          "Restore the untouched passages from the base copy")
     # One hard limit only. A soft "target" warning made writers trim the same
     # lesson 5-7 times (one model call per trim), which cost more than it saved.
     if size_kb > max_kb:
-        errors.append(f"size {size_kb:.1f} KB is over the {max_kb} KB hard limit: "
-                      "remove whole sub-topics or examples in one edit, not sentence by sentence")
+        if patch:
+            warnings.append(f"size {size_kb:.1f} KB is over the {max_kb} KB limit after the patch: "
+                            "do NOT trim other sections; report it, the learner decides")
+        else:
+            errors.append(f"size {size_kb:.1f} KB is over the {max_kb} KB hard limit: "
+                          "remove whole sub-topics or examples in one edit, not sentence by sentence")
 
     head = "\n".join(lines[:15])
     for field in ("**Trạng thái**",):
@@ -314,7 +423,14 @@ def check_lesson(path, ledger_rows, max_kb, with_quotes):
         for tag in TAG.findall(line):
             for cid in TAG_ID.findall(tag):
                 used.setdefault(cid, n)
+    # Author ids count toward the limit; ids from 101 up are given by the sweep verifier.
+    authored = [c for c in used if c.startswith("C") and _id_key(c)[2] < 100]
+    if draft and len(authored) > DRAFT_MAX_CLAIMS:
+        errors.append(f"{len(authored)} claim ids, over the limit of {DRAFT_MAX_CLAIMS}: "
+                      "merge or drop claims, every claim costs a verification")
     for cid, n in sorted(used.items()):
+        if draft:
+            continue
         row = ledger_rows.get(cid)
         if row is None:
             errors.append(f"line {n}: tag {cid} is not in any ledger given")
@@ -329,6 +445,8 @@ def check_lesson(path, ledger_rows, max_kb, with_quotes):
             end = next((p for p in positions[i + 1:] if p), len(lines) + 1)
             zone.update(range(start + 1, end))
     block_tagged = False
+    if added is not None:
+        zone &= added  # patch mode: only the inserted lines must carry tags
     for n, line, fenced in visible(lines):
         if n not in zone or not line.strip():
             block_tagged = False if not line.strip() else block_tagged
@@ -348,8 +466,14 @@ def check_lesson(path, ledger_rows, max_kb, with_quotes):
 
     print(f"Lesson: {path}")
     print(f"  size {size_kb:.1f} KB, {len(used)} evidence tags, quiz {quiz}")
+    if draft:
+        print("  draft mode (no --ledger): tags counted, not yet checked against a verification ledger")
+    if added is not None:
+        new_ids = sorted({c for n in added if n <= len(lines)
+                          for t in TAG.findall(lines[n - 1]) for c in TAG_ID.findall(t)}, key=_id_key)
+        print(f"  patch mode: {len(added)} lines added vs base copy, claim ids on them: {','.join(new_ids) or 'none'}")
     quote_errors = 0
-    if with_quotes and used:
+    if with_quotes and used and not draft:
         rows = [ledger_rows[c] for c in sorted(used) if c in ledger_rows]
         quote_errors = print_quote_results(check_quotes(rows))
     for w in warnings:
@@ -377,11 +501,22 @@ def main():
     p_quotes.add_argument("--ids", default="", help="comma-separated claim ids")
     p_quotes.add_argument("--lesson", default="", help="only rows for this lesson id")
 
+    p_claims = sub.add_parser("claims", help="print each claim tag with the text it covers")
+    p_claims.add_argument("lesson")
+    p_claims.add_argument("--ids", default="", help="comma-separated claim ids")
+    p_claims.add_argument("--chunk", type=int, default=0, help="also split the ids into groups of N")
+
     p_lesson = sub.add_parser("lesson", help="mechanical lesson DoD and tag check")
     p_lesson.add_argument("lesson")
-    p_lesson.add_argument("--ledger", nargs="+", required=True)
+    p_lesson.add_argument("--ledger", nargs="*", default=[],
+                          help="verification ledgers, later ones override earlier ones; omit for draft mode")
     p_lesson.add_argument("--quotes", action="store_true")
     p_lesson.add_argument("--max-kb", type=float, default=24)
+    p_lesson.add_argument("--base", default=None, metavar="FILE",
+                          help="patch to an existing lesson: FILE is a copy of the lesson made before the patch; "
+                               "only lines added vs FILE are checked")
+    p_lesson.add_argument("--max-deleted", type=int, default=3,
+                          help="patch mode: old lines that may be removed or rewritten")
 
     args = parser.parse_args()
     if args.cmd == "fetch":
@@ -408,14 +543,19 @@ def main():
         chosen = [r for r in rows.values()
                   if (not ids or r["id"] in ids) and (not args.lesson or args.lesson in r["lesson"])]
         if not chosen:
-            print("No ledger rows with ids like R1.3 or L2.4 matched. Check the ID column.")
+            print("No ledger rows with ids like C5.3, R1.3 or L2.4 matched. Check the ID column.")
             return 1
         errors = print_quote_results(check_quotes(chosen))
         print(f"Result: {len(chosen)} rows, {errors} errors.")
         return 1 if errors else 0
 
+    if args.cmd == "claims":
+        ids = {i.strip() for i in args.ids.split(",") if i.strip()}
+        return print_claims(args.lesson, ids, args.chunk)
+
     rows = read_ledgers(args.ledger)
-    return check_lesson(args.lesson, rows, args.max_kb, args.quotes)
+    return check_lesson(args.lesson, rows, args.max_kb, args.quotes, draft=not args.ledger,
+                        base=args.base, max_deleted=args.max_deleted)
 
 
 if __name__ == "__main__":

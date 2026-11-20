@@ -47,7 +47,7 @@ Also read before you start: `AGENTS.md`, `.agents/rules/01` through `05`, `cloud
 - Existing files (`CHECKLIST.md`, course READMEs) get partial edits only. Never overwrite them, and never remove or rename a heading.
 - Do not "fix" technical claims in the existing course READMEs. That is out of scope (plan section 8).
 - A claim sourced only from a cite-only source (Kurose & Ross, IEEE 802.1Q, other paywalled standards) stays `UNVERIFIED` and is labelled as such in the lesson.
-- Do not commit or push. I will do that myself with the `git-push` skill.
+- Do not run any `git` command. I manage version control myself.
 - If a run cannot finish (budget, quota, blocked research), stop and report exactly which lessons are done, PASS, pending, or failed, so the next conversation can resume with the same `RUN`.
 
 ## Final report format (end of every run)

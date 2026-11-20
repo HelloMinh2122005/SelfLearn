@@ -29,29 +29,27 @@ Also read before you start: `AGENTS.md`, `.agents/rules/01` to `05`, `.agents/sk
 
 ## Pre-flight (before step 1)
 
-1. Have one short `writer` task run `git status --short cloud_devops_basic/container .agents/plans` and `python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py cloud_devops_basic/container` (offline).
-2. If any file under `cloud_devops_basic/container/` is untracked or modified (the checker prints `not in git HEAD`), **stop and ask me to commit a baseline**. Rule 05 section 5 forbids editing files that are not in git `HEAD`. Do not work around it.
-3. If the checker reports any `ERROR`, stop and show it to me.
+1. Have one short `author` small job (no `LESSON`) run `python3 .agents/skills/curriculum-verify/scripts/check_curriculum.py cloud_devops_basic/container` (offline).
+2. If the checker reports any `ERROR`, stop and show it to me.
 
 ## What to do for this RUN
 
 ### Lesson runs (`RUN: 6_M` or `6_M:a-b`)
 1. **Scope**: List the lesson files of this run from plan section 4 (with the topic README heading each one covers) and the section 5 claims for this topic. Show me that list in your first message.
-2. **Research**: Start **one new `researcher` per lesson**, all in parallel (`TASK-CTR-<lesson id>`). Each contract covers that one lesson completely, phrased as claims to prove:
+2. **Author (write first)**: Start **one new `author` per lesson**, all in parallel (`WRITE-CTR-<lesson id>`). Authors do no research: each writes its draft at once and tags every fact. Each contract covers that one lesson completely, phrased as questions the lesson must answer:
    - its mechanisms: object model, controllers, lifecycles and request flows;
-   - its exact commands, flags, YAML fields and `apiVersion`s, defaults, limits, feature states (`alpha`/`beta`/`stable`) and the version they apply to (Kubernetes 1.x, Helm 4 vs 3, GitLab version and tier, Podman/Docker), and runnable examples from Tier-1 pages;
-   - the section 5 claims that belong to that lesson. A fact several lessons need goes to the first lesson that teaches it.
-   - `AUTHORIZED_SOURCES` from plan section 7. `CURRICULUM_DOMAIN: DevOps`. `LESSON: <lesson id and title>`. `LEDGER_FILE: cloud_devops_basic/container/.evidence/research/TASK-CTR-<lesson id>.md`. `ID_PREFIX: R<P>` (lesson `6_6_4` → `R4`). `CLAIMS: 12-25` (hard maximum 25). `OPTIONAL: none`.
-3. **G1 + G2**: Apply rule 05 with no shortcuts. Read only the researchers' short summaries and, where needed, line ranges of the ledger files. Each summary must include a clean `evidence.py quotes` result (no `MISSING`). The verifier checks the quotes again, so do not dispatch a separate quote check. Re-dispatch on `PARTIAL`, an empty result, a missing quote-check line, or unresolved `CONFLICT` / `NOT_FOUND`. Never write from memory to fill a gap.
-4. **Write**: One `WRITE-CTR-<lesson id>` task per lesson, each to a **new** `writer` instance, all in parallel, with `LEDGER_FILES`, `CLAIM_IDS` and `SIZE_BUDGET: hard limit 24 KB`. Never paste ledger content into the contract. `TARGET_COURSE: cloud_devops_basic/container`. `TARGET_FILE` is the exact path from plan section 4, for example `cloud_devops_basic/container/6 Domain 6 - Containers and Kubernetes/6_3 Kubernetes Architecture and Core Workloads/6_3_1 Kubernetes Cluster Architecture.md`. `CHECKLIST_FILE: none (learner-owned, do not edit)`. Tell each writer explicitly that, on this track, its usual "mark `[x]` in `CHECKLIST.md` after PASS" step is replaced by the topic README lessons table (plan 6.3). Give each writer:
-   - a pedagogical blueprint per lesson (analogy plus core message),
-   - the lab that practises the lesson (from the topic README),
-   - the overlap links from plan section 4 (for example 6_1_3 → Linux 3_8_1, 6_6_5 → 6_2_11).
-   Writers use the 7-section template and the section 6.2 Hands-on rules: tool versions stated, Helm 4 flags with the Helm 3 equivalent noted, and code-policy labels.
-5. **G5**: Call a new `verifier` with `Model: "pro"`, at most 3 lesson paths per call, sending only the lesson paths, the ledger paths, the domain, and plan section 7. On `FAIL` or `INCOMPLETE`, send the report to the writer who owns the lesson, then start a new verifier in **re-check mode** (previous report path + the writer's changed line ranges). You cannot override a FAIL.
-6. **README bullets**: If a source contradicts a bullet in the topic README, the lesson teaches the source. The owning writer then corrects that one bullet with a partial edit, and it goes through G4 and G5.
+   - its commands, flags, YAML fields and `apiVersion`s, defaults, limits, feature states (`alpha`/`beta`/`stable`) and the version they apply to (Kubernetes 1.x, Helm 4 vs 3, GitLab version and tier, Podman/Docker);
+   - the section 5 claims that belong to that lesson. A fact several lessons need goes to the first lesson that teaches it; name that owner in the other contracts' `OUT_OF_SCOPE`.
+   - `AUTHORIZED_SOURCES` from plan section 7 (for section 7 links). `CURRICULUM_DOMAIN: DevOps`. `LESSON: <lesson id and title>`. `CLAIM_PREFIX: C<P>` (lesson `6_6_4` → `C4`). `CLAIMS: 12-25` (hard maximum 25).
+   - `TARGET_COURSE: cloud_devops_basic/container`. `TARGET_FILE` is the exact path from plan section 4, for example `cloud_devops_basic/container/6 Domain 6 - Containers and Kubernetes/6_3 Kubernetes Architecture and Core Workloads/6_3_1 Kubernetes Cluster Architecture.md`. `SIZE_BUDGET: hard limit 24 KB`. `CHECKLIST_FILE: none (learner-owned, do not edit)`. Tell each author explicitly that, on this track, its usual "mark `[x]` in `CHECKLIST.md`" close step is replaced by the topic README lessons table (plan 6.3).
+   - Also give each author, **in the contract up front**: a pedagogical blueprint (analogy plus core message), the lab that practises the lesson (from the topic README), and the overlap links from plan section 4 (for example 6_1_3 → Linux 3_8_1, 6_6_5 → 6_2_11).
+   - Authors use the 7-section template and the section 6.2 Hands-on rules: tool versions stated, Helm 4 flags with the Helm 3 equivalent noted, and code-policy labels.
+3. **G1 (draft)**: on each author report: `DRAFT READY`, mechanical exit `0`, 0 untagged lines, 12–25 claim ids, verifier chunks listed. Otherwise send the gap back to the same author.
+4. **G2 (parallel verification)**: as soon as a lesson passes G1, start **one new `verifier` per chunk** (`Model: "pro"`), all lessons together. Contract: lesson path, `CLAIM_IDS`, `VERIFY_LEDGER: cloud_devops_basic/container/.evidence/verify/WRITE-CTR-<lesson id>-V<k>.md`, `AUTHORIZED_SOURCES` from plan section 7, `MODE: full`. Exactly one verifier per lesson has `SWEEP: yes` and `SCOPE` = the lesson's README bullets plus its section 5 claims.
+5. **G3 + G4 (local fix)**: send each lesson's FAIL / NOT_FOUND ids and "tags to add" to the author who owns it. It changes only those lines. Then one new verifier with `MODE: recheck` checks only the changed ids (`-RC<n>` ledger). At most 2 rounds; then report the open ids to me. You cannot override a FAIL. After PASS, the author runs the close step (G5) with the ledgers in order `V1 … Vk RC1 …`.
+6. **README bullets**: If a source contradicts a bullet in the topic README, the lesson teaches the source. The owning author then corrects that one bullet with a partial edit, and it goes through G4 and G5.
 7. **DoD check**: Use the `evidence.py lesson` output and the verdict block of each verification report to check plan 9.1. Do not read whole lessons into your context; open a specific section with a line range only when an item is in doubt. Send back any lesson that misses an item.
-8. **Close** (only if this run finishes the topic): one writer adds the lessons section (plan 6.3) to the topic README before `## 🧪 Labs`, updates the topic README header `Trạng thái` and the topic's row in `cloud_devops_basic/container/README.md`, and runs the checker on `cloud_devops_basic/container` with `--online` and no `--only`. It must exit `0`.
+8. **Close** (only if this run finishes the topic): one `author` small job adds the lessons section (plan 6.3) to the topic README before `## 🧪 Labs`, updates the topic README header `Trạng thái` and the topic's row in `cloud_devops_basic/container/README.md`, and runs the checker on `cloud_devops_basic/container` with `--online` and no `--only`. It must exit `0`.
 
    Then teach me the run in Vietnamese with English technical terms:
    - the core idea and the topic analogy
@@ -65,29 +63,29 @@ Also read before you start: `AGENTS.md`, `.agents/rules/01` to `05`, `.agents/sk
 ### Lab runs (`RUN: LAB 6_M`)
 1. Confirm every lesson of topic `6_M` has a verifier PASS. If not, stop and tell me which lessons are missing.
 2. List the labs defined in the topic README. Labs `6_2_1` and `6_2_2` already exist: skip them.
-3. Research every command, flag, YAML field, Helm and GitLab keyword the labs need (G1, G2): one new `researcher` per lab (`TASK-CTR-LAB-<lab id>`, `ID_PREFIX: L<N>` for lab `6_M_N`), told to reuse the topic's lesson ledgers where they already prove a claim and to research only what is missing.
-4. One new `writer` per lab (`LAB-CTR-<lab id>`), in parallel, following plan 3.1 and the `lab-builder` skill. Reuse `shared/hello-svc` and `shared/scripts/`. **Do not run the labs.** The header says `Chưa chạy thử`. `verify.sh` only reads state; `cleanup.sh` deletes only what the lab created.
-5. Run G4 and G5 on each lab README and its scripts, then check plan 9.3.
+3. One new `author` per lab (`LAB-CTR-<lab id>`, `CLAIM_PREFIX: C<N>` for lab `6_M_N`), in parallel. It writes the lab at once and tags every command, flag, YAML field, Helm and GitLab keyword the learner runs, like a lesson fact.
+4. The author builds the lab following plan 3.1 and the `lab-builder` skill. Reuse `shared/hello-svc` and `shared/scripts/`. **Do not run the labs.** The header says `Chưa chạy thử`. `verify.sh` only reads state; `cleanup.sh` deletes only what the lab created.
+5. Run G1 to G5 on each lab README and its scripts as for a lesson (parallel verifiers per chunk, local fixes), then check plan 9.3.
 6. Update the lab rows in the topic README (`Đã tạo, chưa chạy thử`, linked) and its header `Trạng thái`. Run the checker on the whole track with `--online`.
 7. Tell me in Vietnamese which lab to run first and what each `verify.sh` checks. **Then stop.**
 
 ## Hard rules for this initiative
-- You never search the web and never write files. Researchers research, writers write, the verifier verifies.
-- Cost rules (`.agents/rules/04-squad-orchestration.md` section 2.1): one fresh `researcher` and one fresh `writer` per lesson, paths instead of pasted content, each check run once (no extra quote-check tasks), no polling of subagents or background tasks, and stop at the end of this RUN.
+- You never search the web and never write files. Authors research and write, the verifier verifies.
+- Cost rules (`.agents/rules/04-squad-orchestration.md` section 2.1): one fresh `author` per lesson, paths instead of pasted content, each check run once (no extra quote-check tasks), no polling of subagents or background tasks, and stop at the end of this RUN.
 - Lessons are in Vietnamese with standard English technical terms. File and folder names are in English, exactly as in plan section 4.
-- 100% relative links, never `file://` or `/home/...`. Paths contain spaces, so writers use `](<...>)` link syntax.
+- 100% relative links, never `file://` or `/home/...`. Paths contain spaces, so authors use `](<...>)` link syntax.
 - Existing files (topic READMEs, `container/README.md`) get partial edits only. Never overwrite them, never remove or rename a heading, and **never touch `container/CHECKLIST.md`**.
-- Kubernetes, Helm and GitLab change fast. Every non-stable feature states its feature state and version. Anything a source cannot prove is labelled `UNVERIFIED`, or removed.
+- Kubernetes, Helm and GitLab change fast. Every non-stable feature states its feature state and version. Anything a source cannot prove (`NOT_FOUND`) is removed.
 - Search snippets, blogs, and AI summaries are not evidence. The Helm 3 end-of-life dates in the README came from snippets: open `helm.sh/blog`.
-- Do not run labs, create clusters, or install anything on my machine. Writers may only run `mkdir -p`, `chmod +x` on lab scripts, the checker, and read-only `git` commands.
-- Do not commit or push. I will do that myself with the `git-push` skill.
+- Do not run labs, create clusters, or install anything on my machine. Authors may only run `evidence.py`, the checker, `mkdir -p`, `chmod +x` on lab scripts, and `grep`/`sed -n` on ledger and cache files.
+- Do not run any `git` command. I manage version control myself.
 - If a run cannot finish (budget, quota, blocked research), stop and report exactly which lessons or labs are done, PASS, pending or failed, so the next conversation can resume with the same `RUN`.
 
 ## Final report format (end of every run)
-| File | WRITE / LAB id | Verifier verdict | Verify loops | Claims P / F / U | UNVERIFIED % | DoD (9.1 or 9.3) met? |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| File | WRITE / LAB id | Verifier verdict | Fix rounds | Claims V / F / NF at G2 | First-pass fail % | Minutes (draft / verify / fix) | DoD (9.1 or 9.3) met? |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 
 Then give:
 - **Topic DoD (9.2)** (lesson runs that close a topic): each item ticked or failed.
-- **Run metrics (9.4)**: lesson progress (run, and track-wide out of 76), first-pass PASS rate, average verify loops, research re-dispatches, UNVERIFIED ratio, section 5 claims resolved (run, and track-wide out of 31), README bullets corrected, and checker result. Mark any metric that misses its target.
+- **Run metrics (9.4)**: lesson progress (run, and track-wide out of 76), first-pass PASS rate, average verify loops, author send-backs at G1, first-pass FAIL + NOT_FOUND rate at G2, wall-clock minutes per phase, section 5 claims resolved (run, and track-wide out of 31), README bullets corrected, and checker result. Mark any metric that misses its target.
 - Each section 5 claim of this run and what the sources actually said, every README bullet you corrected (old → new, with source), open issues, and the next `RUN` value.

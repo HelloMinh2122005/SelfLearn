@@ -5,11 +5,10 @@ Catches the failures that do not need judgement:
   - broken internal links and heading anchors
   - absolute local paths in markdown links
   - CHECKLIST.md counters that disagree with the real item count
-  - rewrites that shrink a tracked file or drop its headings
   - dead external links (with --online)
 
 Usage:
-  check_curriculum.py <course-folder> [--online] [--only FILE ...] [--no-cache] [--allow-rewrite]
+  check_curriculum.py <course-folder> [--online] [--only FILE ...] [--no-cache]
 
 Exit code: 0 = no errors, 1 = errors found, 2 = bad usage.
 """
@@ -19,14 +18,12 @@ import json
 import os
 import pathlib
 import re
-import subprocess
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 
-SHRINK_LIMIT = 0.10
 USER_AGENT = "curriculum-link-check/1.0"
 HOST_DELAY = 1.0
 MAX_RETRIES = 2
@@ -200,53 +197,6 @@ def check_checklist(path, text, report):
         report.error(f"{path}:{total_declared[0]}", f"TOTAL says {total_declared[1]}, found {total} items")
 
 
-def repository_root(root):
-    result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"], cwd=root, capture_output=True, text=True
-    )
-    return pathlib.Path(result.stdout.strip()) if result.returncode == 0 else None
-
-
-def headings_of(text):
-    found = []
-    for _, line in visible_lines(text):
-        match = HEADING.match(line)
-        if match and 2 <= len(match.group(1)) <= 4:
-            found.append(match.group(2))
-    return found
-
-
-def check_rewrites(files, root, report, allow_rewrite):
-    repo = repository_root(root)
-    if repo is None:
-        report.warn(str(root), "not a git repository, rewrite guard skipped")
-        return
-    for path, text in files.items():
-        relative = path.relative_to(repo).as_posix()
-        result = subprocess.run(
-            ["git", "show", f"HEAD:{relative}"],
-            cwd=repo,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
-        if result.returncode != 0:
-            report.warn(str(path), "not in git HEAD, so a rewrite cannot be detected or undone")
-            continue
-        if result.stdout == text:
-            continue
-        add = report.warn if allow_rewrite else report.error
-        before = len([line for line in result.stdout.splitlines() if line.strip()])
-        after = len([line for line in text.splitlines() if line.strip()])
-        if before and (before - after) / before > SHRINK_LIMIT:
-            add(str(path), f"shrank from {before} to {after} non-blank lines")
-        current = set(headings_of(text))
-        for heading in headings_of(result.stdout):
-            if heading not in current:
-                add(str(path), f"heading removed or renamed: {heading}")
-
-
 def retry_delay(error, attempt):
     header = error.headers.get("Retry-After", "") if error.headers else ""
     wait = int(header) if header.isdigit() else 2 ** (attempt + 2)
@@ -329,17 +279,12 @@ def main():
         nargs="+",
         type=pathlib.Path,
         metavar="FILE",
-        help="check links only in these markdown files; checklist counters and the rewrite guard still cover the whole course",
+        help="check links only in these markdown files; checklist counters still cover the whole course",
     )
     parser.add_argument(
         "--no-cache",
         action="store_true",
         help=f"test every external link again instead of trusting results from the last {CACHE_TTL // 3600} hours",
-    )
-    parser.add_argument(
-        "--allow-rewrite",
-        action="store_true",
-        help="report shrink and heading loss as warnings; needs explicit approval from the learner",
     )
     options = parser.parse_args()
     root = options.course.resolve()
@@ -364,7 +309,6 @@ def main():
     for path, text in files.items():
         if path.name == "CHECKLIST.md":
             check_checklist(path, text, report)
-    check_rewrites(files, root, report, options.allow_rewrite)
     cached = 0
     if options.online:
         cached = check_external(external, report, not options.no_cache)

@@ -452,6 +452,64 @@ kubectl create secret docker-registry regcred \
 # Pod: spec.imagePullSecrets: [{ name: regcred }]  (xem 6_2_8)
 ```
 
+### 4.8 Tạo Secret Từ File `.env` Và Secret Được Lưu Ở Đâu
+
+> ✅ **Đã chạy thử** ngày 19-11-2026 trên cluster kind `kind-lab-arch`, `kubectl` client v1.37.2. Các điểm chưa kiểm chứng được ghi rõ ở cuối mục.
+
+**Pod không đọc được file `.env`.** Muốn dùng `.env` cho Secret, nạp nó vào Secret bằng `kubectl` trước, rồi cho Pod dùng Secret đó (`envFrom.secretRef` hoặc volume):
+
+```bash
+# .env: mỗi dòng một cặp KEY=VALUE
+#   API_TOKEN=...
+#   DB_PASSWORD=...
+kubectl create secret generic hello-secret --from-env-file=.env     # secret/hello-secret created
+kubectl create secret generic hello-secret --from-env-file=.env --dry-run=client -o yaml   # chỉ xem, chưa tạo
+```
+
+**Quy tắc định dạng env-file** (tài liệu ghi cho ConfigMap, [Configure a Pod to Use a ConfigMap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/)):
+
+- Mỗi dòng phải có dạng `VAR=VAL`.
+- Dòng bắt đầu bằng `#` và dòng trống bị bỏ qua.
+- Dấu nháy không được xử lý riêng, nên chúng trở thành một phần của giá trị.
+
+Với Secret, trang tham chiếu [kubectl create secret generic](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_generic/) chỉ mô tả `--from-env-file` là đọc "lines of key=val pairs" và không nêu các quy tắc trên. ✅ Quan sát bằng `--dry-run=client` với file thử gồm `# comment`, một dòng trống, `A="x"`, `B=plain`: kết quả là `A` = `"x"` (giữ cả dấu nháy) và `B` = `plain`, comment và dòng trống bị bỏ. Đây là hành vi quan sát được, không phải cam kết trong tài liệu.
+
+**`kubectl` không lưu file nào.** Lệnh trên làm ba việc:
+
+1. Đọc `.env` ở máy local; file này vẫn nguyên tại chỗ, `kubectl` không sửa hay xóa nó.
+2. Dựng object Secret trong bộ nhớ (giá trị được mã hóa base64).
+3. Gửi object tới API server; dòng `secret/hello-secret created` là phản hồi từ API server.
+
+**Secret nằm ở đâu sau đó?** Trong **etcd** của control plane:
+
+| Kiểm tra (✅ trên `kind-lab-arch`) | Kết quả |
+| :--- | :--- |
+| Secret tồn tại | Có: `hello-secret`, type `Opaque`, 2 khóa `API_TOKEN` và `DB_PASSWORD` |
+| Thư mục dữ liệu etcd | `/var/lib/etcd` bên trong container `lab-arch-control-plane` (kind chạy "node" là một container, ở đây qua podman) |
+| Encryption at rest | Không thấy cấu hình trong manifest của kube-apiserver (tìm "encryption" ra 0 kết quả) |
+
+Theo tài liệu, nếu không bật encryption at rest thì Secret trong etcd chỉ ở dạng base64, không mã hóa (xem 1.7).
+
+**Khi Pod dùng Secret:**
+
+- `envFrom`: kubelet đưa giá trị vào môi trường container lúc khởi động.
+- Volume Secret: kubelet ghi giá trị thành file trên node, dưới `/var/lib/kubelet/pods/<pod-uid>/volumes/kubernetes.io~secret/<tên-volume>/`. Theo tài liệu, volume Secret nằm trên tmpfs (RAM) nên không ghi xuống đĩa node (xem 1.7).
+
+**Xem lại, xóa Secret:**
+
+```bash
+kubectl get secret hello-secret -o yaml                                   # dữ liệu là base64
+kubectl get secret hello-secret -o jsonpath='{.data.API_TOKEN}' | base64 -d
+kubectl delete secret hello-secret                                        # xóa khỏi cluster; file .env không bị ảnh hưởng
+```
+
+> ⚠️ **Chưa kiểm chứng được:**
+> - Nội dung bản ghi trong etcd: node `kind` không có `etcdctl`, nên chỉ xác nhận được vị trí dữ liệu và việc thiếu cấu hình mã hóa.
+> - Mount tmpfs `kubernetes.io~secret` có trên node, nhưng chưa đối chiếu được nó thuộc Pod nào, nên chưa khẳng định nó là của Pod trong thí nghiệm này.
+> - `secretGenerator` với `envs` của Kustomize: chưa kiểm chứng cú pháp, hãy đọc tài liệu Kustomize trước khi dùng.
+
+> 🔐 **Nhớ `.gitignore`:** `.env` chứa giá trị thật, hãy thêm vào `.gitignore` **trước** khi `git add`. Đừng để lệnh `kubectl` mẫu hay output base64 trong chính file `.env`, vì base64 không phải mã hóa.
+
 ---
 
 ## 5. Cạm Bẫy Thực Tế & Thực Tiễn Sản Xuất (Production Gotchas & Best Practices)
@@ -516,6 +574,7 @@ Tham chiếu ConfigMap/Secret hoặc khóa không tồn tại (không đặt `op
 - [Encrypting Confidential Data at Rest](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/) - Bật encryption at rest cho Secret.
 - [Configure a Pod to Use a ConfigMap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/) - Hướng dẫn thực hành chính thức.
 - [Distribute Credentials Securely Using Secrets](https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/) - Cấp Secret vào Pod.
+- [kubectl create secret generic](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/kubectl_create_secret_generic/) - Cờ `--from-env-file`, `--from-file`, `--from-literal` (xem 4.8).
 - [Pull an Image from a Private Registry](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) - `dockerconfigjson` và `imagePullSecrets`.
 - [RBAC Good Practices](https://kubernetes.io/docs/concepts/security/rbac-good-practices/) - Giới hạn quyền đọc Secret.
 - [External Secrets Operator](https://external-secrets.io/latest/) - Đồng bộ secret từ kho ngoài (Tier 3 cho khái niệm: chọn công cụ sau khi đọc tài liệu của dự án).

@@ -124,34 +124,19 @@ Mỗi file bài học phải tuân thủ cấu trúc chuẩn hóa:
 
 ---
 
-## 6. Quy Chuẩn Commit & Push Git (Git Commit & Push Convention)
-
-Mọi thay đổi khi commit và push lên Git repository BẮT BUỘC phải tuân thủ định dạng:
-
-```text
-<type>: <day-month-year> - <details>
-```
-
-- **`<type>`**: `feat` (bài học/lab mới), `fix` (sửa lỗi), `core` (cấu trúc/checklist/skill cốt lõi), `docs` (tài liệu/note), `refactor` (tái cấu trúc), `chore` (cấu hình/tooling), `test` (kiểm thử).
-- **`<details>`**: Mô tả ngắn gọn nội dung thay đổi.
-
-> Tham khảo chi tiết tại skill: [git-push](.agents/skills/git-push/SKILL.md) và script tự động hóa [push.sh](.agents/skills/git-push/scripts/push.sh).
-
----
-
-## 7. Quy Chuẩn Đường Dẫn Tài Liệu Nội Bộ (Internal Markdown Links & Relative Paths)
+## 6. Quy Chuẩn Đường Dẫn Tài Liệu Nội Bộ (Internal Markdown Links & Relative Paths)
 
 Khi tạo liên kết giữa các file, thư mục, bài giảng, checklist hoặc skill trong tài liệu markdown (`*.md`) của kho lưu trữ:
 
 1. **Tuyệt đối KHÔNG dùng đường dẫn tuyệt đối (Absolute Paths)**:
    - Nghiêm cấm sử dụng tiền tố `file:///home/...`, `/home/phandinhminh/...` hoặc bất kỳ đường dẫn tuyệt đối gắn cứng với hệ thống tệp cục bộ nào.
-   - *Lý do*: Đường dẫn tuyệt đối sẽ hỏng hoàn toàn khi đẩy lên GitHub/GitLab hoặc khi người khác clone repository về các hệ điều hành/máy tính khác.
+   - *Lý do*: Đường dẫn tuyệt đối sẽ hỏng hoàn toàn khi chia sẻ thư mục hoặc mở trên các hệ điều hành/máy tính khác.
 2. **BẮT BUỘC dùng đường dẫn tương đối (Relative Paths)**:
    - Mọi liên kết nội bộ phải được tính toán tương đối dựa trên vị trí của file hiện tại.
    - **Ví dụ đúng**:
      - Từ `react+vite/README.md` liên kết tới skill: `[react-vite-curriculum-guide](../.agents/skills/react-vite-curriculum-guide/SKILL.md)`
      - Từ file bài học liên kết tới checklist cùng cấp: `[CHECKLIST](../CHECKLIST.md)` hoặc `[CHECKLIST](./CHECKLIST.md)`
-     - Từ gốc repository: `[git-push](.agents/skills/git-push/SKILL.md)`
+     - Từ gốc repository: `[verifier](.agents/agents/verifier.md)`
    - **Ví dụ sai**:
      - `[react-vite-curriculum-guide](file:///home/phandinhminh/projects/SelfLearn/.agents/skills/react-vite-curriculum-guide/SKILL.md)` *(Bị cấm)*
 
