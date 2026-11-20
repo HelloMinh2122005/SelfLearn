@@ -30,7 +30,7 @@ Trong hệ sinh thái Kubernetes, Helm là trình quản lý gói (package manag
 
 Kiến trúc đối tượng của Helm xoay quanh 4 thành phần cơ bản: <!-- ev: R1.1 R1.2 R1.4 R1.7 R2.16 -->
 
-- **Chart**: Đơn vị đóng gói chứa toàn bộ định nghĩa tài nguyên Kubernetes cần thiết để chạy một ứng dụng hoặc dịch vụ. Chart tập hợp các manifest thành một khối có phiên bản, chia sẻ và rollback đồng nhất. <!-- ev: R1.2 R1.3 -->
+- **Chart**: Một gói (thư mục) gom tất cả manifest Kubernetes của một ứng dụng (Deployment, Service, ConfigMap...) cùng cấu hình mặc định. Chart có số phiên bản, đẩy lên repository để chia sẻ được, và khi cài ra cluster thì Helm cài, nâng cấp hoặc rollback cả gói như một khối. <!-- ev: R1.2 R1.3 -->
 - **Release**: Một thực thể (instance) cụ thể của chart đang chạy kết hợp với cấu hình trong cụm. Helm hòa trộn chart với values (thường từ file `values.yaml`) để tạo release. Cùng một chart có thể cài đặt nhiều lần thành các release độc lập với tên riêng biệt. Lệnh `helm list` (hoặc `helm ls`) liệt kê toàn bộ release đã triển khai. <!-- ev: R1.4 R1.5 R1.6 R2.16 -->
 - **Revision**: Số phiên bản tăng dần ghi lại lịch sử cấu hình của release qua mỗi lần cài đặt, nâng cấp hoặc rollback. <!-- ev: R1.2 R1.4 -->
 - **Repository**: Kho lưu trữ chia sẻ chart qua HTTP (`index.yaml`) hoặc registry OCI. <!-- ev: R1.2 R1.7 -->
@@ -167,14 +167,15 @@ helm version --template '{{.Version}}'
 Cấu hình backend lưu trữ qua biến môi trường và liệt kê các release:
 
 ```bash
-# 1. Cấu hình biến HELM_DRIVER (secret, configmap, hoặc sql hỗ trợ PostgreSQL)
+# 1. Chọn driver lưu trữ (secret, configmap, hoặc sql hỗ trợ PostgreSQL)
+#    Mặc định đã là secret nên bước này có thể bỏ qua; mọi lệnh Helm sau đó phải dùng cùng driver
 export HELM_DRIVER=secret
 
-# 2. Liệt kê toàn bộ release đã triển khai trong namespace hiện tại
+# 2. Liệt kê release đã triển khai trong namespace hiện tại (helm ls là alias của helm list)
 helm list
 
-# 3. Liệt kê trên tất cả namespaces (tương đương helm ls)
-helm ls --all-namespaces
+# 3. Liệt kê release trên tất cả namespaces (viết tắt: -A)
+helm list --all-namespaces
 ```
 
 ### 4.3 Khảo Sát Secret Lưu Trữ Release Metadata Của Helm

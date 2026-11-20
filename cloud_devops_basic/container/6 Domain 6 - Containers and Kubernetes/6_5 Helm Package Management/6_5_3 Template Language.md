@@ -88,7 +88,21 @@ Helm tự động cung cấp các đối tượng ngữ cảnh toàn cục khi b
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)
 
-Go template trong Helm giống như một dây chuyền cắt ráp thiệp mời tự động:
+### 2.1 Ý Tưởng Chính: Giống "Trộn Thư" (Mail Merge) Trong Word
+
+Khi gửi thư mời cho 100 người, bạn viết một mẫu có chỗ trống:
+
+> Kính gửi **«Họ tên»**, mời bạn dự tiệc ngày **«Ngày»**.
+
+Word điền từng người và in ra 100 lá thư hoàn chỉnh. Helm làm y hệt:
+
+- **Mẫu thư** = file trong `templates/` có các chỗ trống `{{ ... }}`.
+- **Danh sách dữ liệu** = `values.yaml`.
+- **Thư in ra** = YAML Kubernetes thật, gửi lên cluster.
+
+### 2.2 Đi Sâu Hơn: Dây Chuyền Cắt Ráp Thiệp Mời
+
+Về cách điền chỗ trống, Go template trong Helm giống như một dây chuyền cắt ráp thiệp mời tự động:
 
 1. **Dấu chấm `.` — Vị trí đứng máy**: Khi đứng ở sảnh trung tâm (root context), người thợ có thể với tay lấy khay thông số `.Values`, mã đơn hàng `.Release`, hay phôi thiệp `.Chart`. Nhưng khi bước vào buồng dán tem `with` hoặc phòng chia thư `range`, người thợ đổi vị trí nên chỉ thấy đồ vật trong buồng đó (biến `.` trỏ vào đối tượng con).
 2. **Chiếc chìa khóa vạn năng `$` — Cửa thông gió về sảnh chính**: Đang đứng trong buồng dán tem kín mà cần lấy mã đơn hàng ở sảnh tiếp tân, biến `.` không còn thấy `.Release`. Chiếc chìa khóa vạn năng `$` mở cánh cửa thông gió trỏ thẳng về root context, giúp lấy `$.Release.Name` hay `$.Values.global` dễ dàng.

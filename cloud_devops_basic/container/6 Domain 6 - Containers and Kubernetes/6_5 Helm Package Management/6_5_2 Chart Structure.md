@@ -57,6 +57,12 @@ Các trường cốt lõi trong `Chart.yaml`: <!-- ev: R1.18 R2.18 -->
 
 ### 1.2 Cấu Hình `values.yaml` & Kiểm Thực với `values.schema.json`
 
+**Vì sao cần schema?** `values.yaml` là YAML thường, không có kiểu dữ liệu: Helm không biết `replicaCount` phải là số hay chuỗi. Không có schema thì lỗi đến muộn:
+- **Sai kiểu vẫn render được**: chạy `--set replicaCount=hai`, Helm vẫn điền thẳng vào template, và lỗi chỉ lộ ra khi Kubernetes từ chối manifest lúc cài đặt. *(Hành vi này chưa được chạy thử trong bài.)*
+- **Thiếu giá trị bắt buộc**: quên khai báo `image.tag` thì template sinh ra image dở dang, và lỗi chỉ thấy trên cluster (ví dụ `ImagePullBackOff`).
+
+Có schema thì lỗi bị chặn ngay trên máy bạn hoặc trong CI, trước khi chạm tới cluster, kèm thông báo chỉ rõ trường nào sai. Giống ô nhập số điện thoại trên form: báo đỏ ngay khi gõ "abc", thay vì đợi hệ thống gọi điện mới biết. Schema là **tùy chọn**: chart không có schema vẫn chạy bình thường, nhưng rất đáng làm khi chart được người khác dùng hoặc chạy qua CI. Schema chỉ ràng buộc các trường nó khai báo; để bắt cả lỗi gõ sai tên trường cần thêm `"additionalProperties": false` (tính năng của JSON Schema nói chung). <!-- ev: R1.25 R1.85 -->
+
 Tệp `values.schema.json` áp đặt định nghĩa JSON Schema lên các giá trị cấu hình chart: <!-- ev: R1.25 R2.28 -->
 - **Tiêu chuẩn**: Sử dụng chuẩn JSON Schema Draft 7 (`https://json-schema.org/draft-07/schema#`). <!-- ev: R2.29 -->
 - **Kích hoạt tự động**: Tự động chạy khi gọi `helm install`, `upgrade`, `lint`, hoặc `template`. <!-- ev: R1.26 R2.30 -->
@@ -170,8 +176,8 @@ sequenceDiagram
 Tạo khung thư mục chart chuẩn bằng lệnh `helm create`: <!-- ev: R1.17 R2.31 -->
 
 ```bash
-helm create webapp
-tree webapp/
+helm create web-app
+tree web-app/
 ```
 
 ### 4.2 Thiết Lập `Chart.yaml` Định Danh Chuẩn Mực
@@ -180,8 +186,8 @@ Khai báo định danh và phiên bản tuân thủ quy chuẩn: <!-- ev: R1.18 
 
 ```yaml
 apiVersion: v2
-name: webapp
-description: "Dịch vụ webapp"
+name: web-app
+description: "Dịch vụ web-app"
 type: application
 version: 1.0.0
 appVersion: "2.4.1"
@@ -191,7 +197,7 @@ deprecated: false
 
 ### 4.3 Khai Báo Ràng Buộc với `values.schema.json`
 
-Áp đặt định nghĩa JSON Schema Draft 7 lên values: <!-- ev: R1.25 R2.28 R2.29 -->
+Áp đặt định nghĩa JSON Schema Draft 7 lên values. `helm create` **không** sinh sẵn tệp này; hãy tự tạo tệp `values.schema.json` ở thư mục gốc của chart (cạnh `Chart.yaml` và `values.yaml`, tức `web-app/values.schema.json`) với nội dung sau: <!-- ev: R1.25 R2.28 R2.29 -->
 
 ```json
 {
@@ -218,13 +224,13 @@ Kiểm tra cú pháp và kích hoạt schema validation: <!-- ev: R1.26 R1.27 R2
 
 ```bash
 # Kiểm tra chart và schema
-helm lint webapp/
+helm lint web-app/
 
 # Render manifest ngoại tuyến
-helm template preview webapp/
+helm template preview web-app/
 
 # Thử nghiệm giá trị vi phạm schema (replicaCount là chuỗi)
-helm template preview webapp/ --set replicaCount="hai"
+helm template preview web-app/ --set replicaCount="hai"
 # Kết quả: Báo lỗi schema validation failed và dừng render
 ```
 
@@ -242,8 +248,8 @@ secrets.txt
 Nếu chart cung cấp CRD, đặt tệp YAML thuần túy vào thư mục `crds/`: <!-- ev: R1.29 R1.30 R2.32 -->
 
 ```bash
-mkdir -p webapp/crds
-cat << 'EOF' > webapp/crds/mycrds.yaml
+mkdir -p web-app/crds
+cat << 'EOF' > web-app/crds/mycrds.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:

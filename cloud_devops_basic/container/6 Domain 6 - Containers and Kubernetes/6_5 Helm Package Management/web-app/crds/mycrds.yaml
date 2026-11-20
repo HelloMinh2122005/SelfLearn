@@ -1,0 +1,18 @@
+apiVersion: apiextensions.k8s.io/v1   # API group/version dùng để khai báo CRD (apiextensions.k8s.io/v1 là bản stable, v1beta1 đã bị gỡ từ K8s 1.22)
+kind: CustomResourceDefinition        # Loại object: định nghĩa một "kind" tùy chỉnh mới để mở rộng Kubernetes API
+metadata:                             # Thông tin nhận dạng của chính object CRD này
+  name: widgets.example.com           # BẮT BUỘC có dạng <plural>.<group> -> phải khớp spec.names.plural + spec.group
+spec:                                 # Đặc tả chi tiết của CRD
+  group: example.com                  # API group của custom resource -> URL sẽ là /apis/example.com/v1/...
+  scope: Namespaced                   # Phạm vi: Namespaced (thuộc về 1 namespace) hoặc Cluster (toàn cluster, như Node)
+  names:                              # Các tên dùng để gọi resource này
+    plural: widgets                   # Tên số nhiều, dùng trong URL và kubectl (kubectl get widgets)
+    singular: widget                  # Tên số ít, dùng làm alias trong kubectl (kubectl get widget)
+    kind: Widget                      # Giá trị trường "kind" khi viết manifest (kind: Widget), viết hoa chữ đầu (PascalCase)
+  versions:                           # Danh sách các phiên bản API mà CRD hỗ trợ
+    - name: v1                        # Tên phiên bản -> apiVersion của resource sẽ là example.com/v1
+      served: true                    # true = API server phục vụ version này (cho phép CRUD qua REST API)
+      storage: true                   # true = version này dùng để lưu vào etcd (chỉ ĐƯỢC có đúng 1 version storage: true)
+      schema:                         # Schema để validate nội dung custom resource
+        openAPIV3Schema:              # Schema theo chuẩn OpenAPI v3 (bắt buộc với apiextensions v1)
+          type: object                # Root của resource phải là object; chưa khai báo properties nên chưa validate field con
