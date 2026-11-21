@@ -40,6 +40,8 @@ Mô hình hiện đại loại bỏ hoàn toàn kiến trúc daemon nền chạy
 Buildah là công cụ mã nguồn mở cho phép xây dựng và đẩy OCI container image độc lập mà không cần bất kỳ Docker daemon nào (daemonless). <!-- ev: C5.7 -->  
 Buildah và rootless BuildKit hoạt động hoàn toàn trong user namespace của Linux ở chế độ rootless, không đòi hỏi quyền root thực sự của máy chủ host hay cờ đặc quyền của runner. <!-- ev: C5.8 -->
 
+> 💡 **Bài đọc thêm chuyên sâu**: Để hiểu bản chất kỹ thuật từng bước từ khi gõ `docker build` $\rightarrow$ sinh Image $\rightarrow$ `docker run` (tương tác `dockerd`, `containerd`, `containerd-shim`, `runc`, Namespaces, Cgroups, OverlayFS) và cơ chế Daemonless qua Linux User Namespaces, xem bài: [6_6_5_1 Container Lifecycle and Daemonless Build Internals](./6_6_5_1%20Container%20Lifecycle%20and%20Daemonless%20Build%20Internals.md).
+
 <!-- ev: C5.1 C5.2 C5.3 C5.5 C5.6 C5.7 C5.8 -->
 | Tiêu chí so sánh | Docker-in-Docker (DinD) | Docker Socket Binding | Buildah / Rootless BuildKit |
 | :--- | :--- | :--- | :--- |

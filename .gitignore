@@ -3,3 +3,5 @@ node_modules/
 dist/
 .DS_Store
 /cloud_devops_basic/.evidence
+
+*.secrets/

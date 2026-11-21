@@ -14,6 +14,7 @@
 stages:
   - test
   - build
+  - deploy
 
 hello_job:
   stage: test
@@ -30,3 +31,12 @@ build_mock:
     - echo "Giả lập bước đóng gói ứng dụng..."
     - 'echo "Commit SHA hiện tại là: $CI_COMMIT_SHORT_SHA"'
 
+deploy_to_k8s:
+  stage: deploy
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  script:
+    - kubectl config use-context HelloMinh2122005/selflearn:hello-agent-helm-lab
+    - kubectl delete pod test-pod-from-gitlab --ignore-not-found
+    - kubectl run test-pod-from-gitlab --image=nginx:alpine
