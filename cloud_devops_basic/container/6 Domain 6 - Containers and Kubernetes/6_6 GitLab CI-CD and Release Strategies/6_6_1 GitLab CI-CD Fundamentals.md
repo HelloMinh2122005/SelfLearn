@@ -148,7 +148,8 @@ Cấu hình mẫu YAML chuẩn mực cho quy trình CI/CD, tích hợp lọc s�
 # Ngăn chặn hoàn toàn hiện tượng duplicate pipelines
 workflow:
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      # Thay vì on event như các platform cicd khác, gitlab define với if
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"' # Run nêứ không có when
     - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
       when: never
     - if: '$CI_COMMIT_BRANCH'
@@ -160,6 +161,10 @@ stages:
   - test
   - deploy
 
+# Đoạn cấu hình này thiết lập môi trường chạy mặc định cho toàn bộ các Job
+# Cụ thể, nó trả lời cho 2 câu hỏi lớn của mỗi Job:
+# Ai làm? → Giao cho Runner nào có nhãn docker xử lý (tags: - docker).
+# Làm ở đâu? → Mở một container chạy Linux siêu nhẹ alpine:latest để chạy lệnh (image: alpine:latest).
 default:
   image: alpine:latest
   tags:

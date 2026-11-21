@@ -1,0 +1,19 @@
+# Pipeline Hello World cơ bản trong GitLab CI/CD
+stages:
+  - test
+  - build
+
+hello_job:
+  stage: test
+  image: alpine:latest
+  script:
+    - echo "Xin chào từ GitLab CI/CD!"
+    - echo "Job đang chạy trên Runner với Docker container Alpine"
+    - uname -a
+
+build_mock:
+  stage: build
+  image: alpine:latest
+  script:
+    - echo "Giả lập bước đóng gói ứng dụng..."
+    - 'echo "Commit SHA hiện tại là: $CI_COMMIT_SHORT_SHA"'
