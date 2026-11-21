@@ -1,0 +1,25 @@
+# Evidence Index: WRITE-GL-6_6_1
+
+- **Lesson**: 6_6_1 GitLab CI-CD Fundamentals
+- **Target File**: `cloud_devops_basic/container/6 Domain 6 - Containers and Kubernetes/6_6 GitLab CI-CD and Release Strategies/6_6_1 GitLab CI-CD Fundamentals.md`
+- **Verification Ledgers**:
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_1-V1.md`
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_1-V2.md`
+- **Claim IDs Used**:
+  - `C1.1`: Trong GitLab CI/CD, quy trình thực thi được cấu trúc theo mô hình phân cấp gồm ba tầng cơ bản: Pipeline chứa các Stage, và mỗi Stage chứa một hoặc nhiều Job.
+  - `C1.2`: Theo mặc định trong GitLab CI/CD, các job nằm trong cùng một stage sẽ được điều phối thực thi song song nếu hệ thống có đủ runner đáp ứng.
+  - `C1.3`: Trong mô hình pipeline phân tầng theo giai đoạn, tất cả các job trong stage trước phải hoàn thành thành công thì các job thuộc stage kế tiếp mới được kích hoạt.
+  - `C1.4`: GitLab Runner là một ứng dụng độc lập hoạt động theo cơ chế kéo (pull model), liên tục thăm dò (long polling) qua HTTP tới GitLab API để nhận job mà không yêu cầu GitLab server kết nối ngược lại.
+  - `C1.5`: Biến môi trường định sẵn `$CI_PIPELINE_SOURCE` chỉ định phương thức kích hoạt pipeline, nhận các giá trị như `push`, `merge_request_event`, `schedule`, `web`, `trigger` hoặc `parent_pipeline`.
+  - `C1.6`: Khi một commit được đẩy kèm git tag, pipeline được khởi tạo với nguồn `push` đồng thời biến định sẵn `$CI_COMMIT_TAG` được thiết lập lưu tên của tag đó.
+  - `C1.7`: Branch pipeline được kích hoạt khi đẩy commit lên nhánh Git thông thường, chạy trên ref của nhánh đó và không chứa các biến định sẵn dành riêng cho Merge Request.
+  - `C1.8`: Merge Request pipeline chạy trên ref `refs/merge-requests/:iid/head` và cung cấp các biến định sẵn đặc thù của MR như `$CI_MERGE_REQUEST_IID` cùng `$CI_MERGE_REQUEST_TARGET_BRANCH_NAME`.
+  - `C1.9`: Khi đẩy commit lên một nhánh đang mở Merge Request mà không cấu hình quy tắc lọc, GitLab sẽ tự động tạo đồng thời cả branch pipeline lẫn merge request pipeline cho cùng một commit, gây ra hiện tượng chạy trùng lặp (duplicate pipelines).
+  - `C1.10`: Từ khóa `workflow:rules` được đặt ở cấp độ cao nhất của file `.gitlab-ci.yml` để quyết định việc toàn bộ pipeline có được tạo ra hay không dựa trên sự kiện kích hoạt.
+  - `C1.11`: Để ngăn chặn hoàn toàn pipeline trùng lặp, `workflow:rules` cấu hình bỏ qua branch pipeline (`when: never`) khi biến `$CI_OPEN_MERGE_REQUESTS` tồn tại trên nhánh có Merge Request đang mở.
+  - `C1.12`: Khái niệm `stages` và `jobs` trong GitLab CI/CD có vai trò và cấu trúc phân cấp tương đương với `stages` và `jobs` trong YAML pipeline của Azure DevOps.
+  - `C1.13`: Mục `script` (kèm `before_script`, `after_script`) định nghĩa các câu lệnh thực thi trong job của GitLab tương ứng với danh sách tác vụ `steps` (như script hoặc task) trong Azure DevOps.
+  - `C1.14`: Mô hình định tuyến thực thi bằng nhãn `tags` trên GitLab Runner tương ứng với việc lựa chọn Agent Pools và cấu hình Demands trong Azure DevOps.
+  - `C1.15`: Tính năng CI/CD Variables trong GitLab (quản lý ở cấp độ Project hoặc Group) tương đương với Variable Groups trong thư viện Azure DevOps Library.
+  - `C1.16`: Một job trong GitLab CI/CD sẽ rơi vào trạng thái `pending` nếu không có bất kỳ runner khả dụng nào khớp với nhãn `tags` được yêu cầu hoặc tất cả runner đều đã hết năng lực xử lý.
+  - `C1.17`: Nếu một job thất bại mà không được gắn thuộc tính `allow_failure: true`, toàn bộ stage chứa job đó bị đánh dấu thất bại và các stage tiếp theo trong pipeline sẽ bị dừng lại.

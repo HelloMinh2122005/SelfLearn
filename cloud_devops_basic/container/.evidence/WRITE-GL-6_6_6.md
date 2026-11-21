@@ -1,0 +1,26 @@
+# Evidence Index: WRITE-GL-6_6_6
+
+- **Lesson**: 6_6_6 Testing and Quality Gates in CI
+- **Target File**: `cloud_devops_basic/container/6 Domain 6 - Containers and Kubernetes/6_6 GitLab CI-CD and Release Strategies/6_6_6 Testing and Quality Gates in CI.md`
+- **Verification Ledgers**:
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_6-V1.md`
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_6-V2.md`
+- **Claim IDs Used**:
+  - `C6.1`: `artifacts:reports:junit` collects JUnit XML test reports for GitLab to parse and display directly in the Merge Request test summary widget.
+  - `C6.2`: `artifacts:reports:junit` supports collecting multiple XML reports using wildcard paths (e.g., `target/surefire-reports/TEST-*.xml`).
+  - `C6.3`: `coverage:` keyword in job config specifies a regular expression to extract test coverage percentage from job console logs for badge and MR display.
+  - `C6.4`: GitLab provides built-in security templates included via `include: { template: 'Jobs/<template-name>.gitlab-ci.yml' }`.
+  - `C6.5`: Secret Detection scans repository files and commit history for leaked secrets/tokens, available in all tiers including GitLab Free.
+  - `C6.6`: SAST scans static source code for vulnerabilities; basic scanning available in Free, while Vulnerability Report and MR security widget require Ultimate.
+  - `C6.7`: Dependency Scanning checks lock files for known vulnerabilities, requiring GitLab Ultimate for full centralized dashboard and MR widget.
+  - `C6.8`: Container Scanning analyzes built container images for CVEs in base images and system packages, requiring GitLab Ultimate for integrated dashboard.
+  - `C6.9`: Aqua Security Trivy can be executed directly as an independent CI job running `trivy image`.
+  - `C6.10`: `trivy image --exit-code 1 --severity HIGH,CRITICAL <image>` sets an automated blocking quality gate failing the job if vulnerabilities of designated severity are found.
+  - `C6.11`: Trivy supports `--format template --template '@/contrib/gitlab.tpl'` to export JSON reports for `artifacts:reports:container_scanning`.
+  - `C6.12`: Helm Quality Gate runs as a standalone CI job before deployment to validate charts offline without Kubernetes cluster connectivity.
+  - `C6.13`: `helm lint --strict` verifies chart structure, `Chart.yaml` syntax, and turns warnings into errors to fail pipeline on convention violations.
+  - `C6.14`: `helm template <release> <chart> -f <values>` renders Go templates into YAML Kubernetes manifests to detect template logic and syntax errors before server deploy.
+  - `C6.15`: `values.schema.json` at chart root enforces JSON Schema Draft 7 to validate data types and constraints of `values.yaml` during `helm lint` and `helm template`.
+  - `C6.16`: Manifest output from `helm template` piped into `kubeconform -strict -summary` validates generated manifests against official Kubernetes OpenAPI schema.
+  - `C6.17`: `allow_failure: true` allows a scanning or testing job to complete and display warnings without stopping the entire pipeline on failure.
+  - `C6.18`: `needs:` enables test and scanning jobs to execute concurrently in DAG fashion as soon as direct upstream dependencies finish without waiting for full stage completion.

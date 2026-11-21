@@ -16,11 +16,11 @@
 | [6_3 Kubernetes Architecture and Core Workloads](#6_3-kubernetes-architecture-and-core-workloads) | 8 | 4 | 12 | `0 / 12` | `0%` |
 | [6_4 Kubernetes Networking Configuration and Storage](#6_4-kubernetes-networking-configuration-and-storage) | 7 | 4 | 11 | `0 / 11` | `0%` |
 | [6_5 Helm Package Management](#6_5-helm-package-management) | 11 | 5 | 16 | `1 / 16` | `6%` |
-| [6_6 GitLab CI-CD and Release Strategies](#6_6-gitlab-ci-cd-and-release-strategies) | 11 | 6 | 17 | `0 / 17` | `0%` |
+| [6_6 GitLab CI-CD and Release Strategies](#6_6-gitlab-ci-cd-and-release-strategies) | 11 | 6 | 17 | `5 / 17` | `29%` |
 | [6_7 Kubernetes Security Scheduling and Scaling](#6_7-kubernetes-security-scheduling-and-scaling) | 10 | 5 | 15 | `0 / 15` | `0%` |
 | [6_8 Kubernetes Observability and Troubleshooting](#6_8-kubernetes-observability-and-troubleshooting) | 8 | 5 | 13 | `0 / 13` | `0%` |
 | [6_9 Capstone - End-to-End Release Pipeline](#6_9-capstone---end-to-end-release-pipeline) | 7 | 5 | 12 | `0 / 12` | `0%` |
-| **Tổng** | **83** | **38** | **121** | `1 / 121` | `1%` |
+| **Tổng** | **83** | **38** | **121** | `6 / 121` | `5%` |
 
 > Ghi chú: lab 6_2_1 và 6_2_2 đã được chạy thử khi soạn bài (Fedora 43, Podman 5.8.9). Bạn vẫn cần tự làm lại mới được tick.
 
@@ -148,12 +148,12 @@ README: [6_5 Helm Package Management](<./6 Domain 6 - Containers and Kubernetes/
 README: [6_6 GitLab CI-CD and Release Strategies](<./6 Domain 6 - Containers and Kubernetes/6_6 GitLab CI-CD and Release Strategies/README.md>)
 
 **Kiến thức**
-- [ ] **6_6_1** Giải thích pipeline/stage/job/runner, các loại pipeline, và cách tránh pipeline trùng.
-- [ ] **6_6_2** Dùng đúng `rules`, `needs`, `artifacts` vs `cache`, `extends`, `include`, `resource_group`, parent-child pipeline.
-- [ ] **6_6_3** Dùng biến định sẵn, biến protected/masked/File, phạm vi environment; biết cách tránh lộ secret.
+- [x] **6_6_1** Giải thích pipeline/stage/job/runner, các loại pipeline, và cách tránh pipeline trùng.
+- [x] **6_6_2** Dùng đúng `rules`, `needs`, `artifacts` vs `cache`, `extends`, `include`, `resource_group`, parent-child pipeline.
+- [x] **6_6_3** Dùng biến định sẵn, biến protected/masked/File, phạm vi environment; biết cách tránh lộ secret.
 - [ ] **6_6_4** Cài và đăng ký runner theo luồng mới, chọn executor phù hợp, dùng `tags`.
-- [ ] **6_6_5** Build và push image trong CI, so sánh DinD vs Buildah, truyền digest sang job sau.
-- [ ] **6_6_6** Thêm JUnit report, quét bảo mật, `helm lint/template` làm cổng chất lượng.
+- [x] **6_6_5** Build và push image trong CI, so sánh DinD vs Buildah, truyền digest sang job sau.
+- [x] **6_6_6** Thêm JUnit report, quét bảo mật, `helm lint/template` làm cổng chất lượng.
 - [ ] **6_6_7** Kết nối pipeline với cluster qua GitLab agent (`ci_access`, context) và dùng environment, protected environment, manual job.
 - [ ] **6_6_8** So sánh rolling / blue-green / canary / feature flag và thiết kế rollback.
 - [ ] **6_6_9** Phân biệt image tag/digest, chart `version`, `appVersion`; release theo git tag.

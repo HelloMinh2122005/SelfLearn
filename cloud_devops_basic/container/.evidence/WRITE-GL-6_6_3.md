@@ -1,0 +1,28 @@
+# Evidence Index: WRITE-GL-6_6_3
+
+- **Lesson**: 6_6_3 Variables and Secrets Management
+- **Target File**: `cloud_devops_basic/container/6 Domain 6 - Containers and Kubernetes/6_6 GitLab CI-CD and Release Strategies/6_6_3 Variables and Secrets Management.md`
+- **Verification Ledgers**:
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_3-V1.md`
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_3-V2.md`
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_3-RC1.md`
+- **Claim IDs Used**:
+  - `C3.1`: Predefined variables are automatically injected into every job environment by GitLab Runner without declaration
+  - `C3.2`: `CI_COMMIT_SHA` contains the full 40-character commit hash; `CI_COMMIT_SHORT_SHA` contains the first 8 characters
+  - `C3.3`: `CI_COMMIT_REF_SLUG` is lowercased, URL- and DNS-safe ref name, max 63 characters, matching regex `[a-z0-9-]`
+  - `C3.4`: `CI_COMMIT_TAG` is only available in tag pipelines and contains the git tag name
+  - `C3.5`: `CI_DEFAULT_BRANCH` holds the project's default branch name (`main` or `master`)
+  - `C3.6`: Predefined registry variables `CI_REGISTRY` (registry FQDN), `CI_REGISTRY_IMAGE` (base image path), and `CI_REGISTRY_USER`/`CI_REGISTRY_PASSWORD` for registry authentication
+  - `C3.7`: `CI_JOB_TOKEN` is a short-lived token generated per job for GitLab API and Container Registry authentication; `CI_REGISTRY_PASSWORD` defaults to `CI_JOB_TOKEN`
+  - `C3.8`: `CI_ENVIRONMENT_NAME` contains target environment name; `CI_PROJECT_DIR` contains the absolute clone directory path on runner
+  - `C3.9`: Protected variables are only passed to pipelines running on protected branches or protected tags
+  - `C3.10`: Masked variables are automatically replaced with `[MASKED]` in job console logs
+  - `C3.11`: Masking requirements: single line with no spaces, and at least 8 characters in length
+  - `C3.12`: File-type variables save content to a temporary file on the runner disk and set the file path as the variable value
+  - `C3.13`: Environment scope restricts variable availability to jobs with a matching environment name or wildcard pattern
+  - `C3.14`: Variable precedence hierarchy: Trigger/API/Web manual > Project variables > Group variables > Instance variables > Job YAML variables > Root YAML variables
+  - `C3.15`: Printing raw secret variables (via `echo`, `printf`) risks exposing secrets because runner masking only suppresses exact plaintext matches and does not catch transformed, base64-encoded, or partial substrings
+  - `C3.16`: Setting `CI_DEBUG_TRACE: "true"` enables shell execution trace (`set -o xtrace`), printing evaluated parameter values and risking secret exposure in logs
+  - `C3.17`: Build artifacts configured under `artifacts: paths:` are compressed into zip files and uploaded to the GitLab server, posing severe security risks if secret files are included
+  - `C3.18`: `id_tokens` keyword enables GitLab CI/CD to generate signed OpenID Connect (OIDC) JWTs for passwordless authentication with external cloud and secret management systems
+  - `C3.19`: GitLab OIDC tokens contain standard claims (`iss`, `sub`, `aud`) and metadata claims (`project_path`, `ref_type`) enabling least-privilege cloud role assumption without static credentials

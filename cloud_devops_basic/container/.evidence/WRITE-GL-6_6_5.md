@@ -1,0 +1,26 @@
+# Evidence Index: WRITE-GL-6_6_5
+
+- **Lesson**: 6_6_5 Building and Pushing Container Images in CI
+- **Target File**: `cloud_devops_basic/container/6 Domain 6 - Containers and Kubernetes/6_6 GitLab CI-CD and Release Strategies/6_6_5 Building and Pushing Container Images in CI.md`
+- **Verification Ledgers**:
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_5-V1.md`
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_5-V2.md`
+- **Claim IDs Used**:
+  - `C5.1`: Docker-in-Docker runs an isolated daemon inside a service container, communicating over internal networking
+  - `C5.2`: GitLab Runner requires `privileged = true` in `config.toml` to run Docker-in-Docker
+  - `C5.3`: `privileged = true` disables container security mechanisms and exposes host to container breakout
+  - `C5.4`: Docker 19.03+ enables TLS by default (`DOCKER_TLS_CERTDIR="/certs"`), requiring shared volume for certificates
+  - `C5.5`: Docker socket binding mounts `/var/run/docker.sock` directly from host into job container without auxiliary service
+  - `C5.6`: Binding `/var/run/docker.sock` grants root-equivalent control over host daemon, risking container breakout and naming/port conflicts
+  - `C5.7`: Buildah is an open-source tool to build and push OCI images daemonless without Docker daemon
+  - `C5.8`: Buildah and rootless BuildKit run in user namespaces, eliminating privileged containers and root requirements on host
+  - `C5.9`: `GoogleContainerTools/kaniko` repository was officially archived and made read-only by Google in 2025
+  - `C5.10`: Modern CI/CD guidance recommends migrating from archived Kaniko to rootless BuildKit or Buildah
+  - `C5.11`: Predefined variables `CI_REGISTRY_USER` and `CI_REGISTRY_PASSWORD` (`CI_JOB_TOKEN`) provide authentication to GitLab Container Registry
+  - `C5.12`: Secure registry authentication recommends passing password via stdin (`--password-stdin`)
+  - `C5.13`: Image tags are mutable pointers to manifests, subject to overwriting and version drift
+  - `C5.14`: Image digest SHA-256 (`@sha256:...`) is an immutable content-addressable identifier ensuring reproducible deployment
+  - `C5.15`: Tagging strategy uses `CI_COMMIT_SHORT_SHA` for branch commits and SemVer from `CI_COMMIT_TAG` for releases
+  - `C5.16`: `artifacts:reports:dotenv` collects key-value pairs from `.env` files and exposes them to downstream pipeline jobs
+  - `C5.17`: Remote registry caching via `--cache-from` and inline cache (`--build-arg BUILDKIT_INLINE_CACHE=1`) optimizes builds on ephemeral runners
+  - `C5.18`: `buildah push --digestfile` exports SHA-256 digest directly to a disk file for dotenv artifacts

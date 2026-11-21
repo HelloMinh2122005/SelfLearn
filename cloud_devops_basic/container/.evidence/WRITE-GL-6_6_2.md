@@ -1,0 +1,29 @@
+# Evidence Index: WRITE-GL-6_6_2
+
+- **Lesson**: 6_6_2 GitLab CI-CD Pipeline Syntax
+- **Target File**: `cloud_devops_basic/container/6 Domain 6 - Containers and Kubernetes/6_6 GitLab CI-CD and Release Strategies/6_6_2 GitLab CI-CD Pipeline Syntax.md`
+- **Verification Ledgers**:
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_2-V1.md`
+  - `cloud_devops_basic/container/.evidence/verify/WRITE-GL-6_6_2-V2.md`
+- **Claim IDs Used**:
+  - `C2.1`: `.gitlab-ci.yml` at repository root is the default pipeline configuration file
+  - `C2.2`: `default` keyword defines default parameters across all jobs (`image`, `before_script`, `after_script`, `retry`, `timeout`, `artifacts`)
+  - `C2.3`: Default stages if unspecified are `.pre`, `build`, `test`, `deploy`, `.post`
+  - `C2.4`: `rules` array evaluated top-to-bottom; first match determines job execution and stops further evaluation
+  - `C2.5`: `rules:changes` checks file/path changes via glob patterns; `rules:exists` checks file existence in repository
+  - `C2.6`: `rules:when` accepts `on_success` (default), `manual`, `always`, `never`, `on_failure`, `delayed`
+  - `C2.7`: `needs` executes jobs according to Directed Acyclic Graph (DAG) without waiting for preceding stage completion
+  - `C2.8`: `needs` downloads artifacts by default; `artifacts: false` disables downloading artifacts in `needs`
+  - `C2.9`: `dependencies` defines preceding stage jobs to fetch artifacts from; `dependencies: []` fetches no artifacts
+  - `C2.10`: `artifacts` passes outputs between stages, uploaded to GitLab coordinator, controlled by `expire_in` (default 30 days)
+  - `C2.11`: `cache` stores dependencies across pipeline runs, supports `policy` values `pull`, `push`, `pull-push` (default)
+  - `C2.12`: `extends` inherits configuration from hidden jobs (starting with `.`) and merges keys recursively
+  - `C2.13`: `!reference` YAML tag embeds specific attribute blocks (like `before_script` or `rules`) from another job
+  - `C2.14`: `include` imports external CI configurations via `local`, `project`, `remote`, `template`, `component`
+  - `C2.15`: CI/CD Components packaged with versioning and published to CI/CD Catalog via `include: component: '...-name@version'`
+  - `C2.16`: `parallel:matrix` runs parallel job instances with different environment variable combinations
+  - `C2.17`: `interruptible: true` allows canceling redundant running jobs when a new commit is pushed to the same branch/MR
+  - `C2.18`: `resource_group` limits concurrency to 1 to serialize deployments to a shared resource/environment
+  - `C2.19`: Parent-child pipeline uses `trigger: include` to spawn an independent downstream pipeline in the same repository
+  - `C2.20`: Multi-project pipeline uses `trigger: project` and `branch` to trigger downstream pipelines across projects
+  - `C2.101`: Traditional stage-based model requires subsequent stages to wait for all jobs in prior stages; DAG breaks this barrier
