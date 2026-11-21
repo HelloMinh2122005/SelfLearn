@@ -1,4 +1,16 @@
-# Pipeline Hello World cơ bản trong GitLab CI/CD
+# ==============================================================================
+# PIPELINE HELLO WORLD CƠ BẢN TRONG GITLAB CI/CD
+# ==============================================================================
+# 💡 GHI CHÚ QUAN TRỌNG VỀ CƠ CHẾ KÍCH HOẠT (TRIGGER & RULES):
+# - Khi KHÔNG khai báo `rules:` hay `if:`, hành vi mặc định của GitLab CI là:
+#   Job sẽ TỰ ĐỘNG KÍCH HOẠT trên MỌI NHÁNH với bất kỳ sự kiện `git push` nào!
+#   (Ngầm định: `only: [branches, tags]` và `when: on_success`).
+# - Bạn chỉ cần thêm `rules: - if: ...` khi muốn kiểm soát điều kiện:
+#   + Chỉ định nhánh cụ thể (ví dụ: chỉ chạy deploy trên nhánh main).
+#   + Ngăn chặn duplicate pipelines giữa Branch Push và Merge Request Event.
+#   + Chạy theo Git Tag, Lịch định kỳ (Schedule), hoặc kích hoạt thủ công (Manual).
+# ==============================================================================
+
 stages:
   - test
   - build
@@ -17,3 +29,4 @@ build_mock:
   script:
     - echo "Giả lập bước đóng gói ứng dụng..."
     - 'echo "Commit SHA hiện tại là: $CI_COMMIT_SHORT_SHA"'
+
