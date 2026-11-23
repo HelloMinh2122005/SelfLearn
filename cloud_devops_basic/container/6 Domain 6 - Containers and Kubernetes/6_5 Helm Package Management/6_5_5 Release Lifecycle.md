@@ -79,6 +79,10 @@ Khi cluster bị sửa ngoài luồng (như qua `kubectl edit` hoặc do HPA t�
 - **Three-Way Merge (Helm 3)**: Khi nâng cấp, Three-Way Strategic Merge Patch đánh giá đồng thời manifest cũ, live state trên cluster và manifest mới, giúp không làm mất các thay đổi ngoài luồng. <!-- ev: R5.20 -->
 - **Server-Side Apply (Helm 4)**: Helm 4 mặc định sử dụng Server-Side Apply (SSA) khi cài đặt chart mới, tối ưu hóa phân giải xung đột trường trực tiếp tại Kubernetes API Server. <!-- ev: R5.21 -->
 
+> [!TIP]
+> **Quan sát Drift như `terraform plan` bằng plugin `helm-diff`**:  
+> Helm mặc định không có lệnh `plan`. Cộng đồng Kubernetes sử dụng plugin `helm-diff` để xem trước các thay đổi dạng diff trước khi thực hiện `helm upgrade`. Mặc định, `helm diff upgrade <release> <chart>` chỉ so sánh manifest của release đã triển khai gần nhất với manifest render từ chart mới; để kiểm tra drift với tài nguyên đang chạy thực tế trên cluster theo cơ chế three-way merge, cần thêm cờ `--three-way-merge` (hoặc đặt `HELM_DIFF_THREE_WAY_MERGE=true`). <!-- ev: R5.22 -->
+
 ---
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)

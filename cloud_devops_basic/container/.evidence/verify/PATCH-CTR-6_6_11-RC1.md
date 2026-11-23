@@ -1,0 +1,11 @@
+### VERIFY LEDGER: PATCH-CTR-6_6_11 recheck 1
+**Verifier**: `verifier`, mode recheck
+
+| ID | Lesson | Claim as written | URL + section | Quote | Applies to | Status | Correct statement |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| C11.23 | 6_6_11 | Từ GitLab 18.2+, nên đặt `strategy: mirror` để job cha chờ và phản ánh chính xác mọi trạng thái pipeline con; `strategy: depend` (trước 18.2) không còn được khuyến nghị vì trạng thái trigger job không phải lúc nào cũng khớp pipeline con; ví dụ YAML (L274–276) và L289 dùng `strategy: mirror`. | https://docs.gitlab.com/ci/yaml/#triggerstrategy | "strategy:mirror option introduced in GitLab 18.2. Use trigger:strategy to force the trigger job to wait for the downstream pipeline to complete before it is marked as success. ... mirror: Mirrors the status of the downstream pipeline exactly. depend: Not recommended, use mirror instead." | GitLab CI/CD (`strategy: mirror` từ GitLab 18.2+) | VERIFIED | |
+| C11.24 | 6_6_11 | `trigger: project` tạo pipeline độc lập ở project khác, chỉ định nhánh qua `branch` và nên dùng `strategy: mirror` từ GitLab 18.2+ thay cho `strategy: depend` nếu cần chờ và phản ánh trạng thái kết quả (L68, ví dụ YAML L279–284, L290). | https://docs.gitlab.com/ci/yaml/#triggerproject | "Use trigger:project to declare that a job is a “trigger job” which starts a multi-project pipeline. By default, the multi-project pipeline triggers for the default branch. Use trigger:branch to specify a different branch." | GitLab CI/CD (Free, Premium, Ultimate; `strategy: mirror` từ 18.2+) | VERIFIED | |
+
+#### Notes
+- C11.23 & C11.24: `https://docs.gitlab.com/ci/pipelines/downstream_pipelines/#mirror-the-status-of-a-downstream-pipeline-in-the-trigger-job` cũng xác nhận `"With strategy: mirror, the trigger job always has the same status as the downstream pipeline."` và `"strategy: depend is not recommended, because the trigger job status does not always match the status of the downstream pipeline."` đồng thời minh họa `trigger: project` kèm `branch: main` và `strategy: mirror`.
+- C11.23: Cú pháp `trigger: include: services/payment/.gitlab-ci.yml` với `strategy: mirror` trong block YAML (L274–276) khớp với ví dụ tại `https://docs.gitlab.com/ci/yaml/#triggerinclude` và `https://docs.gitlab.com/ci/yaml/#triggerstrategy`.

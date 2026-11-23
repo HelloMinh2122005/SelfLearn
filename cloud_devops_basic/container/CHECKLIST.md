@@ -16,11 +16,11 @@
 | [6_3 Kubernetes Architecture and Core Workloads](#6_3-kubernetes-architecture-and-core-workloads) | 8 | 4 | 12 | `0 / 12` | `0%` |
 | [6_4 Kubernetes Networking Configuration and Storage](#6_4-kubernetes-networking-configuration-and-storage) | 7 | 4 | 11 | `0 / 11` | `0%` |
 | [6_5 Helm Package Management](#6_5-helm-package-management) | 11 | 5 | 16 | `1 / 16` | `6%` |
-| [6_6 GitLab CI-CD and Release Strategies](#6_6-gitlab-ci-cd-and-release-strategies) | 11 | 6 | 17 | `5 / 17` | `29%` |
+| [6_6 GitLab CI-CD and Release Strategies](#6_6-gitlab-ci-cd-and-release-strategies) | 12 | 7 | 19 | `5 / 19` | `26%` |
 | [6_7 Kubernetes Security Scheduling and Scaling](#6_7-kubernetes-security-scheduling-and-scaling) | 10 | 5 | 15 | `0 / 15` | `0%` |
 | [6_8 Kubernetes Observability and Troubleshooting](#6_8-kubernetes-observability-and-troubleshooting) | 8 | 5 | 13 | `0 / 13` | `0%` |
-| [6_9 Capstone - End-to-End Release Pipeline](#6_9-capstone---end-to-end-release-pipeline) | 7 | 5 | 12 | `0 / 12` | `0%` |
-| **Tổng** | **83** | **38** | **121** | `6 / 121` | `5%` |
+| [6_9 Capstone - End-to-End Release Pipeline](#6_9-capstone---end-to-end-release-pipeline) | 7 | 8 | 15 | `0 / 15` | `0%` |
+| **Tổng** | **84** | **42** | **126** | `6 / 126` | `5%` |
 
 > Ghi chú: lab 6_2_1 và 6_2_2 đã được chạy thử khi soạn bài (Fedora 43, Podman 5.8.9). Bạn vẫn cần tự làm lại mới được tick.
 
@@ -158,6 +158,7 @@ README: [6_6 GitLab CI-CD and Release Strategies](<./6 Domain 6 - Containers and
 - [ ] **6_6_8** So sánh rolling / blue-green / canary / feature flag và thiết kế rollback.
 - [ ] **6_6_9** Phân biệt image tag/digest, chart `version`, `appVersion`; release theo git tag.
 - [ ] **6_6_10** Giải thích push-based vs pull-based (GitOps) deployment.
+- [ ] **6_6_10_1** Cài Flux thủ công và bằng `flux bootstrap gitlab`; nói được bootstrap tạo ra gì và các cách cài trong doanh nghiệp.
 - [ ] **6_6_11** Gỡ lỗi job `pending`, pipeline không được tạo, biến protected không có; tối ưu thời gian pipeline.
 
 **Lab**
@@ -167,6 +168,7 @@ README: [6_6 GitLab CI-CD and Release Strategies](<./6 Domain 6 - Containers and
 - [ ] **lab-6_6_4** Deploy qua agent: dev tự động, prod thủ công trên tag, deploy hỏng tự rollback.
 - [ ] **lab-6_6_5** Pipeline canary 10% với promote/abort (nâng cao).
 - [ ] **lab-6_6_6** Thiết kế trên giấy pipeline cho 10 microservice và trình bày trong 5 phút.
+- [ ] **lab-6_6_7** Cài Flux thủ công rồi bằng bootstrap trên kind, thu hồi token bootstrap mà Flux vẫn đồng bộ.
 
 ## 6_7 Kubernetes Security Scheduling and Scaling
 
@@ -214,23 +216,26 @@ README: [6_8 Kubernetes Observability and Troubleshooting](<./6 Domain 6 - Conta
 
 ## 6_9 Capstone - End-to-End Release Pipeline
 
-README: [6_9 Capstone - End-to-End Release Pipeline](<./6 Domain 6 - Containers and Kubernetes/6_9 Capstone - End-to-End Release Pipeline/README.md>)
+README: [6_9 Capstone - End-to-End Release Pipeline](<./6 Domain 6 - Containers and Kubernetes/6_9 Capstone - End-to-End Release Pipeline/README.md>) (bản 24 giờ)
 
 **Tiêu chí hoàn thành**
-- [ ] Commit vào nhánh mặc định tự tới staging; git tag + một cú bấm đưa đúng digest đó lên prod.
-- [ ] Image ở prod tham chiếu bằng `@sha256:` khớp digest trong log job build.
-- [ ] Deploy hỏng không làm prod mất phục vụ (chứng minh bằng vòng lặp `curl`).
-- [ ] Rollback prod < 5 phút theo runbook.
-- [ ] ServiceAccount của pipeline không có quyền ngoài namespace của nó.
-- [ ] Dashboard/alert phát hiện ít nhất 2/4 sự cố diễn tập.
-- [ ] Trình bày kiến trúc trong 5 phút và giải thích "vì sao" cho mọi lựa chọn.
+- [ ] Commit vào `main` tự lên staging; tag + bấm `promote-prod` đưa đúng digest đó lên prod.
+- [ ] Không deploy tay vào staging/prod; mọi thay đổi có commit trong `platform-gitops`.
+- [ ] Xóa cluster, chạy `bootstrap.sh`, mọi thứ chạy lại được.
+- [ ] 100 lần đăng ký → đúng 100 hồ sơ, không trùng.
+- [ ] "Đường vàng" debug ≤ 5 phút, có một lần đi xuyên Kafka.
+- [ ] Alert phát hiện ≥ 3/4 kịch bản game day; rollback prod bằng `git revert` < 5 phút.
+- [ ] Demo 5 phút, giải thích 5 ADR và giới hạn so với production.
 
-**Giai đoạn**
-- [ ] **capstone-1-foundation** Repo, chart, cluster 3 namespace, agent, RBAC.
-- [ ] **capstone-2-pipeline** Pipeline đầy đủ từ MR tới prod.
-- [ ] **capstone-3-observability** Dashboard và alert.
-- [ ] **capstone-4-game-day** Diễn tập 4 sự cố và viết postmortem.
-- [ ] **capstone-5-story** Câu chuyện STAR và cập nhật CV trung thực.
+**Giai đoạn (24 giờ)**
+- [ ] **capstone-0-setup** (1h) 2 project GitLab, runner, công cụ, kind.
+- [ ] **capstone-1-services** (6h) 3 service, Kafka, Flyway, JWT, Actuator, log JSON, OTel agent.
+- [ ] **capstone-2-platform** (4h) `flux bootstrap gitlab`, Strimzi Kafka, Prometheus, Loki, Tempo.
+- [ ] **capstone-3-gitops-apps** (3h) Chart `spring-service` + `postgres-db`, HelmRelease staging.
+- [ ] **capstone-4-pipeline** (4h) Test, build/push digest, promote staging/prod.
+- [ ] **capstone-5-observability** (3h) ServiceMonitor, Kafka lag, log ↔ trace, dashboard, SLO, alert.
+- [ ] **capstone-6-game-day** (2h) 4 kịch bản.
+- [ ] **capstone-7-docs** (1h) README, 5 ADR, runbook, demo.
 
 ---
 

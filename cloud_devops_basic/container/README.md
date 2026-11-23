@@ -43,7 +43,7 @@ flowchart TD
 | [6_6 GitLab CI-CD and Release Strategies](<./6 Domain 6 - Containers and Kubernetes/6_6 GitLab CI-CD and Release Strategies/README.md>) | `.gitlab-ci.yml`, runner, build image trong CI, environment, agent, canary/blue-green | **P0** | 4–5 ngày | Định nghĩa |
 | [6_7 Kubernetes Security, Scheduling and Scaling](<./6 Domain 6 - Containers and Kubernetes/6_7 Kubernetes Security Scheduling and Scaling/README.md>) | RBAC, ServiceAccount, Pod Security, NetworkPolicy, affinity/taint, HPA, PDB, CRD/Operator | P1 | 3–4 ngày | Định nghĩa |
 | [6_8 Kubernetes Observability and Troubleshooting](<./6 Domain 6 - Containers and Kubernetes/6_8 Kubernetes Observability and Troubleshooting/README.md>) | Quy trình chẩn đoán, danh mục lỗi, log JSON, Prometheus, Grafana, alert | **P0** | 3–4 ngày | Định nghĩa |
-| [6_9 Capstone - End-to-End Release Pipeline](<./6 Domain 6 - Containers and Kubernetes/6_9 Capstone - End-to-End Release Pipeline/README.md>) | Ghép tất cả: git push → prod, diễn tập sự cố, runbook, câu chuyện phỏng vấn | **P0** | 3–5 ngày | Định nghĩa |
+| [6_9 Capstone - End-to-End Release Pipeline](<./6 Domain 6 - Containers and Kubernetes/6_9 Capstone - End-to-End Release Pipeline/README.md>) | 3 microservice + PostgreSQL + Kafka, GitLab CI + GitOps (Flux), observability 3 trụ, game day | **P0** | 24 giờ | Định nghĩa v4 (bản 24 giờ) |
 
 > **Lối tắt khi gấp (chuẩn bị phỏng vấn)**: 6_2 → 6_3 → 6_5 → 6_6 → 6_8 (lab break-and-fix) → 6_9 (bản rút gọn). Học 6_4 và 6_7 ở mức "giải thích được" trước, làm lab sau.
 

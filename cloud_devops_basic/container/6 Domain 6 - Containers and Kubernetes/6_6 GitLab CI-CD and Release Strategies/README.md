@@ -96,6 +96,16 @@ flowchart LR
 - [ ] Mô hình hai repo: repo ứng dụng (build image) và repo môi trường (values/manifest); pipeline chỉ cập nhật tag/digest trong repo môi trường.
 - [ ] GitLab có tích hợp với Flux qua agent (khái niệm, *cần đối chiếu tài liệu GitLab hiện tại*).
 
+### 6_6_10_1 Cài Đặt Flux và Bootstrap (Thực Chiến)
+> Bài bổ sung (22-11-2026), học sau 6_6_10. Chuẩn bị cho capstone 6_9 (giai đoạn `capstone-2-platform`).
+- [ ] Các controller của Flux (`source-controller`, `kustomize-controller`, `helm-controller`, `notification-controller`; image automation là tùy chọn), namespace `flux-system`, CRD; kiểm tra điều kiện bằng `flux check --pre`.
+- [ ] Cài **thủ công**: cài controller (`flux install`) rồi tự áp `GitRepository` + `Kustomization` gốc như 6_6_10; hạn chế: bản thân Flux không được Git quản lý.
+- [ ] **`flux bootstrap gitlab`**: các cờ chính (`--owner`, `--repository`, `--branch`, `--path`, `--personal`, xác thực bằng deploy key SSH hay token), biến `GITLAB_TOKEN` và quyền cần có; bootstrap tạo ra gì trong repo (`<path>/flux-system/`) và trong cluster; chạy lại để nâng cấp Flux; `flux bootstrap git` cho Git server bất kỳ.
+- [ ] Cấu trúc repo GitOps cho nhiều cluster/môi trường: `clusters/<tên>/`, tách hạ tầng và ứng dụng, `dependsOn` giữa các `Kustomization` (đối chiếu repo mẫu chính thức của Flux).
+- [ ] Bảo mật khi bootstrap: token quyền cao chỉ dùng lúc bootstrap; deploy key chỉ đọc (và khi nào cần quyền ghi); khóa giải mã secret (SOPS) phải có trong cluster trước khi Flux reconcile.
+- [ ] Vận hành: `flux get all -A`, `flux reconcile ... --with-source`, `flux suspend` / `resume`, `flux logs`, `flux uninstall`; dựng lại cluster từ Git.
+- [ ] Cách cài trong doanh nghiệp (khái niệm): Terraform/OpenTofu provider của Flux (`flux_bootstrap_git`), Flux Operator (`FluxInstance`, dự án của ControlPlane); multi-tenancy bằng `serviceAccountName` và `--no-cross-namespace-refs`.
+
 ### 6_6_11 Tối Ưu và Gỡ Lỗi Pipeline
 - [ ] Đọc log job, "retry", job artifacts; vì sao job `pending` (không có runner khớp `tags`, runner hết slot).
 - [ ] Rút ngắn pipeline: `needs`, cache `key:files: [pom.xml]`, `rules:changes` cho monorepo, `interruptible` + auto-cancel pipeline cũ.
@@ -213,6 +223,7 @@ Câu hỏi đọc hiểu: vì sao `helm-verify` có `needs: []`? Biến `IMAGE_D
 | lab-6_6_4-deploy-with-agent-and-environments | GitLab agent vào kind, deploy dev tự động, prod thủ công trên tag | 90–120 phút | Định nghĩa |
 | lab-6_6_5-canary-and-rollback-pipeline | Job canary 10% (Gateway API), promote hoặc rollback thủ công | 90 phút | Định nghĩa (nâng cao) |
 | lab-6_6_6-paper-lab-release-design | Thiết kế trên giấy: pipeline cho 10 microservice + chiến lược release | 45 phút | Định nghĩa |
+| lab-6_6_7-flux-install-and-bootstrap | Cài Flux thủ công rồi làm lại bằng `flux bootstrap gitlab` trên kind, so sánh hai cách | 90 phút | Định nghĩa |
 
 ### lab-6_6_1-runner-and-first-pipeline
 - **Các bước chính**: tạo project chứa `hello-svc`; tạo project runner trong UI, cài `gitlab-runner` (executor `docker` với Podman socket hoặc Docker), gắn tag `local`; viết job `unit-test` như ví dụ; cố ý làm hỏng 1 test để thấy báo cáo trong MR; chạy lại để thấy cache `.m2` được dùng.
@@ -255,6 +266,18 @@ Câu hỏi đọc hiểu: vì sao `helm-verify` có `needs: []`? Biến `IMAGE_D
 - **Đề bài**: Công ty có 10 microservice Java trong một monorepo, chạy Kafka và Cassandra trên Kubernetes, 3 môi trường. Viết 1 trang thiết kế: cấu trúc pipeline (parent-child hay mỗi service một pipeline), quy ước tag image và version chart, cách promote, chính sách approval cho prod, chiến lược release cho service thường và cho service có migration schema Cassandra, cách rollback, và bảo vệ secret.
 - **Checkpoint**:
   - [ ] Trình bày thiết kế trong 5 phút và trả lời được câu "nếu deploy prod hỏng lúc 2 giờ sáng thì làm gì".
+
+### lab-6_6_7-flux-install-and-bootstrap
+- **Chuẩn bị**: cluster kind `lab`; project GitLab.com riêng `hello-svc-env` chứa manifest của `hello-svc` (như 6_6_10 §4.1); `flux` CLI.
+- **Các bước chính**:
+  1. `flux check --pre`; cài controller bằng `flux install`; tạo Secret deploy token `read_repository`; áp `GitRepository` + `Kustomization` như 6_6_10 §4.2; `flux get all -A`.
+  2. Sửa replica trong Git → `flux reconcile kustomization <tên> --with-source`; sửa tay bằng `kubectl scale` → chờ Flux đưa về.
+  3. `flux uninstall`, xóa các object đã tạo; chạy `flux bootstrap gitlab` với token có thời hạn ngắn và `--path=clusters/lab`.
+  4. Xem commit bootstrap tạo ra trong repo và deploy key trên GitLab; chạy lại bootstrap lần 2 để thấy tính idempotent.
+  5. `flux suspend kustomization` → sửa tay → `resume` và quan sát.
+- **Checkpoint**:
+  - [ ] Liệt kê được những gì bootstrap tạo ra ở repo và cluster, và cái nào cách thủ công không có.
+  - [ ] Thu hồi token đã dùng để bootstrap mà Flux vẫn đồng bộ được; giải thích vì sao.
 
 ---
 

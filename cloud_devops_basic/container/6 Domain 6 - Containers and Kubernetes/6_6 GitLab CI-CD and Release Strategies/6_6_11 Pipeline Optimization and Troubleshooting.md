@@ -59,6 +59,21 @@ Thay vì để các stage chờ nhau một cách cứng nhắc và tải lại t
 
 *(Nâng cao: có thể bỏ qua ở lần đọc đầu)* Với các lỗi hạ tầng ngẫu nhiên (như đứt mạng tạm thời từ runner), bạn có thể cấu hình `retry` (ví dụ `max: 2` với điều kiện `when: runner_system_failure` hoặc `stuck_or_timeout_failure`) để job tự động thử lại <!-- ev: C11.17 -->, kết hợp cùng `timeout` để ngắt sớm các job bị treo vô thời hạn nhằm tránh cạn kiệt slot runner và hạn mức phút CI <!-- ev: C11.18 -->.
 
+### 1.5. Tổ chức hàng chục pipeline ở quy mô Enterprise: `include:` vs `trigger: include` vs `trigger: project`
+
+Khi hệ thống Enterprise phát triển lên hàng chục microservice hoặc hàng chục pipeline, nhồi nhét toàn bộ job vào một tệp cấu hình CI duy nhất khiến file khó bảo trì, giao diện pipeline phình to và dễ đụng giới hạn cấu hình. GitLab giải quyết bài toán này bằng 3 cơ chế khác nhau về số lượng pipeline tạo ra và phạm vi repository (xem thêm cú pháp cơ bản tại [6_6_2 Cú Pháp Chi Tiết Pipeline GitLab CI-CD](./6_6_2%20GitLab%20CI-CD%20Pipeline%20Syntax.md)):
+
+- **`include:` (Gộp nhiều file YAML vào pipeline chính)**: Dùng `include` với các nguồn `local`, `project`, `remote`, `template` hoặc `component` để lấy các đoạn YAML bên ngoài; toàn bộ nội dung được **gộp chung** vào chính pipeline đang chạy ngay lúc phân tích cấu hình, nên mọi job vẫn thuộc một pipeline duy nhất, dùng chung `stages` và ngữ cảnh biến <!-- ev: C11.21 -->. Cách này phù hợp để chia sẻ template hoặc chuẩn CI chung cho nhiều nhóm mà không sinh thêm pipeline phụ.
+- **`trigger: include` (Parent-Child Pipeline — tách pipeline con trong cùng project)**: Thay vì gộp job vào pipeline chính, job khai báo `trigger: include` sẽ khởi tạo một **pipeline con (child pipeline)** độc lập nằm trong **cùng repository** (thường đi kèm `rules:changes` cho monorepo), có danh sách job và đồ thị chạy riêng <!-- ev: C11.22 -->. Từ GitLab 18.2+, bạn nên đặt `strategy: mirror` để job ở pipeline cha chờ và phản ánh chính xác mọi trạng thái của pipeline con; tùy chọn `strategy: depend` (ở các phiên bản GitLab cũ hơn trước 18.2) không còn được khuyến nghị vì trạng thái trigger job không phải lúc nào cũng khớp với pipeline con <!-- ev: C11.23 -->.
+- **`trigger: project` (Multi-Project Pipeline — kích hoạt pipeline ở project khác)**: Dùng khi kiến trúc tách thành nhiều repository riêng (ví dụ repo ứng dụng build xong image sẽ kích hoạt pipeline ở repo hạ tầng/GitOps hoặc repo kiểm thử E2E). Job nguồn sẽ tạo một pipeline độc lập ở **project khác** và có thể chỉ định nhánh mục tiêu qua `branch` (nên dùng `strategy: mirror` từ GitLab 18.2+ thay cho `strategy: depend` nếu cần chờ và phản ánh trạng thái kết quả) <!-- ev: C11.24 -->, giúp giữ nguyên ranh giới phân quyền và biến bí mật CI/CD riêng của từng project <!-- ev: C11.25 -->.
+
+<!-- ev: C11.21 C11.22 C11.23 C11.24 C11.25 -->
+| Cơ chế | Số pipeline được tạo | Phạm vi Repo | Khi nào dùng ở Enterprise |
+| :--- | :--- | :--- | :--- |
+| **`include:`** | **1 pipeline** duy nhất (gộp YAML trước khi chạy) | Cùng repo hoặc kéo template từ repo/URL khác | Dùng chung bộ rule/template CI chuẩn hóa giữa nhiều đội mà không muốn tách pipeline |
+| **`trigger: include`** | **Nhiều pipeline** (1 cha + các pipeline con) | Trong **cùng một repo** (monorepo) | Monorepo có nhiều microservice; mỗi service chỉ chạy pipeline con riêng khi code service đó đổi |
+| **`trigger: project`** | **Nhiều pipeline** (trên nhiều project) | **Khác repo / project** | Kiến trúc multi-repo (ví dụ repo App build xong kích hoạt repo GitOps/E2E test riêng biệt) |
+
 ---
 
 ## 2. Ví Dụ Đời Sống Thực Tế Dễ Hiểu (Intuitive Real-World Analogies)
@@ -235,6 +250,45 @@ check_interval = 0
 ```
 <!-- ev: C11.2 -->
 
+### 4.3. Ví dụ ngắn: Phân tách pipeline quy mô Enterprise
+
+Ví dụ cấu hình dưới đây minh họa cách kết hợp cả 3 cơ chế trong một hệ thống lớn:
+
+<!-- ev: C11.13 C11.21 C11.22 C11.23 C11.24 -->
+```yaml
+# 1. include: local — gộp file YAML cùng repo vào ngay pipeline hiện tại
+include:
+  - local: 'ci/common-lint.yml'
+
+stages:
+  - lint
+  - trigger-child
+  - trigger-deploy
+
+# 2. trigger: include — tạo child pipeline độc lập trong cùng repo
+payment-service-pipeline:
+  stage: trigger-child
+  rules:
+    - changes:
+        - services/payment/**/*
+  trigger:
+    include: services/payment/.gitlab-ci.yml
+    strategy: mirror
+
+# 3. trigger: project — tạo downstream pipeline ở một project khác
+gitops-deploy-pipeline:
+  stage: trigger-deploy
+  trigger:
+    project: platform/gitops-manifests
+    branch: main
+    strategy: mirror
+```
+
+**Quan sát Input → Hành vi**:
+- **Input 1 (Chạy `include: local`)**: Các job trong `ci/common-lint.yml` xuất hiện trực tiếp trong danh sách job của pipeline gốc và không sinh ra pipeline con nào thêm <!-- ev: C11.21 -->.
+- **Input 2 (Thay đổi file trong `services/payment/` và push)**: Job `payment-service-pipeline` kích hoạt một pipeline con mới ngay trong cùng repository; nhờ `strategy: mirror` (GitLab 18.2+), job cha sẽ chờ và phản ánh chính xác trạng thái của pipeline con <!-- ev: C11.22 C11.23 -->.
+- **Input 3 (Tới stage `trigger-deploy`)**: Job `gitops-deploy-pipeline` khởi tạo một pipeline mới trên nhánh `main` của project `platform/gitops-manifests`, sử dụng biến và phân quyền riêng của repo hạ tầng đó <!-- ev: C11.24 C11.25 -->.
+
 ---
 
 ## 5. Cạm Bẫy Thực Tế & Thực Tiễn Sản Xuất (Production Gotchas & Best Practices)
@@ -290,3 +344,5 @@ check_interval = 0
 - [GitLab CI/CD YAML Syntax — `needs`](https://docs.gitlab.com/ci/yaml/#needs) - Tài liệu chính thức về DAG, `needs`, và `artifacts: false`.
 - [GitLab CI/CD YAML Syntax — `interruptible`](https://docs.gitlab.com/ci/yaml/#interruptible) - Tài liệu chính thức về `interruptible` và cơ chế tự động hủy pipeline dư thừa.
 - [GitLab CI/CD Variables](https://docs.gitlab.com/ci/variables/) - Tài liệu chính thức về biến `Protected`, `Masked` và gỡ lỗi với `CI_DEBUG_TRACE`.
+- [Include external YAML files](https://docs.gitlab.com/ci/yaml/includes/) - Tài liệu chính thức về `include` (`local`, `project`, `remote`, `template`, `component`) và cách gộp cấu hình YAML.
+- [Downstream pipelines](https://docs.gitlab.com/ci/pipelines/downstream_pipelines/) - Tài liệu chính thức về Parent-Child pipelines (`trigger: include`), Multi-Project pipelines (`trigger: project`), `strategy: depend` và `strategy: mirror`.

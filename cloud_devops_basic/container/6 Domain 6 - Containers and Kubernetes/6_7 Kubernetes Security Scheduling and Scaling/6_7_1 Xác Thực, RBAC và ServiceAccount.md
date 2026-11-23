@@ -50,6 +50,15 @@ Kubernetes hỗ trợ cơ chế giả lập kiểm tra quyền trực tiếp t�
 <!-- ev: C1.7 -->
 Lệnh `kubectl auth can-i <verb> <resource> --as=system:serviceaccount:<ns>:<sa> -n <ns>` cho phép kiểm tra một ServiceAccount có quyền thực thi thao tác cụ thể hay không mà không cần đăng nhập thực tế.
 
+| Thành phần | Ý nghĩa kỹ thuật |
+| --- | --- |
+| `kubectl auth can-i` | Lệnh truy vấn quyền kiểm soát truy cập (RBAC Authorization Review). |
+| `<verb>` | Hành động cần kiểm tra (ví dụ: `get`, `list`, `create`, `update`, `delete`, `watch` hoặc `*`). |
+| `<resource>` | Loại tài nguyên cần tác động (ví dụ: `pods`, `deployments`, `secrets`, `configmaps`). |
+| `--as=...` | Tính năng Impersonation (Mạo danh / Đóng vai): Cho phép Admin đứng ở góc nhìn của danh tính đó để kiểm tra quyền mà không cần phải lấy token của họ. |
+| `system:serviceaccount:<ns>:<sa>` | Tên Username chuẩn hóa của ServiceAccount trong hệ thống RBAC của Kubernetes. |
+| `-n <ns>` | Phạm vi Namespace diễn ra hành động cần kiểm tra. |
+
 <!-- ev: C1.8 -->
 Khi kết hợp với tham số `--list`, cú pháp `kubectl auth can-i --list --as=system:serviceaccount:<ns>:<sa> -n <ns>` sẽ hiển thị toàn bộ danh sách quyền hạn (verbs, resources, apiGroups) mà danh tính đó sở hữu trong namespace chỉ định.
 
